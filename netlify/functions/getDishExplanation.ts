@@ -1,12 +1,6 @@
-// To use this function, you need to install the Netlify CLI and run `netlify dev`
-// You also need to create a .env file in your root directory with:
-// API_KEY=your_gemini_api_key
-// SUPABASE_URL=your_supabase_url
-// SUPABASE_ANON_KEY=your_supabase_anon_key
-
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { GoogleGenAI, Type } from "@google/genai";
-import { supabase } from "../../services/supabaseClient";
+import { createClient } from '@supabase/supabase-js';
 import { DishExplanation } from "../../types";
 
 const explanationSchema = {
@@ -14,55 +8,163 @@ const explanationSchema = {
     properties: {
         explanation: {
             type: Type.STRING,
-            description: "A concise, one-to-two sentence explanation of the dish. Should be easy for a tourist to understand."
+            description: "A concise explanation of the dish in under 300 characters. Should be easy for a tourist to understand."
         },
         tags: {
             type: Type.ARRAY,
-            description: "An array of relevant dietary or flavor tags (e.g., 'Spicy', 'Vegetarian', 'Contains Nuts', 'Gluten-Free').",
+            description: "An array of dietary and flavor tags (e.g., 'Vegetarian', 'Vegan', 'Gluten-Free', 'Spicy', 'Sweet', 'Grilled', 'Fried').",
+            items: {
+                type: Type.STRING
+            }
+        },
+        allergens: {
+            type: Type.ARRAY,
+            description: "An array of allergen information (e.g., 'Contains Nuts', 'Contains Dairy', 'Contains Gluten', 'Contains Shellfish', 'Contains Eggs').",
             items: {
                 type: Type.STRING
             }
         }
     },
-    required: ["explanation", "tags"]
+    required: ["explanation", "tags", "allergens"]
+};
+
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const geminiApiKey = process.env.GEMINI_API_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey || !geminiApiKey) {
+    console.error('Missing environment variables:', {
+        supabaseUrl: !!supabaseUrl,
+        supabaseAnonKey: !!supabaseAnonKey,
+        geminiApiKey: !!geminiApiKey
+    });
+}
+
+const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+
+// Fuzzy search function
+const fuzzySearch = (searchTerm: string, targetString: string): number => {
+    const search = searchTerm.toLowerCase().trim();
+    const target = targetString.toLowerCase().trim();
+    
+    // Exact match
+    if (search === target) return 1.0;
+    
+    // Contains match
+    if (target.includes(search) || search.includes(target)) return 0.8;
+    
+    // Word-based matching
+    const searchWords = search.split(/\s+/);
+    const targetWords = target.split(/\s+/);
+    
+    let matchedWords = 0;
+    for (const searchWord of searchWords) {
+        for (const targetWord of targetWords) {
+            if (searchWord === targetWord || 
+                searchWord.includes(targetWord) || 
+                targetWord.includes(searchWord)) {
+                matchedWords++;
+                break;
+            }
+        }
+    }
+    
+    const wordMatchScore = matchedWords / Math.max(searchWords.length, targetWords.length);
+    
+    // Character similarity (simplified)
+    let charMatches = 0;
+    const minLength = Math.min(search.length, target.length);
+    for (let i = 0; i < minLength; i++) {
+        if (search[i] === target[i]) charMatches++;
+    }
+    const charMatchScore = charMatches / Math.max(search.length, target.length);
+    
+    return Math.max(wordMatchScore, charMatchScore * 0.6);
 };
 
 const handler: Handler = async (event: HandlerEvent) => {
     const dishName = event.queryStringParameters?.dishName;
 
     if (!dishName) {
-        return { statusCode: 400, body: JSON.stringify({ error: "A dishName query parameter is required." }) };
+        return { 
+            statusCode: 400, 
+            body: JSON.stringify({ error: "A dishName query parameter is required." }),
+            headers: { 'Content-Type': 'application/json' }
+        };
     }
     
-    if (!process.env.API_KEY || !process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-        return { statusCode: 500, body: JSON.stringify({ error: "Server environment variables are not configured correctly." }) };
+    if (!supabaseUrl || !supabaseAnonKey || !geminiApiKey) {
+        return { 
+            statusCode: 500, 
+            body: JSON.stringify({ error: "Server environment variables are not configured correctly." }),
+            headers: { 'Content-Type': 'application/json' }
+        };
     }
 
     try {
-        // 1. Check database first (our cache)
-        const { data: dbData, error: dbError } = await supabase
+        console.log(`Searching for dish: ${dishName}`);
+        
+        // 1. Get all dishes from database for fuzzy matching
+        const { data: allDishes, error: fetchError } = await supabase
             .from('dishes')
-            .select('explanation, tags')
-            .eq('name', dishName)
-            .single();
+            .select('name, explanation, tags, allergens');
 
-        // Let "no rows found" error pass, but throw others
-        if (dbError && dbError.code !== 'PGRST116') {
-             throw dbError;
+        if (fetchError) {
+            console.error("Database fetch error:", fetchError);
+            throw new Error(`Database error: ${fetchError.message}`);
         }
 
-        if (dbData) {
+        // 2. Perform fuzzy search
+        let bestMatch = null;
+        let bestScore = 0;
+        const FUZZY_THRESHOLD = 0.7; // Adjust this threshold as needed
+
+        if (allDishes && allDishes.length > 0) {
+            for (const dish of allDishes) {
+                if (dish.name) {
+                    const score = fuzzySearch(dishName, dish.name);
+                    if (score > bestScore && score >= FUZZY_THRESHOLD) {
+                        bestScore = score;
+                        bestMatch = dish;
+                    }
+                }
+            }
+        }
+
+        // 3. If found in database with good confidence, return it
+        if (bestMatch) {
+            console.log(`Found match in DB: ${bestMatch.name} (score: ${bestScore})`);
             return {
                 statusCode: 200,
-                body: JSON.stringify(dbData),
-                headers: { 'Content-Type': 'application/json', 'X-Data-Source': 'Database' }
+                body: JSON.stringify({
+                    explanation: bestMatch.explanation,
+                    tags: bestMatch.tags || [],
+                    allergens: bestMatch.allergens || []
+                }),
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Data-Source': 'Database',
+                    'X-Match-Score': bestScore.toString()
+                }
             };
         }
 
-        // 2. If not in DB, call Gemini
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        // 4. If not found in DB, call Gemini API
+        console.log(`No match found in DB, calling Gemini API for: ${dishName}`);
+        
+        const ai = new GoogleGenAI({ apiKey: geminiApiKey });
         const textPart = {
-            text: `You are a culinary expert. Explain the dish "${decodeURIComponent(dishName)}". Provide a concise one-paragraph explanation suitable for a tourist. Also, provide a few relevant tags like "Spicy", "Vegetarian", "Contains Nuts", or "Gluten-Free". Respond in the requested JSON format.`
+            text: `You are a culinary expert. Explain the dish "${decodeURIComponent(dishName)}". 
+            Provide a concise explanation suitable for a tourist in under 300 characters. 
+            
+            For tags, include: dietary restrictions (Vegetarian, Vegan, Gluten-Free, Dairy-Free), cooking methods (Grilled, Fried, Steamed, Raw), and flavor profiles (Spicy, Sweet, Savory, Mild, Hot).
+            
+            For allergens, specifically list what the dish contains using this format: "Contains [allergen]" (e.g., "Contains Nuts", "Contains Dairy", "Contains Gluten", "Contains Shellfish", "Contains Eggs", "Contains Fish", "Contains Soy").
+            
+            If the dish doesn't contain common allergens, return an empty array for allergens.
+            
+            Respond in the requested JSON format.`
         };
 
         const response = await ai.models.generateContent({
@@ -77,21 +179,30 @@ const handler: Handler = async (event: HandlerEvent) => {
         const jsonText = response.text.trim();
         const dishExplanation: DishExplanation = JSON.parse(jsonText);
 
-        // 3. Save to database for next time (fire and forget, don't block response)
+        // 5. Save to database for future use (fire and forget)
         supabase
-          .from('dishes')
-          .insert({ name: dishName, ...dishExplanation })
-          .then(({ error }) => {
-            if (error) {
-                // Log errors for monitoring, but don't fail the user's request
-                console.error("Supabase insert error:", error);
-            }
-          });
+            .from('dishes')
+            .insert({ 
+                name: dishName, 
+                explanation: dishExplanation.explanation,
+                tags: dishExplanation.tags || [],
+                allergens: dishExplanation.allergens || []
+            })
+            .then(({ error }) => {
+                if (error) {
+                    console.error("Supabase insert error:", error);
+                } else {
+                    console.log(`Saved new dish to DB: ${dishName}`);
+                }
+            });
         
         return {
             statusCode: 200,
             body: JSON.stringify(dishExplanation),
-            headers: { 'Content-Type': 'application/json', 'X-Data-Source': 'Gemini-API' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-Data-Source': 'Gemini-API'
+            }
         };
 
     } catch (error) {
@@ -99,7 +210,10 @@ const handler: Handler = async (event: HandlerEvent) => {
         const errorMessage = error instanceof Error ? error.message : "An unknown internal error occurred.";
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: `Failed to get explanation for "${dishName}". Reason: ${errorMessage}` })
+            body: JSON.stringify({ 
+                error: `Failed to get explanation for "${dishName}". Reason: ${errorMessage}` 
+            }),
+            headers: { 'Content-Type': 'application/json' }
         };
     }
 };

@@ -210,13 +210,30 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
                                                             <p className="text-red-600 font-medium">Error: {explanations[dish.name]?.error}</p>
                                                         )}
                                                         {explanations[dish.name]?.data && (
-                                                            <div className="space-y-3">
-                                                                <p className="font-medium">{explanations[dish.name]?.data?.explanation}</p>
+                                                            <div className="space-y-4">
+                                                                <p className="font-medium text-lg">{explanations[dish.name]?.data?.explanation}</p>
+                                                                
+                                                                {/* Tags Section */}
                                                                 {explanations[dish.name]?.data?.tags && explanations[dish.name]?.data?.tags?.length > 0 && (
-                                                                    <div className="flex flex-wrap gap-2">
-                                                                        {explanations[dish.name]?.data?.tags?.map(tag => (
-                                                                            <span key={tag} className="px-2.5 py-1 text-xs font-bold bg-teal/20 text-teal-800 rounded-full">{tag}</span>
-                                                                        ))}
+                                                                    <div className="space-y-2">
+                                                                        <p className="text-sm font-bold text-charcoal/70 uppercase tracking-wide">Dietary & Style</p>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {explanations[dish.name]?.data?.tags?.map(tag => (
+                                                                                <span key={tag} className="px-3 py-1 text-sm font-bold bg-teal/20 text-teal-800 rounded-full border border-teal/30">{tag}</span>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Allergens Section */}
+                                                                {explanations[dish.name]?.data?.allergens && explanations[dish.name]?.data?.allergens?.length > 0 && (
+                                                                    <div className="space-y-2">
+                                                                        <p className="text-sm font-bold text-red-700 uppercase tracking-wide">⚠️ Allergen Information</p>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {explanations[dish.name]?.data?.allergens?.map(allergen => (
+                                                                                <span key={allergen} className="px-3 py-1 text-sm font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
+                                                                            ))}
+                                                                        </div>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -227,7 +244,7 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
+                                            </div>
                         ))
                     ) : (
                         <p className="text-center text-xl text-charcoal/70 font-medium">Could not find any dishes on the menu. Please try another image.</p>
