@@ -1,0 +1,8 @@
+{
+  "name": "WhatTheMenu",
+  "description": "An AI-powered menu scanner and explainer. Take a picture or upload a menu, and get instant explanations for every dish, including ingredients, allergens, and dietary information.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "prompt": ""
+}
