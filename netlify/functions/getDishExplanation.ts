@@ -43,57 +43,123 @@ if (!supabaseUrl || !supabaseAnonKey || !geminiApiKey) {
 
 const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
-// Improved normalize function to handle punctuation and case
-const normalizeDishName = (name: string): string => {
-    return name
-        .toLowerCase()
+// Universal string cleaning (minimal processing to preserve all languages)
+const cleanString = (str: string): string => {
+    return str
         .trim()
-        // Remove punctuation
+        // Only remove common punctuation that appears in menus
         .replace(/[.,!?;:"'()[\]{}]/g, '')
-        // Replace multiple spaces with single space
+        // Normalize whitespace
         .replace(/\s+/g, ' ')
         .trim();
 };
 
-// Improved fuzzy search function
-const fuzzySearch = (searchTerm: string, targetString: string): number => {
-    const search = normalizeDishName(searchTerm);
-    const target = normalizeDishName(targetString);
+// Levenshtein Distance - works for ANY writing system
+const levenshteinDistance = (str1: string, str2: string): number => {
+    const len1 = str1.length;
+    const len2 = str2.length;
     
-    console.log(`  Normalized: "${search}" vs "${target}"`);
+    // Create matrix
+    const matrix = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(null));
     
-    // Exact match after normalization
-    if (search === target) {
+    // Initialize first row and column
+    for (let i = 0; i <= len1; i++) matrix[i][0] = i;
+    for (let j = 0; j <= len2; j++) matrix[0][j] = j;
+    
+    // Fill matrix
+    for (let i = 1; i <= len1; i++) {
+        for (let j = 1; j <= len2; j++) {
+            const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,     // deletion
+                matrix[i][j - 1] + 1,     // insertion
+                matrix[i - 1][j - 1] + cost // substitution
+            );
+        }
+    }
+    
+    return matrix[len1][len2];
+};
+
+// Universal similarity calculation
+const calculateSimilarity = (str1: string, str2: string): number => {
+    // Clean both strings minimally
+    const clean1 = cleanString(str1);
+    const clean2 = cleanString(str2);
+    
+    console.log(`  Cleaned: "${clean1}" vs "${clean2}"`);
+    
+    // Exact match (case-insensitive)
+    if (clean1.toLowerCase() === clean2.toLowerCase()) {
         console.log(`  -> EXACT MATCH! Score: 1.0`);
         return 1.0;
     }
     
-    // Contains match
-    if (target.includes(search) || search.includes(target)) {
-        console.log(`  -> CONTAINS MATCH! Score: 0.9`);
-        return 0.9;
+    // Exact match on original strings (preserves case sensitivity for non-Latin scripts)
+    if (clean1 === clean2) {
+        console.log(`  -> EXACT CASE MATCH! Score: 1.0`);
+        return 1.0;
     }
     
-    // Word-based matching
-    const searchWords = search.split(/\s+/);
-    const targetWords = target.split(/\s+/);
+    // Calculate similarity using Levenshtein distance
+    const maxLength = Math.max(clean1.length, clean2.length);
+    if (maxLength === 0) return 1.0; // Both empty strings
     
-    let matchedWords = 0;
-    for (const searchWord of searchWords) {
-        for (const targetWord of targetWords) {
-            if (searchWord === targetWord || 
-                searchWord.includes(targetWord) || 
-                targetWord.includes(searchWord)) {
-                matchedWords++;
-                break;
+    const distance = levenshteinDistance(clean1, clean2);
+    const similarity = (maxLength - distance) / maxLength;
+    
+    console.log(`  -> Levenshtein similarity: ${similarity.toFixed(3)} (distance: ${distance}, max: ${maxLength})`);
+    
+    // For very short strings, be more strict
+    if (maxLength <= 3 && similarity < 0.8) {
+        return 0;
+    }
+    
+    return similarity;
+};
+
+// Multi-level fuzzy search that works for all languages
+const universalFuzzySearch = (searchTerm: string, targetString: string): number => {
+    console.log(`  Comparing: "${searchTerm}" vs "${targetString}"`);
+    
+    // Level 1: Direct similarity
+    const directSimilarity = calculateSimilarity(searchTerm, targetString);
+    
+    // Level 2: Case-insensitive similarity (for Latin scripts)
+    const lowerSimilarity = calculateSimilarity(searchTerm.toLowerCase(), targetString.toLowerCase());
+    
+    // Level 3: Word-by-word for languages that use spaces
+    let wordSimilarity = 0;
+    const searchWords = searchTerm.trim().split(/\s+/).filter(w => w.length > 0);
+    const targetWords = targetString.trim().split(/\s+/).filter(w => w.length > 0);
+    
+    if (searchWords.length > 0 && targetWords.length > 0) {
+        let totalSimilarity = 0;
+        let matchCount = 0;
+        
+        for (const searchWord of searchWords) {
+            let bestWordMatch = 0;
+            for (const targetWord of targetWords) {
+                const wordSim = calculateSimilarity(searchWord, targetWord);
+                bestWordMatch = Math.max(bestWordMatch, wordSim);
             }
+            if (bestWordMatch > 0.7) {
+                totalSimilarity += bestWordMatch;
+                matchCount++;
+            }
+        }
+        
+        if (matchCount > 0) {
+            wordSimilarity = (totalSimilarity / matchCount) * (matchCount / Math.max(searchWords.length, targetWords.length));
+            console.log(`  -> Word-based similarity: ${wordSimilarity.toFixed(3)}`);
         }
     }
     
-    const wordMatchScore = matchedWords / Math.max(searchWords.length, targetWords.length);
-    console.log(`  -> Word match score: ${wordMatchScore} (${matchedWords}/${Math.max(searchWords.length, targetWords.length)} words)`);
+    // Return the best similarity score
+    const finalScore = Math.max(directSimilarity, lowerSimilarity, wordSimilarity);
+    console.log(`  -> Final score: ${finalScore.toFixed(3)}`);
     
-    return wordMatchScore;
+    return finalScore;
 };
 
 const handler: Handler = async (event: HandlerEvent) => {
@@ -130,35 +196,34 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         console.log(`📊 Database returned ${allDishes ? allDishes.length : 0} dishes`);
 
-        // 2. Perform fuzzy search
+        // 2. Perform universal fuzzy search
         let bestMatch = null;
         let bestScore = 0;
-        const FUZZY_THRESHOLD = 0.8; // Higher threshold for better precision
+        const FUZZY_THRESHOLD = 0.85; // High threshold for accuracy
 
         if (allDishes && allDishes.length > 0) {
-            console.log(`🔎 Starting fuzzy search comparison...`);
+            console.log(`🔎 Starting universal fuzzy search...`);
             
             for (const dish of allDishes) {
                 if (dish.name) {
-                    console.log(`Comparing "${dishName}" with "${dish.name}"`);
-                    const score = fuzzySearch(dishName, dish.name);
+                    const score = universalFuzzySearch(dishName, dish.name);
                     
                     if (score > bestScore) {
                         bestScore = score;
                         if (score >= FUZZY_THRESHOLD) {
                             bestMatch = dish;
-                            console.log(`✅ NEW BEST MATCH: "${dish.name}" with score ${score}`);
+                            console.log(`✅ NEW BEST MATCH: "${dish.name}" with score ${score.toFixed(3)}`);
                         }
                     }
                 }
             }
             
-            console.log(`🎯 Best match: ${bestMatch ? `"${bestMatch.name}" (${bestScore})` : `None (best score: ${bestScore})`}`);
+            console.log(`🎯 Best match: ${bestMatch ? `"${bestMatch.name}" (${bestScore.toFixed(3)})` : `None (best score: ${bestScore.toFixed(3)})`}`);
         }
 
         // 3. If found in database with good confidence, return it
         if (bestMatch && bestScore >= FUZZY_THRESHOLD) {
-            console.log(`✅ FOUND MATCH IN DB: "${bestMatch.name}" (score: ${bestScore})`);
+            console.log(`✅ FOUND MATCH IN DB: "${bestMatch.name}" (score: ${bestScore.toFixed(3)})`);
             return {
                 statusCode: 200,
                 body: JSON.stringify({
@@ -175,7 +240,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
 
         // 4. If not found in DB, call Gemini API
-        console.log(`❌ No match found in DB (best score: ${bestScore}), calling Gemini API for: "${dishName}"`);
+        console.log(`❌ No match found in DB (best score: ${bestScore.toFixed(3)}), calling Gemini API for: "${dishName}"`);
         
         const ai = new GoogleGenAI({ apiKey: geminiApiKey });
         const textPart = {
@@ -203,24 +268,18 @@ const handler: Handler = async (event: HandlerEvent) => {
         const jsonText = response.text.trim();
         const dishExplanation: DishExplanation = JSON.parse(jsonText);
 
-        // 5. Save to database for future use (using normalized name to prevent duplicates)
-        const normalizedDishName = normalizeDishName(dishName);
-        console.log(`💾 Attempting to save dish with normalized name: "${normalizedDishName}"`);
+        // 5. Save to database for future use (check for duplicates using same algorithm)
+        console.log(`💾 Checking for duplicates before saving: "${dishName}"`);
         
-        // Check if normalized dish name already exists
-        const { data: existingDishes } = await supabase
-            .from('dishes')
-            .select('id, name');
-            
-        const duplicateExists = existingDishes?.some(dish => 
-            normalizeDishName(dish.name) === normalizedDishName
+        const duplicateExists = allDishes?.some(dish => 
+            universalFuzzySearch(dishName, dish.name) >= FUZZY_THRESHOLD
         );
         
         if (!duplicateExists) {
             const { error: insertError } = await supabase
                 .from('dishes')
                 .insert({ 
-                    name: dishName, // Keep original name but check with normalized
+                    name: dishName, // Preserve original name exactly as scanned
                     explanation: dishExplanation.explanation,
                     tags: dishExplanation.tags || [],
                     allergens: dishExplanation.allergens || []
@@ -232,7 +291,7 @@ const handler: Handler = async (event: HandlerEvent) => {
                 console.log(`✅ Successfully saved new dish to DB: "${dishName}"`);
             }
         } else {
-            console.log(`ℹ️ Dish with similar name already exists in database, skipping insert`);
+            console.log(`ℹ️ Similar dish already exists in database, skipping insert`);
         }
         
         return {
