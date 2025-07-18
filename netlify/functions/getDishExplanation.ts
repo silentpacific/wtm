@@ -23,9 +23,13 @@ const explanationSchema = {
             items: {
                 type: Type.STRING
             }
+        },
+        cuisine: {
+            type: Type.STRING,
+            description: "The specific cuisine type (e.g., 'Italian', 'Japanese', 'Mexican', 'Indian', 'Thai', 'French', 'Chinese', 'Mediterranean', 'American', 'Korean', 'Vietnamese', 'Greek', 'Spanish', 'Lebanese', 'Moroccan', etc.). Be specific and precise."
         }
     },
-    required: ["explanation", "tags", "allergens"]
+    required: ["explanation", "tags", "allergens", "cuisine"]
 };
 
 // Initialize Supabase client
@@ -55,6 +59,9 @@ const getLanguagePrompt = (dishName: string, language: string): string => {
             For allergens, specifically list what the dish contains using this format: "Contains [allergen]" (e.g., "Contains Nuts", "Contains Dairy", "Contains Gluten", "Contains Shellfish", "Contains Eggs", "Contains Fish", "Contains Soy").
             
             If the dish doesn't contain common allergens, return an empty array for allergens.
+
+	    For cuisine, identify the specific cuisine type (e.g., "Italian", "Japanese", "Mexican", "Indian", "Thai", "French", "Chinese", "Mediterranean", "American", "Korean", "Vietnamese", "Greek", "Spanish", "Lebanese", "Moroccan", etc.). Be specific - use the most precise cuisine classification.
+
             
             Respond in the requested JSON format.`,
             tagExamples: 'Vegetarian, Vegan, Gluten-Free, Spicy, Sweet, Grilled, Fried',
@@ -69,6 +76,8 @@ const getLanguagePrompt = (dishName: string, language: string): string => {
             Para los alérgenos, especifica específicamente lo que contiene el plato usando este formato: "Contiene [alérgeno]" (ej., "Contiene Frutos Secos", "Contiene Lácteos", "Contiene Gluten", "Contiene Mariscos", "Contiene Huevos", "Contiene Pescado", "Contiene Soja").
             
             Si el plato no contiene alérgenos comunes, devuelve un array vacío para los alérgenos.
+
+	    Para la cocina, identifica el tipo específico de cocina (ej., "Italiana", "Japonesa", "Mexicana", "India", "Tailandesa", "Francesa", "China", "Mediterránea", "Americana", "Coreana", "Vietnamita", "Griega", "Española", "Libanesa", "Marroquí", etc.). Sé específico - usa la clasificación de cocina más precisa.
             
             Responde en el formato JSON solicitado, pero con todo el contenido en español.`,
             tagExamples: 'Vegetariano, Vegano, Sin Gluten, Picante, Dulce, A la Parrilla, Frito',
