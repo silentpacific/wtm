@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Routes, Route, Link, NavLink } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
 import { PrivacyPolicyPage, TermsOfUsePage, FaqPage } from './pages/LegalPages';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginModal } from './components/LoginModal';
+import { getGlobalCounters, subscribeToCounters, GlobalCounters } from './services/counterService';
 
 const Header: React.FC<{ userScans: number }> = ({ userScans }) => {
   const { user, signOut } = useAuth();
@@ -71,7 +72,7 @@ const Header: React.FC<{ userScans: number }> = ({ userScans }) => {
   );
 };
 
-const Footer: React.FC<{ totalScans: number }> = ({ totalScans }) => (
+const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => (
   <footer className="bg-yellow border-t-4 border-charcoal">
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-charcoal/80">
       <p className="font-bold">
@@ -82,22 +83,56 @@ const Footer: React.FC<{ totalScans: number }> = ({ totalScans }) => (
         <Link to="/terms" className="hover:text-charcoal">Terms of Use</Link>
         <Link to="/contact" className="hover:text-charcoal">Contact Us</Link>
       </div>
-      <p className="my-2">
-        Total menus scanned globally: <span className="font-black">{totalScans.toLocaleString()}</span>
-      </p>
+      
+      {/* Enhanced counters section */}
+      <div className="my-4 space-y-2">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-8">
+          <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
+            <span className="text-sm font-bold">Menus Scanned: </span>
+            <span className="font-black text-lg">{globalCounters.menus_scanned.toLocaleString()}</span>
+          </div>
+          <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
+            <span className="text-sm font-bold">Dishes Explained: </span>
+            <span className="font-black text-lg">{globalCounters.dish_explanations.toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+      
       <p className="font-bold">&copy; {new Date().getFullYear()} What The Menu? Built by <a href="https://www.lofisimplify.com.au/" target="_blank" rel="noopener noreferrer" className="underline hover:text-coral transition-colors">LoFi Simplify</a> with ❤️ in Adelaide. All rights reserved.</p>
     </div>
   </footer>
 );
 
 const AppContent: React.FC = () => {
-  const [totalScans, setTotalScans] = useState(1337);
+  const [globalCounters, setGlobalCounters] = useState<GlobalCounters>({
+    menus_scanned: 1337,
+    dish_explanations: 0
+  });
   const [userScans, setUserScans] = useState(3);
 
+  // Load initial counters and subscribe to changes
+  useEffect(() => {
+    const loadCounters = async () => {
+      const counters = await getGlobalCounters();
+      setGlobalCounters(counters);
+    };
+
+    loadCounters();
+
+    // Subscribe to real-time updates
+    const subscription = subscribeToCounters((newCounters) => {
+      setGlobalCounters(newCounters);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const incrementScans = useCallback(() => {
-    // For MVP, user scans don't decrease, but we show the initial state.
+    // The actual counter increment will be handled in HomePage component
+    // This is just for the local user scan counter display
     // setUserScans(prev => Math.min(prev + 1, 5));
-    setTotalScans(prev => prev + 1);
   }, []);
 
   return (
@@ -112,7 +147,7 @@ const AppContent: React.FC = () => {
           <Route path="/faq" element={<FaqPage />} />
         </Routes>
       </main>
-      <Footer totalScans={totalScans} />
+      <Footer globalCounters={globalCounters} />
     </div>
   );
 };

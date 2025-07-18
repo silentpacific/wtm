@@ -5,6 +5,7 @@ import { MenuSection, DishExplanation } from '../types';
 import { CameraIcon, UploadIcon } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
+import { incrementMenuScanned, incrementDishExplanation } from '../services/counterService';
 
 interface HomePageProps {
   onScanSuccess: () => void;
@@ -250,6 +251,9 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
             }
             const data: DishExplanation = await response.json();
             
+            // Increment global dish explanation counter
+            await incrementDishExplanation();
+            
             setExplanations(prev => ({
                 ...prev,
                 [dishName]: { data, isLoading: false, error: null }
@@ -347,7 +351,6 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
                                                                 {explanations[dish.name]?.data?.allergens && explanations[dish.name]?.data?.allergens?.length > 0 && (
                                                                     <div className="space-y-2">
 <p className="text-xs font-bold text-red-700 uppercase tracking-wide">⚠️ Allergen Information</p>
-
 <div className="flex flex-wrap gap-2">
     {explanations[dish.name]?.data?.allergens?.map(allergen => (
         <span key={allergen} className="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
@@ -568,6 +571,9 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess }) => {
                     // Update local state for non-logged users
                     setNonUserScans(prev => prev + 1);
                 }
+                
+                // Increment global menu counter
+                await incrementMenuScanned();
                 
                 onScanSuccess();
             }
