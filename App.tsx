@@ -3,34 +3,73 @@ import { Routes, Route, Link, NavLink } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
 import { PrivacyPolicyPage, TermsOfUsePage, FaqPage } from './pages/LegalPages';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LoginModal } from './components/LoginModal';
 
-const Header: React.FC<{ userScans: number }> = ({ userScans }) => (
-  <header className="bg-cream/80 backdrop-blur-sm sticky top-0 z-40 w-full border-b-4 border-charcoal">
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="flex items-center justify-between h-20">
-        <div className="flex items-center space-x-8">
-          <Link to="/" className="text-3xl font-black text-charcoal tracking-tighter">
-            WhatTheMenu?
-          </Link>
-          <nav className="hidden md:flex space-x-6">
-            <NavLink to="/faq" className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}>FAQ</NavLink>
-            <NavLink to="/contact" className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}>Contact</NavLink>
-          </nav>
-        </div>
-        <div className="flex items-center space-x-4">
-           <div className="hidden sm:flex items-center gap-2 bg-white px-4 py-2 border-4 border-charcoal rounded-full shadow-[4px_4px_0px_#292524]">
-            <span className="font-bold text-sm">Free Scans:</span>
-            <span className="font-black text-lg">{userScans}/5</span>
+const Header: React.FC<{ userScans: number }> = ({ userScans }) => {
+  const { user, signOut } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  return (
+    <>
+      <header className="bg-cream/80 backdrop-blur-sm sticky top-0 z-40 w-full border-b-4 border-charcoal">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            <div className="flex items-center space-x-8">
+              <Link to="/" className="text-3xl font-black text-charcoal tracking-tighter">
+                WhatTheMenu?
+              </Link>
+              <nav className="hidden md:flex space-x-6">
+                <NavLink to="/faq" className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}>FAQ</NavLink>
+                <NavLink to="/contact" className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}>Contact</NavLink>
+              </nav>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="hidden sm:flex items-center gap-2 bg-white px-4 py-2 border-4 border-charcoal rounded-full shadow-[4px_4px_0px_#292524]">
+                <span className="font-bold text-sm">Free Scans:</span>
+                <span className="font-black text-lg">{userScans}/5</span>
+              </div>
+              
+              {user ? (
+                <div className="flex items-center space-x-4">
+                  <span className="hidden sm:inline text-sm font-bold text-charcoal/70">
+                    Welcome, {user.email?.split('@')[0]}
+                  </span>
+                  <button 
+                    onClick={signOut}
+                    className="px-6 py-2 text-lg font-bold text-charcoal hover:text-coral transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setShowLoginModal(true)}
+                    className="hidden sm:inline-block px-6 py-2 text-lg font-bold text-charcoal hover:text-coral transition-colors"
+                  >
+                    Login
+                  </button>
+                  <button 
+                    onClick={() => setShowLoginModal(true)}
+                    className="px-6 py-3 text-lg font-bold text-white bg-coral rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-[0px_0px_0px_#292524] active:translate-x-1 active:translate-y-1 transition-all"
+                  >
+                    Sign Up
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-          <button className="hidden sm:inline-block px-6 py-2 text-lg font-bold text-charcoal hover:text-coral transition-colors">Login</button>
-          <button className="px-6 py-3 text-lg font-bold text-white bg-coral rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-[0px_0px_0px_#292524] active:translate-x-1 active:translate-y-1 transition-all">
-            Sign Up
-          </button>
         </div>
-      </div>
-    </div>
-  </header>
-);
+      </header>
+      
+      <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)} 
+      />
+    </>
+  );
+};
 
 const Footer: React.FC<{ totalScans: number }> = ({ totalScans }) => (
   <footer className="bg-yellow border-t-4 border-charcoal">
@@ -51,7 +90,7 @@ const Footer: React.FC<{ totalScans: number }> = ({ totalScans }) => (
   </footer>
 );
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [totalScans, setTotalScans] = useState(1337);
   const [userScans, setUserScans] = useState(3);
 
@@ -75,6 +114,14 @@ const App: React.FC = () => {
       </main>
       <Footer totalScans={totalScans} />
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 

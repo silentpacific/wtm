@@ -3,9 +3,20 @@ import { useDropzone } from 'react-dropzone';
 import { analyzeMenu } from '../services/geminiService';
 import { MenuSection, DishExplanation } from '../types';
 import { CameraIcon, UploadIcon } from '../components/icons';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabaseClient';
 
 interface HomePageProps {
   onScanSuccess: () => void;
+}
+
+interface UserProfile {
+  id: string;
+  email: string;
+  subscription_type: 'free' | 'daily' | 'weekly';
+  subscription_expires_at: string | null;
+  scans_used: number;
+  scans_limit: number;
 }
 
 const fileToGenerativePart = async (file: File) => {
@@ -78,17 +89,93 @@ const CameraModal: React.FC<{
     );
 };
 
+const ScanLimitModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    userProfile: UserProfile | null;
+    isLoggedIn: boolean;
+}> = ({ isOpen, onClose, userProfile, isLoggedIn }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-charcoal/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-cream rounded-2xl p-6 border-4 border-charcoal w-full max-w-md">
+                <h2 className="text-2xl font-black text-charcoal mb-4">Scan Limit Reached!</h2>
+                
+                {!isLoggedIn ? (
+                    <div className="space-y-4">
+                        <p className="text-charcoal/80">
+                            You've used all 5 free scans. Sign up for an account to get more scans!
+                        </p>
+                        <div className="space-y-2">
+                            <button className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal">
+                                Sign Up for Free Account
+                            </button>
+                            <button className="w-full py-2 text-charcoal/70 underline">
+                                Already have an account? Login
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <p className="text-charcoal/80">
+                            You've used all {userProfile?.scans_limit || 5} free scans. Upgrade to continue scanning menus!
+                        </p>
+                        <div className="space-y-2">
+                            <button className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal">
+                                Get Daily Pass ($1)
+                            </button>
+                            <button className="w-full py-3 bg-yellow text-charcoal font-bold rounded-lg border-2 border-charcoal">
+                                Get Weekly Pass ($5)
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-charcoal hover:text-coral text-xl"
+                >
+                    ✕
+                </button>
+            </div>
+        </div>
+    );
+};
+
 const HeroSection: React.FC<{ 
     onImageSelect: (file: File) => void; 
-    onBase64Select: (base64: string) => void; 
-}> = ({ onImageSelect, onBase64Select }) => {
+    onBase64Select: (base64: string) => void;
+    canScan: boolean;
+    onScanAttempt: () => void;
+}> = ({ onImageSelect, onBase64Select, canScan, onScanAttempt }) => {
     const [showCamera, setShowCamera] = useState(false);
     
     const onDrop = useCallback((acceptedFiles: File[]) => {
         if (acceptedFiles.length > 0) {
-            onImageSelect(acceptedFiles[0]);
+            if (canScan) {
+                onImageSelect(acceptedFiles[0]);
+            } else {
+                onScanAttempt();
+            }
         }
-    }, [onImageSelect]);
+    }, [onImageSelect, canScan, onScanAttempt]);
+
+    const handleCameraCapture = (base64: string) => {
+        if (canScan) {
+            onBase64Select(base64);
+        } else {
+            onScanAttempt();
+        }
+    };
+
+    const handleCameraClick = () => {
+        if (canScan) {
+            setShowCamera(true);
+        } else {
+            onScanAttempt();
+        }
+    };
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
@@ -96,11 +183,11 @@ const HeroSection: React.FC<{
         multiple: false
     });
 
-    const boxStyle = `w-full sm:w-auto flex-1 p-6 border-4 border-charcoal rounded-2xl cursor-pointer transition-all bg-white shadow-[8px_8px_0px_#292524] hover:shadow-[10px_10px_0px_#292524] hover:-translate-y-1`;
+    const boxStyle = `w-full sm:w-auto flex-1 p-6 border-4 border-charcoal rounded-2xl cursor-pointer transition-all bg-white shadow-[8px_8px_0px_#292524] hover:shadow-[10px_10px_0px_#292524] hover:-translate-y-1 ${!canScan ? 'opacity-75' : ''}`;
 
     return (
         <>
-            {showCamera && <CameraModal onClose={() => setShowCamera(false)} onCapture={onBase64Select} />}
+            {showCamera && <CameraModal onClose={() => setShowCamera(false)} onCapture={handleCameraCapture} />}
             <div className="text-center py-20 sm:py-28 px-4">
                 <h1 className="font-black text-5xl sm:text-6xl lg:text-7xl text-charcoal tracking-tighter">
                     Menu Scanner <span className="text-coral">&</span> Explainer
@@ -118,12 +205,22 @@ const HeroSection: React.FC<{
                         </div>
                     </div>
                      <div className="text-charcoal/50 font-black text-2xl hidden sm:block">OR</div>
-                    <button onClick={() => setShowCamera(true)} className={`${boxStyle} hover:shadow-[10px_10px_0px_#FF6B6B]`}>
+                    <button onClick={handleCameraClick} className={`${boxStyle} hover:shadow-[10px_10px_0px_#FF6B6B]`}>
                          <CameraIcon className="w-16 h-16 text-charcoal mb-2"/>
                         <p className="font-bold text-xl text-charcoal">Take a picture</p>
                         <p className="text-md text-charcoal/70">using your camera</p>
                     </button>
                 </div>
+                
+                {!canScan && (
+                    <div className="mt-8 max-w-md mx-auto">
+                        <div className="bg-yellow/20 border-2 border-yellow rounded-lg p-4">
+                            <p className="text-charcoal font-bold text-center">
+                                📸 Scan limit reached! Upgrade to continue scanning menus.
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
         </>
     );
@@ -152,7 +249,6 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
                 throw new Error(errorData.error || `Request failed`);
             }
             const data: DishExplanation = await response.json();
-            
             
             setExplanations(prev => ({
                 ...prev,
@@ -315,7 +411,6 @@ const PricingTier: React.FC<{
   </div>
 );
 
-
 const PricingSection: React.FC = () => (
   <div className="py-12 sm:py-24">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -353,11 +448,69 @@ const PricingSection: React.FC = () => (
   </div>
 );
 
-
 const HomePage: React.FC<HomePageProps> = ({ onScanSuccess }) => {
+    const { user } = useAuth();
     const [isScanning, setIsScanning] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
     const [scanResult, setScanResult] = useState<MenuSection[] | null>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [showLimitModal, setShowLimitModal] = useState(false);
+    const [nonUserScans, setNonUserScans] = useState(3); // For non-logged in users
+
+    // Fetch user profile when user logs in
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            if (user) {
+                try {
+                    const { data, error } = await supabase
+                        .from('user_profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (error) {
+                        console.error('Error fetching user profile:', error);
+                        return;
+                    }
+
+                    setUserProfile(data);
+                } catch (error) {
+                    console.error('Error fetching user profile:', error);
+                }
+            } else {
+                setUserProfile(null);
+            }
+        };
+
+        fetchUserProfile();
+    }, [user]);
+
+    // Check if user can scan
+    const canScan = useCallback(() => {
+        if (!user) {
+            // Non-logged in users: check local state
+            return nonUserScans < 5;
+        }
+
+        if (!userProfile) return false;
+
+        // Check if subscription is active (for paid users)
+        if (userProfile.subscription_type !== 'free') {
+            const now = new Date();
+            const expiresAt = userProfile.subscription_expires_at ? new Date(userProfile.subscription_expires_at) : null;
+            
+            if (expiresAt && now < expiresAt) {
+                return true; // Active subscription
+            }
+        }
+
+        // Free users (logged in or subscription expired): check scan limit
+        return userProfile.scans_used < userProfile.scans_limit;
+    }, [user, userProfile, nonUserScans]);
+
+    const handleScanAttempt = () => {
+        setShowLimitModal(true);
+    };
 
     const handleResetScan = useCallback(() => {
         setScanResult(null);
@@ -365,6 +518,11 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess }) => {
     }, []);
 
     const handleScan = useCallback(async (base64Image: string) => {
+        if (!canScan()) {
+            handleScanAttempt();
+            return;
+        }
+
         setIsScanning(true);
         setScanError(null);
         setScanResult(null);
@@ -372,8 +530,24 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess }) => {
         try {
             const menuSections = await analyzeMenu(base64Image);
             setScanResult(menuSections);
+            
             if (menuSections.length > 0) {
-              onScanSuccess();
+                // Update scan count after successful scan
+                if (user && userProfile?.subscription_type === 'free') {
+                    // Update database for logged-in free users
+                    await supabase
+                        .from('user_profiles')
+                        .update({ scans_used: userProfile.scans_used + 1 })
+                        .eq('id', user.id);
+                        
+                    // Update local state
+                    setUserProfile(prev => prev ? { ...prev, scans_used: prev.scans_used + 1 } : null);
+                } else if (!user) {
+                    // Update local state for non-logged users
+                    setNonUserScans(prev => prev + 1);
+                }
+                
+                onScanSuccess();
             }
         } catch (err) {
             console.error(err);
@@ -381,7 +555,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess }) => {
         } finally {
             setIsScanning(false);
         }
-    }, [onScanSuccess]);
+    }, [canScan, user, userProfile, onScanSuccess]);
 
     const handleFileSelect = useCallback(async (file: File) => {
       const base64 = await fileToGenerativePart(file);
@@ -429,11 +603,23 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess }) => {
                         </div>
                     </>
                   )
-                : <HeroSection onImageSelect={handleFileSelect} onBase64Select={handleBase64Select} />
+                : <HeroSection 
+                    onImageSelect={handleFileSelect} 
+                    onBase64Select={handleBase64Select}
+                    canScan={canScan()}
+                    onScanAttempt={handleScanAttempt}
+                  />
             )}
 
             <ReviewsSection />
             <PricingSection />
+            
+            <ScanLimitModal 
+                isOpen={showLimitModal}
+                onClose={() => setShowLimitModal(false)}
+                userProfile={userProfile}
+                isLoggedIn={!!user}
+            />
         </div>
     );
 };
