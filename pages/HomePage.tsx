@@ -266,8 +266,29 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
     return (
         <div className="py-12 sm:py-16">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h2 className="font-black text-5xl text-charcoal text-center mb-4 tracking-tighter">Menu Explained</h2>
-                <p className="text-center text-xl text-charcoal/80 font-medium mb-12">Tap on any dish name to get an explanation.</p>
+<h2 className="font-black text-5xl text-charcoal text-center mb-6 tracking-tighter">Menu Explained</h2>
+
+{/* Enhanced instruction - much more prominent */}
+<div className="bg-coral/10 border-4 border-coral rounded-2xl p-4 mb-6 shadow-[6px_6px_0px_#FF6B6B]">
+    <div className="flex items-center justify-center gap-3 text-coral">
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.122 2.122" />
+        </svg>
+        <span className="font-black text-xl">
+            👆 Tap on any dish name to get an explanation
+        </span>
+    </div>
+</div>
+
+{/* Allergen Disclaimer */}
+<div className="bg-yellow/20 border-4 border-yellow rounded-2xl p-4 mb-8 shadow-[4px_4px_0px_#FFC700]">
+    <div className="flex items-center justify-center gap-2 text-charcoal">
+        <span className="text-2xl"⚠️</span>
+        <span className="font-bold text-lg text-center">
+            Important: Always double-check with the restaurant about allergens and ingredients. AI descriptions are for guidance only.
+        </span>
+    </div>
+</div>
                 <div className="bg-white rounded-2xl shadow-[8px_8px_0px_#292524] p-6 sm:p-8 border-4 border-charcoal space-y-10">
                     {menuSections.length > 0 ? (
                         menuSections.map((section, sectionIndex) => (
@@ -313,24 +334,24 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
                                                                 {/* Tags Section */}
                                                                 {explanations[dish.name]?.data?.tags && explanations[dish.name]?.data?.tags?.length > 0 && (
                                                                     <div className="space-y-2">
-                                                                        <p className="text-sm font-bold text-charcoal/70 uppercase tracking-wide">Dietary & Style</p>
-                                                                        <div className="flex flex-wrap gap-2">
-                                                                            {explanations[dish.name]?.data?.tags?.map(tag => (
-                                                                                <span key={tag} className="px-3 py-1 text-sm font-bold bg-teal/20 text-teal-800 rounded-full border border-teal/30">{tag}</span>
-                                                                            ))}
-                                                                        </div>
+                                                                        <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">Dietary & Style</p>
+<div className="flex flex-wrap gap-2">
+    {explanations[dish.name]?.data?.tags?.map(tag => (
+        <span key={tag} className="px-2 py-1 text-xs font-bold bg-teal/20 text-teal-800 rounded-full border border-teal/30">{tag}</span>
+    ))}
+</div>
                                                                     </div>
                                                                 )}
 
                                                                 {/* Allergens Section */}
                                                                 {explanations[dish.name]?.data?.allergens && explanations[dish.name]?.data?.allergens?.length > 0 && (
                                                                     <div className="space-y-2">
-                                                                        <p className="text-sm font-bold text-red-700 uppercase tracking-wide">⚠️ Allergen Information</p>
-                                                                        <div className="flex flex-wrap gap-2">
-                                                                            {explanations[dish.name]?.data?.allergens?.map(allergen => (
-                                                                                <span key={allergen} className="px-3 py-1 text-sm font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
-                                                                            ))}
-                                                                        </div>
+<p className="text-xs font-bold text-red-700 uppercase tracking-wide"⚠️ Allergen Information</p>
+<div className="flex flex-wrap gap-2">
+    {explanations[dish.name]?.data?.allergens?.map(allergen => (
+        <span key={allergen} className="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
+    ))}
+</div>
                                                                     </div>
                                                                 )}
                                                             </div>
