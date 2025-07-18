@@ -6,6 +6,10 @@ import { CameraIcon, UploadIcon } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { incrementMenuScanned, incrementDishExplanation } from '../services/counterService';
+import { LanguageSelector } from '../components/LanguageSelector';
+
+
+
 
 interface HomePageProps {
   onScanSuccess: () => void;
@@ -228,23 +232,46 @@ const HeroSection: React.FC<{
 };
 
 const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }) => {
-    const [explanations, setExplanations] = useState<Record<string, {
+    const [selectedLanguage, setSelectedLanguage] = useState('en');
+    const [explanations, setExplanations] = useState<Record<string, Record<string, {
         data: DishExplanation | null;
         isLoading: boolean;
         error: string | null;
-    }>>({});
+    }>>>({});
+
+    // Load language preference from localStorage
+    useEffect(() => {
+        const savedLanguage = localStorage.getItem('preferred-language');
+        if (savedLanguage && ['en', 'es'].includes(savedLanguage)) {
+            setSelectedLanguage(savedLanguage);
+        }
+    }, []);
+
+    // Handle language change
+    const handleLanguageChange = (languageCode: string) => {
+        setSelectedLanguage(languageCode);
+        localStorage.setItem('preferred-language', languageCode);
+    };
 
     const handleDishClick = async (dishName: string) => {
-        // Don't refetch if already loading or has data/error
-        if (explanations[dishName]) return;
+        // Create nested structure if it doesn't exist
+        if (!explanations[dishName]) {
+            explanations[dishName] = {};
+        }
+        
+        // Don't refetch if already loading or has data/error for this language
+        if (explanations[dishName][selectedLanguage]) return;
 
         setExplanations(prev => ({
             ...prev,
-            [dishName]: { data: null, isLoading: true, error: null }
+            [dishName]: {
+                ...prev[dishName],
+                [selectedLanguage]: { data: null, isLoading: true, error: null }
+            }
         }));
 
         try {
-            const response = await fetch(`/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}`);
+            const response = await fetch(`/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
                 throw new Error(errorData.error || `Request failed`);
@@ -256,13 +283,19 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
             
             setExplanations(prev => ({
                 ...prev,
-                [dishName]: { data, isLoading: false, error: null }
+                [dishName]: {
+                    ...prev[dishName],
+                    [selectedLanguage]: { data, isLoading: false, error: null }
+                }
             }));
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Failed to fetch explanation.";
             setExplanations(prev => ({
                 ...prev,
-                [dishName]: { data: null, isLoading: false, error: errorMessage }
+                [dishName]: {
+                    ...prev[dishName],
+                    [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+                }
             }));
         }
     };
@@ -270,29 +303,36 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
     return (
         <div className="py-12 sm:py-16">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-<h2 className="font-black text-5xl text-charcoal text-center mb-6 tracking-tighter">Menu Explained</h2>
+                <h2 className="font-black text-5xl text-charcoal text-center mb-6 tracking-tighter">Menu Explained</h2>
 
-{/* Enhanced instruction - much more prominent */}
-<div className="bg-coral/10 border-4 border-coral rounded-2xl p-4 mb-6 shadow-[6px_6px_0px_#FF6B6B]">
-    <div className="flex items-center justify-center gap-3 text-coral">
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.122 2.122" />
-        </svg>
-        <span className="font-black text-xl">
-            👆 Tap on any dish name to get an explanation
-        </span>
-    </div>
-</div>
+                {/* Enhanced instruction - much more prominent */}
+                <div className="bg-coral/10 border-4 border-coral rounded-2xl p-4 mb-6 shadow-[6px_6px_0px_#FF6B6B]">
+                    <div className="flex items-center justify-center gap-3 text-coral">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.122 2.122" />
+                        </svg>
+                        <span className="font-black text-xl">
+                            👆 Tap on any dish name to get an explanation
+                        </span>
+                    </div>
+                </div>
 
-{/* Allergen Disclaimer */}
-<div className="bg-yellow/20 border-4 border-yellow rounded-2xl p-4 mb-8 shadow-[4px_4px_0px_#FFC700]">
-    <div className="flex items-center justify-center gap-2 text-charcoal">
-        <span className="text-2xl">⚠️</span>
-        <span className="font-bold text-lg text-center">
-            Important: Always double-check with the restaurant about allergens and ingredients. AI descriptions are for guidance only.
-        </span>
-    </div>
-</div>
+                {/* Language Selector */}
+                <LanguageSelector 
+                    selectedLanguage={selectedLanguage}
+                    onLanguageChange={handleLanguageChange}
+                />
+
+                {/* Allergen Disclaimer */}
+                <div className="bg-yellow/20 border-4 border-yellow rounded-2xl p-4 mb-8 shadow-[4px_4px_0px_#FFC700]">
+                    <div className="flex items-center justify-center gap-2 text-charcoal">
+                        <span className="text-2xl">⚠️</span>
+                        <span className="font-bold text-lg text-center">
+                            Important: Always double-check with the restaurant about allergens and ingredients. AI descriptions are for guidance only.
+                        </span>
+                    </div>
+                </div>
+
                 <div className="bg-white rounded-2xl shadow-[8px_8px_0px_#292524] p-6 sm:p-8 border-4 border-charcoal space-y-10">
                     {menuSections.length > 0 ? (
                         menuSections.map((section, sectionIndex) => (
@@ -316,46 +356,55 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
                                                           onClick={() => handleDishClick(dish.name)}
                                                           className="text-xl font-medium text-charcoal tracking-tight text-left hover:text-coral transition-colors w-full disabled:hover:text-charcoal disabled:cursor-default"
                                                           aria-label={`Get explanation for ${dish.name}`}
-                                                          disabled={!!explanations[dish.name]?.isLoading}
+                                                          disabled={!!explanations[dish.name]?.[selectedLanguage]?.isLoading}
                                                         >
                                                             {dish.name}
                                                         </button>
                                                     </td>
                                                     <td className="p-4 align-top text-charcoal/90">
-                                                        {explanations[dish.name]?.isLoading && (
+                                                        {explanations[dish.name]?.[selectedLanguage]?.isLoading && (
                                                             <div className="flex items-center space-x-2 font-medium">
                                                                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-coral"></div>
-                                                                <span>Explaining...</span>
+                                                                <span>
+                                                                    {selectedLanguage === 'es' ? 'Explicando...' : 'Explaining...'}
+                                                                </span>
                                                             </div>
                                                         )}
-                                                        {explanations[dish.name]?.error && (
-                                                            <p className="text-red-600 font-medium">Error: {explanations[dish.name]?.error}</p>
+                                                        {explanations[dish.name]?.[selectedLanguage]?.error && (
+                                                            <p className="text-red-600 font-medium">
+                                                                {selectedLanguage === 'es' ? 'Error: ' : 'Error: '}
+                                                                {explanations[dish.name]?.[selectedLanguage]?.error}
+                                                            </p>
                                                         )}
-                                                        {explanations[dish.name]?.data && (
+                                                        {explanations[dish.name]?.[selectedLanguage]?.data && (
                                                             <div className="space-y-4">
-                                                                <p className="font-medium text-lg">{explanations[dish.name]?.data?.explanation}</p>
+                                                                <p className="font-medium text-lg">{explanations[dish.name]?.[selectedLanguage]?.data?.explanation}</p>
                                                                 
                                                                 {/* Tags Section */}
-                                                                {explanations[dish.name]?.data?.tags && explanations[dish.name]?.data?.tags?.length > 0 && (
+                                                                {explanations[dish.name]?.[selectedLanguage]?.data?.tags && explanations[dish.name]?.[selectedLanguage]?.data?.tags?.length > 0 && (
                                                                     <div className="space-y-2">
-                                                                        <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">Dietary & Style</p>
-<div className="flex flex-wrap gap-2">
-    {explanations[dish.name]?.data?.tags?.map(tag => (
-        <span key={tag} className="px-2 py-1 text-xs font-bold bg-teal/20 text-teal-800 rounded-full border border-teal/30">{tag}</span>
-    ))}
-</div>
+                                                                        <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">
+                                                                            {selectedLanguage === 'es' ? 'Dieta y Estilo' : 'Dietary & Style'}
+                                                                        </p>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {explanations[dish.name]?.[selectedLanguage]?.data?.tags?.map(tag => (
+                                                                                <span key={tag} className="px-2 py-1 text-xs font-bold bg-teal/20 text-teal-800 rounded-full border border-teal/30">{tag}</span>
+                                                                            ))}
+                                                                        </div>
                                                                     </div>
                                                                 )}
 
                                                                 {/* Allergens Section */}
-                                                                {explanations[dish.name]?.data?.allergens && explanations[dish.name]?.data?.allergens?.length > 0 && (
+                                                                {explanations[dish.name]?.[selectedLanguage]?.data?.allergens && explanations[dish.name]?.[selectedLanguage]?.data?.allergens?.length > 0 && (
                                                                     <div className="space-y-2">
-<p className="text-xs font-bold text-red-700 uppercase tracking-wide">⚠️ Allergen Information</p>
-<div className="flex flex-wrap gap-2">
-    {explanations[dish.name]?.data?.allergens?.map(allergen => (
-        <span key={allergen} className="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
-    ))}
-</div>
+                                                                        <p className="text-xs font-bold text-red-700 uppercase tracking-wide">
+                                                                            ⚠️ {selectedLanguage === 'es' ? 'Información de Alérgenos' : 'Allergen Information'}
+                                                                        </p>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {explanations[dish.name]?.[selectedLanguage]?.data?.allergens?.map(allergen => (
+                                                                                <span key={allergen} className="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
+                                                                            ))}
+                                                                        </div>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -366,7 +415,7 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
                                         </tbody>
                                     </table>
                                 </div>
-                                            </div>
+                            </div>
                         ))
                     ) : (
                         <p className="text-center text-xl text-charcoal/70 font-medium">Could not find any dishes on the menu. Please try another image.</p>
@@ -375,7 +424,7 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
             </div>
         </div>
     );
-}
+};
 
 const ReviewsSection: React.FC = () => (
   <div className="py-12 sm:py-24 bg-teal border-y-4 border-charcoal">

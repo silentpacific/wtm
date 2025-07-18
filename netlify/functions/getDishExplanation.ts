@@ -43,6 +43,42 @@ if (!supabaseUrl || !supabaseAnonKey || !geminiApiKey) {
 
 const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
+// Language-specific prompts
+const getLanguagePrompt = (dishName: string, language: string): string => {
+    const baseInstructions = {
+        en: {
+            prompt: `You are a culinary expert. Explain the dish "${decodeURIComponent(dishName)}". 
+            Provide a concise explanation suitable for a tourist in under 300 characters. 
+            
+            For tags, include: dietary restrictions (Vegetarian, Vegan, Gluten-Free, Dairy-Free), cooking methods (Grilled, Fried, Steamed, Raw), and flavor profiles (Spicy, Sweet, Savory, Mild, Hot).
+            
+            For allergens, specifically list what the dish contains using this format: "Contains [allergen]" (e.g., "Contains Nuts", "Contains Dairy", "Contains Gluten", "Contains Shellfish", "Contains Eggs", "Contains Fish", "Contains Soy").
+            
+            If the dish doesn't contain common allergens, return an empty array for allergens.
+            
+            Respond in the requested JSON format.`,
+            tagExamples: 'Vegetarian, Vegan, Gluten-Free, Spicy, Sweet, Grilled, Fried',
+            allergenFormat: 'Contains [allergen]'
+        },
+        es: {
+            prompt: `Eres un experto culinario. Explica el plato "${decodeURIComponent(dishName)}". 
+            Proporciona una explicación concisa adecuada para un turista en menos de 300 caracteres. 
+            
+            Para las etiquetas, incluye: restricciones dietéticas (Vegetariano, Vegano, Sin Gluten, Sin Lácteos), métodos de cocción (A la Parrilla, Frito, Al Vapor, Crudo), y perfiles de sabor (Picante, Dulce, Salado, Suave, Caliente).
+            
+            Para los alérgenos, especifica específicamente lo que contiene el plato usando este formato: "Contiene [alérgeno]" (ej., "Contiene Frutos Secos", "Contiene Lácteos", "Contiene Gluten", "Contiene Mariscos", "Contiene Huevos", "Contiene Pescado", "Contiene Soja").
+            
+            Si el plato no contiene alérgenos comunes, devuelve un array vacío para los alérgenos.
+            
+            Responde en el formato JSON solicitado, pero con todo el contenido en español.`,
+            tagExamples: 'Vegetariano, Vegano, Sin Gluten, Picante, Dulce, A la Parrilla, Frito',
+            allergenFormat: 'Contiene [alérgeno]'
+        }
+    };
+
+    return baseInstructions[language as keyof typeof baseInstructions]?.prompt || baseInstructions.en.prompt;
+};
+
 // Universal string cleaning (minimal processing to preserve all languages)
 const cleanString = (str: string): string => {
     return str
@@ -164,11 +200,21 @@ const universalFuzzySearch = (searchTerm: string, targetString: string): number 
 
 const handler: Handler = async (event: HandlerEvent) => {
     const dishName = event.queryStringParameters?.dishName;
+    const language = event.queryStringParameters?.language || 'en';
 
     if (!dishName) {
         return { 
             statusCode: 400, 
             body: JSON.stringify({ error: "A dishName query parameter is required." }),
+            headers: { 'Content-Type': 'application/json' }
+        };
+    }
+
+    // Validate language parameter
+    if (!['en', 'es'].includes(language)) {
+        return { 
+            statusCode: 400, 
+            body: JSON.stringify({ error: "Unsupported language. Supported languages: en, es" }),
             headers: { 'Content-Type': 'application/json' }
         };
     }
@@ -182,27 +228,28 @@ const handler: Handler = async (event: HandlerEvent) => {
     }
 
     try {
-        console.log(`🔍 Searching for dish: "${dishName}"`);
+        console.log(`🔍 Searching for dish: "${dishName}" in language: ${language}`);
         
-        // 1. Get all dishes from database for fuzzy matching
+        // 1. Search for existing dishes in the requested language
         const { data: allDishes, error: fetchError } = await supabase
             .from('dishes')
-            .select('name, explanation, tags, allergens');
+            .select('name, explanation, tags, allergens, cuisine')
+            .eq('language', language);
 
         if (fetchError) {
             console.error("Database fetch error:", fetchError);
-            throw new Error(`Database error: ${fetchError.message}`);
+            // Don't throw error, just log and continue to Gemini API
         }
 
-        console.log(`📊 Database returned ${allDishes ? allDishes.length : 0} dishes`);
+        console.log(`📊 Database returned ${allDishes ? allDishes.length : 0} dishes for language: ${language}`);
 
-        // 2. Perform universal fuzzy search
+        // 2. Perform universal fuzzy search on dishes in this language
         let bestMatch = null;
         let bestScore = 0;
-        const FUZZY_THRESHOLD = 0.85; // High threshold for accuracy
+        const FUZZY_THRESHOLD = 0.85;
 
         if (allDishes && allDishes.length > 0) {
-            console.log(`🔎 Starting universal fuzzy search...`);
+            console.log(`🔎 Starting fuzzy search for ${language}...`);
             
             for (const dish of allDishes) {
                 if (dish.name) {
@@ -223,38 +270,30 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         // 3. If found in database with good confidence, return it
         if (bestMatch && bestScore >= FUZZY_THRESHOLD) {
-            console.log(`✅ FOUND MATCH IN DB: "${bestMatch.name}" (score: ${bestScore.toFixed(3)})`);
+            console.log(`✅ FOUND MATCH IN DB: "${bestMatch.name}" in ${language} (score: ${bestScore.toFixed(3)})`);
             return {
                 statusCode: 200,
                 body: JSON.stringify({
                     explanation: bestMatch.explanation,
                     tags: bestMatch.tags || [],
-                    allergens: bestMatch.allergens || []
+                    allergens: bestMatch.allergens || [],
+                    cuisine: bestMatch.cuisine
                 }),
                 headers: { 
                     'Content-Type': 'application/json',
                     'X-Data-Source': 'Database',
-                    'X-Match-Score': bestScore.toString()
+                    'X-Match-Score': bestScore.toString(),
+                    'X-Language': language
                 }
             };
         }
 
         // 4. If not found in DB, call Gemini API
-        console.log(`❌ No match found in DB (best score: ${bestScore.toFixed(3)}), calling Gemini API for: "${dishName}"`);
+        console.log(`❌ No match found in DB for ${language} (best score: ${bestScore.toFixed(3)}), calling Gemini API`);
         
         const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-        const textPart = {
-            text: `You are a culinary expert. Explain the dish "${decodeURIComponent(dishName)}". 
-            Provide a concise explanation suitable for a tourist in under 300 characters. 
-            
-            For tags, include: dietary restrictions (Vegetarian, Vegan, Gluten-Free, Dairy-Free), cooking methods (Grilled, Fried, Steamed, Raw), and flavor profiles (Spicy, Sweet, Savory, Mild, Hot).
-            
-            For allergens, specifically list what the dish contains using this format: "Contains [allergen]" (e.g., "Contains Nuts", "Contains Dairy", "Contains Gluten", "Contains Shellfish", "Contains Eggs", "Contains Fish", "Contains Soy").
-            
-            If the dish doesn't contain common allergens, return an empty array for allergens.
-            
-            Respond in the requested JSON format.`
-        };
+        const prompt = getLanguagePrompt(dishName, language);
+        const textPart = { text: prompt };
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -268,8 +307,8 @@ const handler: Handler = async (event: HandlerEvent) => {
         const jsonText = response.text.trim();
         const dishExplanation: DishExplanation = JSON.parse(jsonText);
 
-        // 5. Save to database for future use (check for duplicates using same algorithm)
-        console.log(`💾 Checking for duplicates before saving: "${dishName}"`);
+        // 5. Save to database for future use (for ALL languages now)
+        console.log(`💾 Checking for duplicates before saving: "${dishName}" in ${language}`);
         
         const duplicateExists = allDishes?.some(dish => 
             universalFuzzySearch(dishName, dish.name) >= FUZZY_THRESHOLD
@@ -279,19 +318,21 @@ const handler: Handler = async (event: HandlerEvent) => {
             const { error: insertError } = await supabase
                 .from('dishes')
                 .insert({ 
-                    name: dishName, // Preserve original name exactly as scanned
+                    name: dishName,
+                    language: language,  // Include language in the insert!
                     explanation: dishExplanation.explanation,
                     tags: dishExplanation.tags || [],
-                    allergens: dishExplanation.allergens || []
+                    allergens: dishExplanation.allergens || [],
+                    cuisine: dishExplanation.cuisine || null
                 });
                 
             if (insertError) {
                 console.error("❌ Supabase insert error:", insertError);
             } else {
-                console.log(`✅ Successfully saved new dish to DB: "${dishName}"`);
+                console.log(`✅ Successfully saved new dish to DB: "${dishName}" in ${language}`);
             }
         } else {
-            console.log(`ℹ️ Similar dish already exists in database, skipping insert`);
+            console.log(`ℹ️ Similar dish already exists in database for ${language}, skipping insert`);
         }
         
         return {
@@ -299,7 +340,8 @@ const handler: Handler = async (event: HandlerEvent) => {
             body: JSON.stringify(dishExplanation),
             headers: { 
                 'Content-Type': 'application/json',
-                'X-Data-Source': 'Gemini-API'
+                'X-Data-Source': 'Gemini-API',
+                'X-Language': language
             }
         };
 
@@ -309,7 +351,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         return {
             statusCode: 500,
             body: JSON.stringify({ 
-                error: `Failed to get explanation for "${dishName}". Reason: ${errorMessage}` 
+                error: `Failed to get explanation for "${dishName}" in ${language}. Reason: ${errorMessage}` 
             }),
             headers: { 'Content-Type': 'application/json' }
         };
