@@ -43,16 +43,36 @@ if (!supabaseUrl || !supabaseAnonKey || !geminiApiKey) {
 
 const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
-// Fuzzy search function
+// Improved normalize function to handle punctuation and case
+const normalizeDishName = (name: string): string => {
+    return name
+        .toLowerCase()
+        .trim()
+        // Remove punctuation
+        .replace(/[.,!?;:"'()[\]{}]/g, '')
+        // Replace multiple spaces with single space
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+// Improved fuzzy search function
 const fuzzySearch = (searchTerm: string, targetString: string): number => {
-    const search = searchTerm.toLowerCase().trim();
-    const target = targetString.toLowerCase().trim();
+    const search = normalizeDishName(searchTerm);
+    const target = normalizeDishName(targetString);
     
-    // Exact match
-    if (search === target) return 1.0;
+    console.log(`  Normalized: "${search}" vs "${target}"`);
+    
+    // Exact match after normalization
+    if (search === target) {
+        console.log(`  -> EXACT MATCH! Score: 1.0`);
+        return 1.0;
+    }
     
     // Contains match
-    if (target.includes(search) || search.includes(target)) return 0.8;
+    if (target.includes(search) || search.includes(target)) {
+        console.log(`  -> CONTAINS MATCH! Score: 0.9`);
+        return 0.9;
+    }
     
     // Word-based matching
     const searchWords = search.split(/\s+/);
@@ -71,16 +91,9 @@ const fuzzySearch = (searchTerm: string, targetString: string): number => {
     }
     
     const wordMatchScore = matchedWords / Math.max(searchWords.length, targetWords.length);
+    console.log(`  -> Word match score: ${wordMatchScore} (${matchedWords}/${Math.max(searchWords.length, targetWords.length)} words)`);
     
-    // Character similarity (simplified)
-    let charMatches = 0;
-    const minLength = Math.min(search.length, target.length);
-    for (let i = 0; i < minLength; i++) {
-        if (search[i] === target[i]) charMatches++;
-    }
-    const charMatchScore = charMatches / Math.max(search.length, target.length);
-    
-    return Math.max(wordMatchScore, charMatchScore * 0.6);
+    return wordMatchScore;
 };
 
 const handler: Handler = async (event: HandlerEvent) => {
@@ -103,10 +116,9 @@ const handler: Handler = async (event: HandlerEvent) => {
     }
 
     try {
-        console.log(`Searching for dish: ${dishName}`);
+        console.log(`🔍 Searching for dish: "${dishName}"`);
         
         // 1. Get all dishes from database for fuzzy matching
-        console.log('Fetching all dishes from database...');
         const { data: allDishes, error: fetchError } = await supabase
             .from('dishes')
             .select('name, explanation, tags, allergens');
@@ -116,35 +128,37 @@ const handler: Handler = async (event: HandlerEvent) => {
             throw new Error(`Database error: ${fetchError.message}`);
         }
 
-        console.log(`Database returned ${allDishes ? allDishes.length : 0} dishes`);
-        
-        // Log first few dish names for debugging
-        if (allDishes && allDishes.length > 0) {
-            console.log('Sample dish names from DB:', allDishes.slice(0, 3).map(d => d.name));
-        }
+        console.log(`📊 Database returned ${allDishes ? allDishes.length : 0} dishes`);
 
         // 2. Perform fuzzy search
         let bestMatch = null;
         let bestScore = 0;
-        const FUZZY_THRESHOLD = 0.6; // Lowered threshold for better matching
+        const FUZZY_THRESHOLD = 0.8; // Higher threshold for better precision
 
         if (allDishes && allDishes.length > 0) {
+            console.log(`🔎 Starting fuzzy search comparison...`);
+            
             for (const dish of allDishes) {
                 if (dish.name) {
+                    console.log(`Comparing "${dishName}" with "${dish.name}"`);
                     const score = fuzzySearch(dishName, dish.name);
-                    console.log(`Comparing "${dishName}" with "${dish.name}": score = ${score}`);
                     
-                    if (score > bestScore && score >= FUZZY_THRESHOLD) {
+                    if (score > bestScore) {
                         bestScore = score;
-                        bestMatch = dish;
+                        if (score >= FUZZY_THRESHOLD) {
+                            bestMatch = dish;
+                            console.log(`✅ NEW BEST MATCH: "${dish.name}" with score ${score}`);
+                        }
                     }
                 }
             }
+            
+            console.log(`🎯 Best match: ${bestMatch ? `"${bestMatch.name}" (${bestScore})` : `None (best score: ${bestScore})`}`);
         }
 
         // 3. If found in database with good confidence, return it
-        if (bestMatch) {
-            console.log(`Found match in DB: "${bestMatch.name}" (score: ${bestScore})`);
+        if (bestMatch && bestScore >= FUZZY_THRESHOLD) {
+            console.log(`✅ FOUND MATCH IN DB: "${bestMatch.name}" (score: ${bestScore})`);
             return {
                 statusCode: 200,
                 body: JSON.stringify({
@@ -161,7 +175,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
 
         // 4. If not found in DB, call Gemini API
-        console.log(`No match found in DB (best score: ${bestScore}), calling Gemini API for: ${dishName}`);
+        console.log(`❌ No match found in DB (best score: ${bestScore}), calling Gemini API for: "${dishName}"`);
         
         const ai = new GoogleGenAI({ apiKey: geminiApiKey });
         const textPart = {
@@ -189,33 +203,36 @@ const handler: Handler = async (event: HandlerEvent) => {
         const jsonText = response.text.trim();
         const dishExplanation: DishExplanation = JSON.parse(jsonText);
 
-        // 5. Save to database for future use (only if it doesn't exist)
-        console.log('Attempting to save new dish to database...');
+        // 5. Save to database for future use (using normalized name to prevent duplicates)
+        const normalizedDishName = normalizeDishName(dishName);
+        console.log(`💾 Attempting to save dish with normalized name: "${normalizedDishName}"`);
         
-        // Check if dish already exists before inserting
-        const { data: existingDish } = await supabase
+        // Check if normalized dish name already exists
+        const { data: existingDishes } = await supabase
             .from('dishes')
-            .select('id')
-            .eq('name', dishName)
-            .single();
+            .select('id, name');
             
-        if (!existingDish) {
+        const duplicateExists = existingDishes?.some(dish => 
+            normalizeDishName(dish.name) === normalizedDishName
+        );
+        
+        if (!duplicateExists) {
             const { error: insertError } = await supabase
                 .from('dishes')
                 .insert({ 
-                    name: dishName, 
+                    name: dishName, // Keep original name but check with normalized
                     explanation: dishExplanation.explanation,
                     tags: dishExplanation.tags || [],
                     allergens: dishExplanation.allergens || []
                 });
                 
             if (insertError) {
-                console.error("Supabase insert error:", insertError);
+                console.error("❌ Supabase insert error:", insertError);
             } else {
-                console.log(`Successfully saved new dish to DB: ${dishName}`);
+                console.log(`✅ Successfully saved new dish to DB: "${dishName}"`);
             }
         } else {
-            console.log(`Dish "${dishName}" already exists in database, skipping insert`);
+            console.log(`ℹ️ Dish with similar name already exists in database, skipping insert`);
         }
         
         return {
@@ -228,7 +245,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         };
 
     } catch (error) {
-        console.error("Error in getDishExplanation function:", error);
+        console.error("❌ Error in getDishExplanation function:", error);
         const errorMessage = error instanceof Error ? error.message : "An unknown internal error occurred.";
         return {
             statusCode: 500,
