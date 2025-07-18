@@ -3,6 +3,7 @@ import { Routes, Route, Link, NavLink } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
 import { PrivacyPolicyPage, TermsOfUsePage, FaqPage } from './pages/LegalPages';
+import RealtimeCounters from './components/RealtimeCounters';
 
 const Header: React.FC<{ userScans: number }> = ({ userScans }) => (
   <header className="bg-cream/80 backdrop-blur-sm sticky top-0 z-40 w-full border-b-4 border-charcoal">
@@ -32,36 +33,37 @@ const Header: React.FC<{ userScans: number }> = ({ userScans }) => (
   </header>
 );
 
-const Footer: React.FC<{ totalScans: number }> = ({ totalScans }) => (
+const Footer: React.FC = () => (
   <footer className="bg-yellow border-t-4 border-charcoal">
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-charcoal/80">
-      <p className="font-bold">
+      <p className="font-bold mb-6">
         Powered by Google Gemini. Descriptions are AI-generated. Always double-check with the restaurant regarding possible allergens.
       </p>
+      
+      {/* Real-time Counters */}
+      <div className="my-8 py-6 border-y-2 border-charcoal/20">
+        <RealtimeCounters />
+      </div>
+      
       <div className="flex justify-center space-x-6 my-4 font-bold">
         <Link to="/privacy" className="hover:text-charcoal">Privacy Policy</Link>
         <Link to="/terms" className="hover:text-charcoal">Terms of Use</Link>
         <Link to="/contact" className="hover:text-charcoal">Contact Us</Link>
       </div>
-      <p className="my-2">
-        Total menus scanned globally: <span className="font-black">{totalScans.toLocaleString()}</span>
-      </p>
+      
       <p className="font-bold">&copy; {new Date().getFullYear()} What The Menu? Built by <a href="https://www.lofisimplify.com.au/" target="_blank" rel="noopener noreferrer" className="underline hover:text-coral transition-colors">LoFi Simplify</a> with ❤️ in Adelaide. All rights reserved.</p>
     </div>
   </footer>
 );
 
-
 const App: React.FC = () => {
-  const [totalScans, setTotalScans] = useState(1337);
   const [userScans, setUserScans] = useState(3);
 
   const incrementScans = useCallback(() => {
     // For MVP, user scans don't decrease, but we show the initial state.
     // setUserScans(prev => Math.min(prev + 1, 5));
-    setTotalScans(prev => prev + 1);
+    // Note: Real global counter increment will be handled in HomePage and dish explanation components
   }, []);
-
 
   return (
     <div className="min-h-screen flex flex-col bg-cream text-charcoal font-sans">
@@ -75,7 +77,7 @@ const App: React.FC = () => {
           <Route path="/faq" element={<FaqPage />} />
         </Routes>
       </main>
-      <Footer totalScans={totalScans} />
+      <Footer />
     </div>
   );
 };
