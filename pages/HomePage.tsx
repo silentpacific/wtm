@@ -3,7 +3,6 @@ import { useDropzone } from 'react-dropzone';
 import { analyzeMenu } from '../services/geminiService';
 import { MenuSection, DishExplanation } from '../types';
 import { CameraIcon, UploadIcon } from '../components/icons';
-import { incrementMenusScanned, incrementDishesExplained } from '../services/counterService';
 
 interface HomePageProps {
   onScanSuccess: () => void;
@@ -154,8 +153,6 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
             }
             const data: DishExplanation = await response.json();
             
-            // Increment dishes explained counter for every successful explanation (database or Gemini)
-            await incrementDishesExplained();
             
             setExplanations(prev => ({
                 ...prev,
@@ -376,8 +373,6 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess }) => {
             const menuSections = await analyzeMenu(base64Image);
             setScanResult(menuSections);
             if (menuSections.length > 0) {
-              // Increment menus scanned counter when scan is successful
-              await incrementMenusScanned();
               onScanSuccess();
             }
         } catch (err) {
