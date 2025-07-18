@@ -106,6 +106,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         console.log(`Searching for dish: ${dishName}`);
         
         // 1. Get all dishes from database for fuzzy matching
+        console.log('Fetching all dishes from database...');
         const { data: allDishes, error: fetchError } = await supabase
             .from('dishes')
             .select('name, explanation, tags, allergens');
@@ -115,15 +116,24 @@ const handler: Handler = async (event: HandlerEvent) => {
             throw new Error(`Database error: ${fetchError.message}`);
         }
 
+        console.log(`Database returned ${allDishes ? allDishes.length : 0} dishes`);
+        
+        // Log first few dish names for debugging
+        if (allDishes && allDishes.length > 0) {
+            console.log('Sample dish names from DB:', allDishes.slice(0, 3).map(d => d.name));
+        }
+
         // 2. Perform fuzzy search
         let bestMatch = null;
         let bestScore = 0;
-        const FUZZY_THRESHOLD = 0.7; // Adjust this threshold as needed
+        const FUZZY_THRESHOLD = 0.6; // Lowered threshold for better matching
 
         if (allDishes && allDishes.length > 0) {
             for (const dish of allDishes) {
                 if (dish.name) {
                     const score = fuzzySearch(dishName, dish.name);
+                    console.log(`Comparing "${dishName}" with "${dish.name}": score = ${score}`);
+                    
                     if (score > bestScore && score >= FUZZY_THRESHOLD) {
                         bestScore = score;
                         bestMatch = dish;
@@ -134,7 +144,7 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         // 3. If found in database with good confidence, return it
         if (bestMatch) {
-            console.log(`Found match in DB: ${bestMatch.name} (score: ${bestScore})`);
+            console.log(`Found match in DB: "${bestMatch.name}" (score: ${bestScore})`);
             return {
                 statusCode: 200,
                 body: JSON.stringify({
@@ -151,7 +161,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
 
         // 4. If not found in DB, call Gemini API
-        console.log(`No match found in DB, calling Gemini API for: ${dishName}`);
+        console.log(`No match found in DB (best score: ${bestScore}), calling Gemini API for: ${dishName}`);
         
         const ai = new GoogleGenAI({ apiKey: geminiApiKey });
         const textPart = {
@@ -179,22 +189,34 @@ const handler: Handler = async (event: HandlerEvent) => {
         const jsonText = response.text.trim();
         const dishExplanation: DishExplanation = JSON.parse(jsonText);
 
-        // 5. Save to database for future use (fire and forget)
-        supabase
+        // 5. Save to database for future use (only if it doesn't exist)
+        console.log('Attempting to save new dish to database...');
+        
+        // Check if dish already exists before inserting
+        const { data: existingDish } = await supabase
             .from('dishes')
-            .insert({ 
-                name: dishName, 
-                explanation: dishExplanation.explanation,
-                tags: dishExplanation.tags || [],
-                allergens: dishExplanation.allergens || []
-            })
-            .then(({ error }) => {
-                if (error) {
-                    console.error("Supabase insert error:", error);
-                } else {
-                    console.log(`Saved new dish to DB: ${dishName}`);
-                }
-            });
+            .select('id')
+            .eq('name', dishName)
+            .single();
+            
+        if (!existingDish) {
+            const { error: insertError } = await supabase
+                .from('dishes')
+                .insert({ 
+                    name: dishName, 
+                    explanation: dishExplanation.explanation,
+                    tags: dishExplanation.tags || [],
+                    allergens: dishExplanation.allergens || []
+                });
+                
+            if (insertError) {
+                console.error("Supabase insert error:", insertError);
+            } else {
+                console.log(`Successfully saved new dish to DB: ${dishName}`);
+            }
+        } else {
+            console.log(`Dish "${dishName}" already exists in database, skipping insert`);
+        }
         
         return {
             statusCode: 200,
