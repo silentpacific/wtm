@@ -283,7 +283,7 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
 {/* Allergen Disclaimer */}
 <div className="bg-yellow/20 border-4 border-yellow rounded-2xl p-4 mb-8 shadow-[4px_4px_0px_#FFC700]">
     <div className="flex items-center justify-center gap-2 text-charcoal">
-        <span className="text-2xl"⚠️</span>
+        <span className="text-2xl">⚠️</span>
         <span className="font-bold text-lg text-center">
             Important: Always double-check with the restaurant about allergens and ingredients. AI descriptions are for guidance only.
         </span>
@@ -346,7 +346,8 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
                                                                 {/* Allergens Section */}
                                                                 {explanations[dish.name]?.data?.allergens && explanations[dish.name]?.data?.allergens?.length > 0 && (
                                                                     <div className="space-y-2">
-<p className="text-xs font-bold text-red-700 uppercase tracking-wide"⚠️ Allergen Information</p>
+<p className="text-xs font-bold text-red-700 uppercase tracking-wide">⚠️ Allergen Information</p>
+
 <div className="flex flex-wrap gap-2">
     {explanations[dish.name]?.data?.allergens?.map(allergen => (
         <span key={allergen} className="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
