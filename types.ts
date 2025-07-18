@@ -11,6 +11,7 @@ export interface DishExplanation {
   explanation: string;
   tags?: string[];
   allergens?: string[];
+  cuisine?: string;
 }
 
 // Database interface for Supabase

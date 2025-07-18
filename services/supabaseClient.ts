@@ -1,7 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+// Detect if we're in browser or server environment
+const isBrowser = typeof window !== 'undefined';
+
+const supabaseUrl = isBrowser 
+  ? import.meta.env.VITE_SUPABASE_URL || ''
+  : process.env.SUPABASE_URL || '';
+  
+const supabaseAnonKey = isBrowser 
+  ? import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+  : process.env.SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables');
@@ -16,5 +24,6 @@ export interface DishRecord {
   explanation: string;
   tags: string[] | null;
   allergens: string[] | null;
+  cuisine: string | null;
   created_at?: string;
 }
