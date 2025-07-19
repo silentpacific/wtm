@@ -315,12 +315,12 @@ const MenuResults: React.FC<{
 
     const t = translations[selectedLanguage as keyof typeof translations];
 
-    // Language options with flags
+    // Language options with flags (NO SHORT CODES)
     const languageOptions = [
-        { code: 'en', name: 'English', flag: '🇺🇸' },
-        { code: 'es', name: 'Español', flag: '🇪🇸' },
-        { code: 'zh', name: '中文', flag: '🇨🇳' },
-        { code: 'fr', name: 'Français', flag: '🇫🇷' },
+        { code: 'en', name: 'English' },
+        { code: 'es', name: 'Español' },
+        { code: 'zh', name: '中文' },
+        { code: 'fr', name: 'Français' },
     ];
 
     const handleDishClick = async (dishName: string) => {
@@ -578,7 +578,6 @@ const MenuResults: React.FC<{
         </div>
     );
 };
-
 
 
 
