@@ -1,6 +1,16 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { MenuSection, MenuAnalysisResult } from "../types";
 
+// Ensure the API key is available from environment variables
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!apiKey) {
+  console.error("VITE_GEMINI_API_KEY environment variable not set");
+}
+
+// Initialize the AI client
+const ai = new GoogleGenAI({ apiKey: apiKey || '' });
+
 // Enhanced schema to include restaurant detection
 const menuAnalysisSchema = {
   type: Type.OBJECT,
@@ -46,6 +56,10 @@ const menuAnalysisSchema = {
 };
 
 export const analyzeMenu = async (base64Image: string): Promise<MenuAnalysisResult> => {
+  if (!apiKey) {
+    throw new Error("Gemini API key is not configured. Please set VITE_GEMINI_API_KEY environment variable.");
+  }
+
   const imagePart = {
     inlineData: {
       mimeType: 'image/jpeg',
