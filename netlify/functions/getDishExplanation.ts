@@ -50,76 +50,62 @@ const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 // Language-specific prompts
 const getLanguagePrompt = (dishName: string, language: string): string => {
     const baseInstructions = {
-        en: {
-            prompt: `You are a culinary expert. Explain the dish "${decodeURIComponent(dishName)}". 
-            Provide a concise explanation suitable for a tourist in under 300 characters. 
-            
-            For tags, include: dietary restrictions (Vegetarian, Vegan, Gluten-Free, Dairy-Free), cooking methods (Grilled, Fried, Steamed, Raw), and flavor profiles (Spicy, Sweet, Savory, Mild, Hot).
-            
-            For allergens, specifically list what the dish contains using this format: "Contains [allergen]" (e.g., "Contains Nuts", "Contains Dairy", "Contains Gluten", "Contains Shellfish", "Contains Eggs", "Contains Fish", "Contains Soy").
-            
-            If the dish doesn't contain common allergens, return an empty array for allergens.
-
-	    For cuisine, identify the specific cuisine type (e.g., "Italian", "Japanese", "Mexican", "Indian", "Thai", "French", "Chinese", "Mediterranean", "American", "Korean", "Vietnamese", "Greek", "Spanish", "Lebanese", "Moroccan", etc.). Be specific - use the most precise cuisine classification.
-
-            
-            Respond in the requested JSON format.`,
-            tagExamples: 'Vegetarian, Vegan, Gluten-Free, Spicy, Sweet, Grilled, Fried',
-            allergenFormat: 'Contains [allergen]'
-        },
-        es: {
-            prompt: `Eres un experto culinario. Explica el plato "${decodeURIComponent(dishName)}". 
-            Proporciona una explicación concisa adecuada para un turista en menos de 300 caracteres. 
-            
-            Para las etiquetas, incluye: restricciones dietéticas (Vegetariano, Vegano, Sin Gluten, Sin Lácteos), métodos de cocción (A la Parrilla, Frito, Al Vapor, Crudo), y perfiles de sabor (Picante, Dulce, Salado, Suave, Caliente).
-            
-            Para los alérgenos, especifica específicamente lo que contiene el plato usando este formato: "Contiene [alérgeno]" (ej., "Contiene Frutos Secos", "Contiene Lácteos", "Contiene Gluten", "Contiene Mariscos", "Contiene Huevos", "Contiene Pescado", "Contiene Soja").
-            
-            Si el plato no contiene alérgenos comunes, devuelve un array vacío para los alérgenos.
-
-	    Para la cocina, identifica el tipo específico de cocina (ej., "Italiana", "Japonesa", "Mexicana", "India", "Tailandesa", "Francesa", "China", "Mediterránea", "Americana", "Coreana", "Vietnamita", "Griega", "Española", "Libanesa", "Marroquí", etc.). Sé específico - usa la clasificación de cocina más precisa.
-            
-            Responde en el formato JSON solicitado, pero con todo el contenido en español.`,
-            tagExamples: 'Vegetariano, Vegano, Sin Gluten, Picante, Dulce, A la Parrilla, Frito',
-            allergenFormat: 'Contiene [alérgeno]'
-        }
+        en: `You are a culinary expert. Explain the dish "${decodeURIComponent(dishName)}". 
+        Provide a concise explanation suitable for a tourist in under 300 characters. 
+        
+        For tags, include: dietary restrictions (Vegetarian, Vegan, Gluten-Free, Dairy-Free), cooking methods (Grilled, Fried, Steamed, Raw), and flavor profiles (Spicy, Sweet, Savory, Mild, Hot).
+        
+        For allergens, specifically list what the dish contains using this format: "Contains [allergen]" (e.g., "Contains Nuts", "Contains Dairy", "Contains Gluten", "Contains Shellfish", "Contains Eggs", "Contains Fish", "Contains Soy").
+        
+        For cuisine, identify the specific cuisine type (e.g., "Italian", "Japanese", "Mexican", "Indian", "Thai", "French", "Chinese", "Mediterranean", "American", "Korean", "Vietnamese", "Greek", "Spanish", "Lebanese", "Moroccan", etc.). Be specific - use the most precise cuisine classification.
+        
+        If the dish doesn't contain common allergens, return an empty array for allergens.
+        
+        Respond in the requested JSON format.`,
+        
+        es: `Eres un experto culinario. Explica el plato "${decodeURIComponent(dishName)}". 
+        Proporciona una explicación concisa adecuada para un turista en menos de 300 caracteres. 
+        
+        Para las etiquetas, incluye: restricciones dietéticas (Vegetariano, Vegano, Sin Gluten, Sin Lácteos), métodos de cocción (A la Parrilla, Frito, Al Vapor, Crudo), y perfiles de sabor (Picante, Dulce, Salado, Suave, Caliente).
+        
+        Para los alérgenos, especifica específicamente lo que contiene el plato usando este formato: "Contiene [alérgeno]" (ej., "Contiene Frutos Secos", "Contiene Lácteos", "Contiene Gluten", "Contiene Mariscos", "Contiene Huevos", "Contiene Pescado", "Contiene Soja").
+        
+        Para la cocina, identifica el tipo específico de cocina (ej., "Italiana", "Japonesa", "Mexicana", "India", "Tailandesa", "Francesa", "China", "Mediterránea", "Americana", "Coreana", "Vietnamita", "Griega", "Española", "Libanesa", "Marroquí", etc.). Sé específico - usa la clasificación de cocina más precisa.
+        
+        Si el plato no contiene alérgenos comunes, devuelve un array vacío para los alérgenos.
+        
+        Responde en el formato JSON solicitado, pero con todo el contenido en español.`,
+        
+        zh: `你是一位烹饪专家。请解释"${decodeURIComponent(dishName)}"这道菜。
+        为游客提供300字符以内的简明解释。
+        
+        标签包括：饮食限制（素食、纯素、无麸质、无乳制品），烹饪方法（烤制、油炸、蒸制、生食），以及口味特征（辛辣、甜、咸、温和、热）。
+        
+        对于过敏原，请具体列出菜品包含的成分，使用此格式："含有[过敏原]"（如"含有坚果"、"含有乳制品"、"含有麸质"、"含有贝类"、"含有鸡蛋"、"含有鱼类"、"含有大豆"）。
+        
+        对于菜系，请识别具体的菜系类型（如"中式"、"日式"、"意式"、"印度"、"泰式"、"法式"、"地中海"、"美式"、"韩式"、"越式"、"希腊"、"西班牙"、"黎巴嫩"、"摩洛哥"等）。请具体 - 使用最精确的菜系分类。
+        
+        如果菜品不含常见过敏原，请为过敏原返回空数组。
+        
+        请用中文回应，并使用请求的JSON格式。`,
+        
+        fr: `Vous êtes un expert culinaire. Expliquez le plat "${decodeURIComponent(dishName)}". 
+        Fournissez une explication concise adaptée à un touriste en moins de 300 caractères.
+        
+        Pour les étiquettes, incluez: restrictions alimentaires (Végétarien, Végan, Sans Gluten, Sans Lactose), méthodes de cuisson (Grillé, Frit, Vapeur, Cru), et profils de saveur (Épicé, Sucré, Salé, Doux, Chaud).
+        
+        Pour les allergènes, spécifiez spécifiquement ce que contient le plat en utilisant ce format: "Contient [allergène]" (ex., "Contient Noix", "Contient Produits Laitiers", "Contient Gluten", "Contient Fruits de Mer", "Contient Œufs", "Contient Poisson", "Contient Soja").
+        
+        Pour la cuisine, identifiez le type de cuisine spécifique (ex., "Italienne", "Japonaise", "Mexicaine", "Indienne", "Thaïlandaise", "Française", "Chinoise", "Méditerranéenne", "Américaine", "Coréenne", "Vietnamienne", "Grecque", "Espagnole", "Libanaise", "Marocaine", etc.). Soyez spécifique - utilisez la classification culinaire la plus précise.
+        
+        Si le plat ne contient pas d'allergènes courants, retournez un tableau vide pour les allergènes.
+        
+        Répondez au format JSON demandé, mais avec tout le contenu en français.`
     };
-
-        zh: {
-            prompt: `你是一位烹饪专家。请解释"${decodeURIComponent(dishName)}"这道菜。
-            为游客提供300字符以内的简明解释。
-            
-            标签包括：饮食限制（素食、纯素、无麸质、无乳制品），烹饪方法（烤制、油炸、蒸制、生食），以及口味特征（辛辣、甜、咸、温和、热）。
-            
-            对于过敏原，请具体列出菜品包含的成分，使用此格式："含有[过敏原]"（如"含有坚果"、"含有乳制品"、"含有麸质"、"含有贝类"、"含有鸡蛋"、"含有鱼类"、"含有大豆"）。
-            
-            对于菜系，请识别具体的菜系类型（如"中式"、"日式"、"意式"、"印度"、"泰式"、"法式"、"地中海"、"美式"、"韩式"、"越式"、"希腊"、"西班牙"、"黎巴嫩"、"摩洛哥"等）。请具体 - 使用最精确的菜系分类。
-            
-            如果菜品不含常见过敏原，请为过敏原返回空数组。
-            
-            请用中文回应，并使用请求的JSON格式。`,
-            tagExamples: '素食, 纯素, 无麸质, 辛辣, 甜, 烤制, 油炸',
-            allergenFormat: '含有[过敏原]'
-        },
-        fr: {
-            prompt: `Vous êtes un expert culinaire. Expliquez le plat "${decodeURIComponent(dishName)}". 
-            Fournissez une explication concise adaptée à un touriste en moins de 300 caractères.
-            
-            Pour les étiquettes, incluez: restrictions alimentaires (Végétarien, Végan, Sans Gluten, Sans Lactose), méthodes de cuisson (Grillé, Frit, Vapeur, Cru), et profils de saveur (Épicé, Sucré, Salé, Doux, Chaud).
-            
-            Pour les allergènes, spécifiez spécifiquement ce que contient le plat en utilisant ce format: "Contient [allergène]" (ex., "Contient Noix", "Contient Produits Laitiers", "Contient Gluten", "Contient Fruits de Mer", "Contient Œufs", "Contient Poisson", "Contient Soja").
-            
-            Pour la cuisine, identifiez le type de cuisine spécifique (ex., "Italienne", "Japonaise", "Mexicaine", "Indienne", "Thaïlandaise", "Française", "Chinoise", "Méditerranéenne", "Américaine", "Coréenne", "Vietnamienne", "Grecque", "Espagnole", "Libanaise", "Marocaine", etc.). Soyez spécifique - utilisez la classification culinaire la plus précise.
-            
-            Si le plat ne contient pas d'allergènes courants, retournez un tableau vide pour les allergènes.
-            
-            Répondez au format JSON demandé, mais avec tout le contenu en français.`,
-            tagExamples: 'Végétarien, Végan, Sans Gluten, Épicé, Sucré, Grillé, Frit',
-            allergenFormat: 'Contient [allergène]'
-        }
-
-    return baseInstructions[language as keyof typeof baseInstructions]?.prompt || baseInstructions.en.prompt;
+    
+    return baseInstructions[language as keyof typeof baseInstructions] || baseInstructions.en;
 };
+
 
 // Universal string cleaning (minimal processing to preserve all languages)
 const cleanString = (str: string): string => {
