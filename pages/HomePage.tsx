@@ -273,7 +273,6 @@ const MenuResults: React.FC<{
     const translations = {
         en: {
             pageTitle: "Your Menu",
-            instructions: "👆 Tap on any dish name to get an explanation",
             allergenWarning: "Important: Always double-check with the restaurant about allergens and ingredients. AI descriptions are for guidance only.",
             dishName: "Dish Name",
             explanation: "Explanation",
