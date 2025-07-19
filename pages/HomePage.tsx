@@ -284,7 +284,6 @@ const MenuResults: React.FC<{
         },
         es: {
             pageTitle: "Tu Menú",
-            instructions: "👆 Toca cualquier nombre de plato para obtener una explicación",
             allergenWarning: "Importante: Siempre confirma con el restaurante sobre alérgenos e ingredientes. Las descripciones de IA son solo una guía.",
             dishName: "Nombre del Plato",
             explanation: "Explicación",
@@ -295,7 +294,6 @@ const MenuResults: React.FC<{
         },
         zh: {
             pageTitle: "您的菜单",
-            instructions: "👆 点击任何菜名获取说明",
             allergenWarning: "重要提示：请务必与餐厅确认过敏原和成分信息。AI描述仅供参考。",
             dishName: "菜名",
             explanation: "说明",
@@ -306,7 +304,6 @@ const MenuResults: React.FC<{
         },
         fr: {
             pageTitle: "Votre Menu",
-            instructions: "👆 Appuyez sur n'importe quel nom de plat pour obtenir une explication",
             allergenWarning: "Important : Vérifiez toujours avec le restaurant concernant les allergènes et les ingrédients. Les descriptions IA sont uniquement à titre indicatif.",
             dishName: "Nom du Plat",
             explanation: "Explication",
@@ -480,7 +477,7 @@ const MenuResults: React.FC<{
                     </div>
                 </div>
 
-                {/* 5. ALLERGEN WARNING - Medium red warning box */}
+                {/* 4. ALLERGEN WARNING - Medium red warning box */}
                 <div className="bg-red-50 border-4 border-red-200 rounded-2xl p-4 mb-8 shadow-sm">
                     <div className="flex items-start justify-center gap-3 text-red-700">
                         <span className="text-2xl mt-0.5">⚠️</span>
@@ -490,7 +487,7 @@ const MenuResults: React.FC<{
                     </div>
                 </div>
 
-                {/* 6. MENU TABLE - Dominates the page, large clear layout */}
+                {/* 5. MENU TABLE - Dominates the page, large clear layout */}
                 <div className="bg-white rounded-2xl shadow-[8px_8px_0px_#292524] p-6 sm:p-8 border-4 border-charcoal space-y-10">
                     {menuSections.length > 0 ? (
                         menuSections.map((section, sectionIndex) => (
@@ -582,6 +579,8 @@ const MenuResults: React.FC<{
         </div>
     );
 };
+
+
 
 
 const ReviewsSection: React.FC = () => (
