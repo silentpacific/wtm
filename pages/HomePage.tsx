@@ -269,84 +269,88 @@ const MenuResults: React.FC<{
         localStorage.setItem('preferred-language', languageCode);
     };
 
-    const handleDishClick = async (dishName: string) => {
-        if (!explanations[dishName]) {
-            explanations[dishName] = {};
+const handleDishClick = async (dishName: string) => {
+    if (!explanations[dishName]) {
+        explanations[dishName] = {};
+    }
+    
+    if (explanations[dishName][selectedLanguage]) return;
+    const startTime = Date.now();
+    
+    setExplanations(prev => ({
+        ...prev,
+        [dishName]: {
+            ...prev[dishName],
+            [selectedLanguage]: { data: null, isLoading: true, error: null }
+        }
+    }));
+
+    try {
+        // Build URL with restaurant ID AND name if available
+        let url = `/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`;
+        
+        if (restaurantInfo?.id) {
+            url += `&restaurantId=${restaurantInfo.id}`;
         }
         
-        if (explanations[dishName][selectedLanguage]) return;
+        if (restaurantInfo?.name) {
+            url += `&restaurantName=${encodeURIComponent(restaurantInfo.name)}`;
+        }
 
-        const startTime = Date.now();
+        const response = await fetch(url);
+        const loadTime = Date.now() - startTime;
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
+            throw new Error(errorData.error || `Request failed`);
+        }
+        
+        const data: DishExplanation = await response.json();
+        const dataSource = response.headers.get('X-Data-Source') || 'unknown';
+        
+        // Track successful dish explanation with restaurant context
+        gtag('event', 'dish_explanation_success', {
+            'dish_name': dishName,
+            'language': selectedLanguage,
+            'load_time_ms': loadTime,
+            'source': dataSource.toLowerCase() === 'database' ? 'database' : 'api',
+            'restaurant_name': restaurantInfo?.name || 'unknown',
+            'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown'
+        });
+        
+        await incrementDishExplanation();
         
         setExplanations(prev => ({
             ...prev,
             [dishName]: {
                 ...prev[dishName],
-                [selectedLanguage]: { data: null, isLoading: true, error: null }
+                [selectedLanguage]: { data, isLoading: false, error: null }
             }
         }));
-
-        try {
-            // Build URL with restaurant ID if available
-            const baseUrl = `/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`;
-            const url = restaurantInfo?.id 
-                ? `${baseUrl}&restaurantId=${restaurantInfo.id}`
-                : baseUrl;
-
-            const response = await fetch(url);
-            const loadTime = Date.now() - startTime;
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
-                throw new Error(errorData.error || `Request failed`);
+    } catch (err) {
+        const loadTime = Date.now() - startTime;
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch explanation.";
+        
+        // Track failed dish explanation with restaurant context
+        gtag('event', 'dish_explanation_error', {
+            'dish_name': dishName,
+            'language': selectedLanguage,
+            'load_time_ms': loadTime,
+            'error_message': errorMessage,
+            'source': 'unknown',
+            'restaurant_name': restaurantInfo?.name || 'unknown',
+            'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown'
+        });
+        
+        setExplanations(prev => ({
+            ...prev,
+            [dishName]: {
+                ...prev[dishName],
+                [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
             }
-            
-            const data: DishExplanation = await response.json();
-            const dataSource = response.headers.get('X-Data-Source') || 'unknown';
-            
-            // Track successful dish explanation with restaurant context
-            gtag('event', 'dish_explanation_success', {
-                'dish_name': dishName,
-                'language': selectedLanguage,
-                'load_time_ms': loadTime,
-                'source': dataSource.toLowerCase() === 'database' ? 'database' : 'api',
-                'restaurant_name': restaurantInfo?.name || 'unknown',
-                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown'
-            });
-            
-            await incrementDishExplanation();
-            
-            setExplanations(prev => ({
-                ...prev,
-                [dishName]: {
-                    ...prev[dishName],
-                    [selectedLanguage]: { data, isLoading: false, error: null }
-                }
-            }));
-        } catch (err) {
-            const loadTime = Date.now() - startTime;
-            const errorMessage = err instanceof Error ? err.message : "Failed to fetch explanation.";
-            
-            // Track failed dish explanation with restaurant context
-            gtag('event', 'dish_explanation_error', {
-                'dish_name': dishName,
-                'language': selectedLanguage,
-                'load_time_ms': loadTime,
-                'error_message': errorMessage,
-                'source': 'unknown',
-                'restaurant_name': restaurantInfo?.name || 'unknown',
-                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown'
-            });
-            
-            setExplanations(prev => ({
-                ...prev,
-                [dishName]: {
-                    ...prev[dishName],
-                    [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
-                }
-            }));
-        }
-    };
+        }));
+    }
+};
 
     return (
         <div className="py-12 sm:py-16">

@@ -143,3 +143,36 @@ export const findOrCreateRestaurant = async (
     return null;
   }
 };
+
+// Increment dish explanation count for a restaurant
+export const incrementRestaurantDishExplanation = async (restaurantId: number): Promise<void> => {
+  try {
+    // Get current count
+    const { data: restaurant, error: fetchError } = await supabase
+      .from('restaurants')
+      .select('dishes_explained')
+      .eq('id', restaurantId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching restaurant for explanation count:', fetchError);
+      return;
+    }
+
+    // Increment the count
+    const { error: updateError } = await supabase
+      .from('restaurants')
+      .update({ 
+        dishes_explained: (restaurant.dishes_explained || 0) + 1
+      })
+      .eq('id', restaurantId);
+
+    if (updateError) {
+      console.error('Error updating restaurant explanation count:', updateError);
+    } else {
+      console.log(`Incremented explanation count for restaurant ${restaurantId}`);
+    }
+  } catch (error) {
+    console.error('Error in incrementRestaurantDishExplanation:', error);
+  }
+};

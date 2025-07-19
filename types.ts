@@ -24,7 +24,8 @@ export interface DishRecord {
   cuisine: string | null;
   created_at?: string;
   language?: string;
-  restaurant_id?: number; // Add this
+  restaurant_id?: number;
+  restaurant_name?: string; // NEW: Store restaurant name directly
 }
 
 export interface Restaurant {
@@ -38,7 +39,8 @@ export interface Restaurant {
   latitude?: number;
   longitude?: number;
   total_scans?: number;
-  dishes_scanned?: number; // NEW: Track total dishes scanned
+  dishes_scanned?: number;
+  dishes_explained?: number; // NEW: Track explanations requested
   last_scanned_at?: string;
   name_location_hash?: string;
   created_at?: string;

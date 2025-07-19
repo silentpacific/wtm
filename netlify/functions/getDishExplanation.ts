@@ -229,7 +229,8 @@ const handler: Handler = async (event: HandlerEvent) => {
     const startTime = Date.now();
     const dishName = event.queryStringParameters?.dishName;
     const language = event.queryStringParameters?.language || 'en';
-    const restaurantId = event.queryStringParameters?.restaurantId; // NEW: Get restaurant ID
+    const restaurantId = event.queryStringParameters?.restaurantId;
+    const restaurantName = event.queryStringParameters?.restaurantName; // NEW: Get restaurant name
 
     if (!dishName) {
         return { 
@@ -305,6 +306,25 @@ const handler: Handler = async (event: HandlerEvent) => {
         // 3. If found in database with good confidence, return it
         if (bestMatch && bestScore >= FUZZY_THRESHOLD) {
             console.log(`✅ FOUND MATCH IN DB: "${bestMatch.name}" in ${language} (score: ${bestScore.toFixed(3)})`);
+            
+            // NEW: Increment restaurant explanation count if we have a restaurant ID
+            if (restaurantId) {
+                try {
+                    const { error: updateError } = await supabase
+                        .rpc('increment_restaurant_explanation_count', { 
+                            restaurant_id: parseInt(restaurantId) 
+                        });
+                        
+                    if (updateError) {
+                        console.error('Error incrementing restaurant explanation count:', updateError);
+                    } else {
+                        console.log(`✅ Incremented explanation count for restaurant ${restaurantId}`);
+                    }
+                } catch (error) {
+                    console.error('Error updating restaurant explanation count:', error);
+                }
+            }
+            
             return {
                 statusCode: 200,
                 body: JSON.stringify({
@@ -342,7 +362,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         const jsonText = response.text.trim();
         const dishExplanation: DishExplanation = JSON.parse(jsonText);
 
-        // 5. Save to database with restaurant link
+        // 5. Save to database with restaurant link and name
         console.log(`💾 Checking for duplicates before saving: "${dishName}" in ${language}`);
         
         const duplicateExists = allDishes?.some(dish => 
@@ -357,7 +377,8 @@ const handler: Handler = async (event: HandlerEvent) => {
                 tags: dishExplanation.tags || [],
                 allergens: dishExplanation.allergens || [],
                 cuisine: dishExplanation.cuisine || null,
-                restaurant_id: restaurantId ? parseInt(restaurantId) : null // NEW: Link to restaurant
+                restaurant_id: restaurantId ? parseInt(restaurantId) : null,
+                restaurant_name: restaurantName ? decodeURIComponent(restaurantName) : null // NEW: Store restaurant name
             };
 
             const { error: insertError } = await supabase
@@ -371,6 +392,24 @@ const handler: Handler = async (event: HandlerEvent) => {
             }
         } else {
             console.log(`ℹ️ Similar dish already exists in database for ${language}, skipping insert`);
+        }
+
+        // NEW: Increment restaurant explanation count for API responses too
+        if (restaurantId) {
+            try {
+                const { error: updateError } = await supabase
+                    .rpc('increment_restaurant_explanation_count', { 
+                        restaurant_id: parseInt(restaurantId) 
+                    });
+                    
+                if (updateError) {
+                    console.error('Error incrementing restaurant explanation count:', updateError);
+                } else {
+                    console.log(`✅ Incremented explanation count for restaurant ${restaurantId}`);
+                }
+            } catch (error) {
+                console.error('Error updating restaurant explanation count:', error);
+            }
         }
         
         return {
