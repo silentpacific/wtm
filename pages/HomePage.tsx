@@ -269,97 +269,159 @@ const MenuResults: React.FC<{
         localStorage.setItem('preferred-language', languageCode);
     };
 
-const handleDishClick = async (dishName: string) => {
-    if (!explanations[dishName]) {
-        explanations[dishName] = {};
-    }
-    
-    if (explanations[dishName][selectedLanguage]) return;
-    const startTime = Date.now();
-    
-    setExplanations(prev => ({
-        ...prev,
-        [dishName]: {
-            ...prev[dishName],
-            [selectedLanguage]: { data: null, isLoading: true, error: null }
+    // Translations object
+    const translations = {
+        en: {
+            pageTitle: "Your Menu",
+            instructions: "👆 Tap on any dish name to get an explanation",
+            allergenWarning: "Important: Always double-check with the restaurant about allergens and ingredients. AI descriptions are for guidance only.",
+            dishName: "Dish Name",
+            explanation: "Explanation",
+            explaining: "Explaining...",
+            error: "Error: ",
+            dietaryStyle: "Dietary & Style",
+            allergenInfo: "Allergen Information"
+        },
+        es: {
+            pageTitle: "Tu Menú",
+            instructions: "👆 Toca cualquier nombre de plato para obtener una explicación",
+            allergenWarning: "Importante: Siempre confirma con el restaurante sobre alérgenos e ingredientes. Las descripciones de IA son solo una guía.",
+            dishName: "Nombre del Plato",
+            explanation: "Explicación",
+            explaining: "Explicando...",
+            error: "Error: ",
+            dietaryStyle: "Dieta y Estilo",
+            allergenInfo: "Información de Alérgenos"
+        },
+        zh: {
+            pageTitle: "您的菜单",
+            instructions: "👆 点击任何菜名获取说明",
+            allergenWarning: "重要提示：请务必与餐厅确认过敏原和成分信息。AI描述仅供参考。",
+            dishName: "菜名",
+            explanation: "说明",
+            explaining: "解释中...",
+            error: "错误: ",
+            dietaryStyle: "饮食与风格",
+            allergenInfo: "过敏原信息"
+        },
+        fr: {
+            pageTitle: "Votre Menu",
+            instructions: "👆 Appuyez sur n'importe quel nom de plat pour obtenir une explication",
+            allergenWarning: "Important : Vérifiez toujours avec le restaurant concernant les allergènes et les ingrédients. Les descriptions IA sont uniquement à titre indicatif.",
+            dishName: "Nom du Plat",
+            explanation: "Explication",
+            explaining: "Explication...",
+            error: "Erreur: ",
+            dietaryStyle: "Régime et Style",
+            allergenInfo: "Informations Allergènes"
         }
-    }));
+    };
 
-    try {
-        // Build URL with restaurant ID AND name if available
-        let url = `/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`;
-        
-        if (restaurantInfo?.id) {
-            url += `&restaurantId=${restaurantInfo.id}`;
-        }
-        
-        if (restaurantInfo?.name) {
-            url += `&restaurantName=${encodeURIComponent(restaurantInfo.name)}`;
-        }
+    const t = translations[selectedLanguage as keyof typeof translations];
 
-        const response = await fetch(url);
-        const loadTime = Date.now() - startTime;
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
-            throw new Error(errorData.error || `Request failed`);
+    // Language options with flags
+    const languageOptions = [
+        { code: 'en', name: 'English', flag: '🇺🇸' },
+        { code: 'es', name: 'Español', flag: '🇪🇸' },
+        { code: 'zh', name: '中文', flag: '🇨🇳' },
+        { code: 'fr', name: 'Français', flag: '🇫🇷' },
+    ];
+
+    const handleDishClick = async (dishName: string) => {
+        if (!explanations[dishName]) {
+            explanations[dishName] = {};
         }
         
-        const data: DishExplanation = await response.json();
-        const dataSource = response.headers.get('X-Data-Source') || 'unknown';
-        
-        // Track successful dish explanation with restaurant context
-        gtag('event', 'dish_explanation_success', {
-            'dish_name': dishName,
-            'language': selectedLanguage,
-            'load_time_ms': loadTime,
-            'source': dataSource.toLowerCase() === 'database' ? 'database' : 'api',
-            'restaurant_name': restaurantInfo?.name || 'unknown',
-            'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown'
-        });
-        
-        await incrementDishExplanation();
+        if (explanations[dishName][selectedLanguage]) return;
+        const startTime = Date.now();
         
         setExplanations(prev => ({
             ...prev,
             [dishName]: {
                 ...prev[dishName],
-                [selectedLanguage]: { data, isLoading: false, error: null }
+                [selectedLanguage]: { data: null, isLoading: true, error: null }
             }
         }));
-    } catch (err) {
-        const loadTime = Date.now() - startTime;
-        const errorMessage = err instanceof Error ? err.message : "Failed to fetch explanation.";
-        
-        // Track failed dish explanation with restaurant context
-        gtag('event', 'dish_explanation_error', {
-            'dish_name': dishName,
-            'language': selectedLanguage,
-            'load_time_ms': loadTime,
-            'error_message': errorMessage,
-            'source': 'unknown',
-            'restaurant_name': restaurantInfo?.name || 'unknown',
-            'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown'
-        });
-        
-        setExplanations(prev => ({
-            ...prev,
-            [dishName]: {
-                ...prev[dishName],
-                [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+
+        try {
+            // Build URL with restaurant ID AND name if available
+            let url = `/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`;
+            
+            if (restaurantInfo?.id) {
+                url += `&restaurantId=${restaurantInfo.id}`;
             }
-        }));
-    }
-};
+            
+            if (restaurantInfo?.name) {
+                url += `&restaurantName=${encodeURIComponent(restaurantInfo.name)}`;
+            }
+
+            const response = await fetch(url);
+            const loadTime = Date.now() - startTime;
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
+                throw new Error(errorData.error || `Request failed`);
+            }
+            
+            const data: DishExplanation = await response.json();
+            const dataSource = response.headers.get('X-Data-Source') || 'unknown';
+            
+            // Track successful dish explanation with restaurant context
+            gtag('event', 'dish_explanation_success', {
+                'dish_name': dishName,
+                'language': selectedLanguage,
+                'load_time_ms': loadTime,
+                'source': dataSource.toLowerCase() === 'database' ? 'database' : 'api',
+                'restaurant_name': restaurantInfo?.name || 'unknown',
+                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown'
+            });
+            
+            await incrementDishExplanation();
+            
+            setExplanations(prev => ({
+                ...prev,
+                [dishName]: {
+                    ...prev[dishName],
+                    [selectedLanguage]: { data, isLoading: false, error: null }
+                }
+            }));
+        } catch (err) {
+            const loadTime = Date.now() - startTime;
+            const errorMessage = err instanceof Error ? err.message : "Failed to fetch explanation.";
+            
+            // Track failed dish explanation with restaurant context
+            gtag('event', 'dish_explanation_error', {
+                'dish_name': dishName,
+                'language': selectedLanguage,
+                'load_time_ms': loadTime,
+                'error_message': errorMessage,
+                'source': 'unknown',
+                'restaurant_name': restaurantInfo?.name || 'unknown',
+                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown'
+            });
+            
+            setExplanations(prev => ({
+                ...prev,
+                [dishName]: {
+                    ...prev[dishName],
+                    [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+                }
+            }));
+        }
+    };
 
     return (
         <div className="py-12 sm:py-16">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h2 className="font-black text-5xl text-charcoal text-center mb-6 tracking-tighter">Menu Explained</h2>
+                
+                {/* 1. PAGE TITLE - Large and prominent */}
+                <h2 className="font-black text-5xl text-charcoal text-center mb-8 tracking-tighter">
+                    {t.pageTitle}
+                </h2>
 
-                {/* Restaurant Info Display */}
+                {/* 2. RESTAURANT INFO - Medium weight, attractive card */}
                 {restaurantInfo && (restaurantInfo.name || restaurantInfo.cuisine) && (
-                    <div className="bg-white/80 border-4 border-charcoal rounded-2xl p-4 mb-6 shadow-[6px_6px_0px_#292524]">
+                    <div className="bg-white border-4 border-charcoal rounded-2xl p-6 mb-6 shadow-[6px_6px_0px_#292524]">
                         <div className="text-center">
                             {restaurantInfo.name && (
                                 <h3 className="font-black text-2xl text-coral mb-2">
@@ -382,47 +444,68 @@ const handleDishClick = async (dishName: string) => {
                     </div>
                 )}
 
-                {/* Enhanced instruction - much more prominent */}
-                <div className="bg-coral/10 border-4 border-coral rounded-2xl p-4 mb-6 shadow-[6px_6px_0px_#FF6B6B]">
-                    <div className="flex items-center justify-center gap-3 text-coral">
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.122 2.122" />
+                {/* 3. LANGUAGE FILTER - Small, subtle, top-right corner style */}
+                <div className="flex justify-end mb-4">
+                    <div className="bg-white/60 border-2 border-charcoal/30 rounded-xl p-3 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-charcoal/70">🌍</span>
+                            <div className="flex gap-2">
+                                {languageOptions.map((option) => (
+                                    <button
+                                        key={option.code}
+                                        onClick={() => handleLanguageChange(option.code)}
+                                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
+                                            selectedLanguage === option.code
+                                                ? 'bg-coral text-white shadow-sm'
+                                                : 'bg-white/50 text-charcoal/70 hover:bg-white hover:text-charcoal'
+                                        }`}
+                                    >
+                                        {option.flag} {option.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. INSTRUCTIONS - Small blue info box */}
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
+                    <div className="flex items-center justify-center gap-3 text-blue-700">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="font-black text-xl">
-                            👆 Tap on any dish name to get an explanation
+                        <span className="font-medium text-center">
+                            {t.instructions}
                         </span>
                     </div>
                 </div>
 
-                {/* Language Selector */}
-                <LanguageSelector 
-                    selectedLanguage={selectedLanguage}
-                    onLanguageChange={handleLanguageChange}
-                />
-
-                {/* Allergen Disclaimer */}
-                <div className="bg-yellow/20 border-4 border-yellow rounded-2xl p-4 mb-8 shadow-[4px_4px_0px_#FFC700]">
-                    <div className="flex items-center justify-center gap-2 text-charcoal">
-                        <span className="text-2xl">⚠️</span>
-                        <span className="font-bold text-lg text-center">
-                            Important: Always double-check with the restaurant about allergens and ingredients. AI descriptions are for guidance only.
+                {/* 5. ALLERGEN WARNING - Medium red warning box */}
+                <div className="bg-red-50 border-4 border-red-200 rounded-2xl p-4 mb-8 shadow-sm">
+                    <div className="flex items-start justify-center gap-3 text-red-700">
+                        <span className="text-2xl mt-0.5">⚠️</span>
+                        <span className="font-bold text-center leading-relaxed">
+                            {t.allergenWarning}
                         </span>
                     </div>
                 </div>
 
+                {/* 6. MENU TABLE - Dominates the page, large clear layout */}
                 <div className="bg-white rounded-2xl shadow-[8px_8px_0px_#292524] p-6 sm:p-8 border-4 border-charcoal space-y-10">
                     {menuSections.length > 0 ? (
                         menuSections.map((section, sectionIndex) => (
                             <div key={sectionIndex}>
                                 {section.sectionTitle && (
-                                    <h3 className="font-black text-3xl text-coral tracking-tight mb-4 border-b-4 border-charcoal pb-2">{section.sectionTitle}</h3>
+                                    <h3 className="font-black text-3xl text-coral tracking-tight mb-4 border-b-4 border-charcoal pb-2">
+                                        {section.sectionTitle}
+                                    </h3>
                                 )}
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="border-b-2 border-charcoal/50">
-                                                <th className="p-4 text-lg font-bold text-charcoal w-1/2">Dish Name</th>
-                                                <th className="p-4 text-lg font-bold text-charcoal w-1/2">Explanation</th>
+                                                <th className="p-4 text-lg font-bold text-charcoal w-1/2">{t.dishName}</th>
+                                                <th className="p-4 text-lg font-bold text-charcoal w-1/2">{t.explanation}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -442,21 +525,12 @@ const handleDishClick = async (dishName: string) => {
                                                         {explanations[dish.name]?.[selectedLanguage]?.isLoading && (
                                                             <div className="flex items-center space-x-2 font-medium">
                                                                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-coral"></div>
-                                                                <span>
-                                                                    {selectedLanguage === 'es' ? 'Explicando...' : 
-                                                                     selectedLanguage === 'zh' ? '解释中...' :
-                                                                     selectedLanguage === 'fr' ? 'Explication...' : 
-                                                                     'Explaining...'}
-                                                                </span>
+                                                                <span>{t.explaining}</span>
                                                             </div>
                                                         )}
                                                         {explanations[dish.name]?.[selectedLanguage]?.error && (
                                                             <p className="text-red-600 font-medium">
-                                                                        {selectedLanguage === 'es' ? 'Error: ' :
-                                                                         selectedLanguage === 'zh' ? '错误: ' :
-                                                                         selectedLanguage === 'fr' ? 'Erreur: ' :
-                                                                         'Error: '}
-                                                                {explanations[dish.name]?.[selectedLanguage]?.error}
+                                                                {t.error}{explanations[dish.name]?.[selectedLanguage]?.error}
                                                             </p>
                                                         )}
                                                         {explanations[dish.name]?.[selectedLanguage]?.data && (
@@ -467,10 +541,7 @@ const handleDishClick = async (dishName: string) => {
                                                                 {explanations[dish.name]?.[selectedLanguage]?.data?.tags && explanations[dish.name]?.[selectedLanguage]?.data?.tags?.length > 0 && (
                                                                     <div className="space-y-2">
                                                                         <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">
-                                                                            {selectedLanguage === 'es' ? 'Dieta y Estilo' :
-                                                                             selectedLanguage === 'zh' ? '饮食与风格' :
-                                                                             selectedLanguage === 'fr' ? 'Régime et Style' :
-                                                                             'Dietary & Style'}
+                                                                            {t.dietaryStyle}
                                                                         </p>
                                                                         <div className="flex flex-wrap gap-2">
                                                                             {explanations[dish.name]?.[selectedLanguage]?.data?.tags?.map(tag => (
@@ -484,10 +555,7 @@ const handleDishClick = async (dishName: string) => {
                                                                 {explanations[dish.name]?.[selectedLanguage]?.data?.allergens && explanations[dish.name]?.[selectedLanguage]?.data?.allergens?.length > 0 && (
                                                                     <div className="space-y-2">
                                                                         <p className="text-xs font-bold text-red-700 uppercase tracking-wide">
-                                                                            ⚠️ {selectedLanguage === 'es' ? 'Información de Alérgenos' :
-                                                                                 selectedLanguage === 'zh' ? '过敏原信息' :
-                                                                                 selectedLanguage === 'fr' ? 'Informations Allergènes' :
-                                                                                'Allergen Information'}
+                                                                            ⚠️ {t.allergenInfo}
                                                                         </p>
                                                                         <div className="flex flex-wrap gap-2">
                                                                             {explanations[dish.name]?.[selectedLanguage]?.data?.allergens?.map(allergen => (
@@ -514,6 +582,7 @@ const handleDishClick = async (dishName: string) => {
         </div>
     );
 };
+
 
 const ReviewsSection: React.FC = () => (
   <div className="py-12 sm:py-24 bg-teal border-y-4 border-charcoal">
