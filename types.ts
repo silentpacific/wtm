@@ -21,5 +21,30 @@ export interface DishRecord {
   explanation: string;
   tags: string[] | null;
   allergens: string[] | null;
+  cuisine: string | null;
   created_at?: string;
+  language?: string;
+  restaurant_id?: number; // Add this
+}
+
+export interface Restaurant {
+  id?: number;
+  name: string;
+  cuisine_type?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip_code?: string;
+  latitude?: number;
+  longitude?: number;
+  total_scans?: number;
+  last_scanned_at?: string;
+  name_location_hash?: string;
+  created_at?: string;
+}
+
+export interface MenuAnalysisResult {
+  sections: MenuSection[];
+  restaurantName?: string;
+  detectedCuisine?: string;
 }

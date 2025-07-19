@@ -106,7 +106,6 @@ const getLanguagePrompt = (dishName: string, language: string): string => {
     return baseInstructions[language as keyof typeof baseInstructions] || baseInstructions.en;
 };
 
-
 // Universal string cleaning (minimal processing to preserve all languages)
 const cleanString = (str: string): string => {
     return str
@@ -230,6 +229,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     const startTime = Date.now();
     const dishName = event.queryStringParameters?.dishName;
     const language = event.queryStringParameters?.language || 'en';
+    const restaurantId = event.queryStringParameters?.restaurantId; // NEW: Get restaurant ID
 
     if (!dishName) {
         return { 
@@ -240,13 +240,13 @@ const handler: Handler = async (event: HandlerEvent) => {
     }
 
     // Validate language parameter
-	if (!['en', 'es', 'zh', 'fr'].includes(language)) {
-	    return { 
-	        statusCode: 400, 
-	        body: JSON.stringify({ error: "Unsupported language. Supported languages: en, es, zh, fr" }),
-	        headers: { 'Content-Type': 'application/json' }
-	    };
-	}
+    if (!['en', 'es', 'zh', 'fr'].includes(language)) {
+        return { 
+            statusCode: 400, 
+            body: JSON.stringify({ error: "Unsupported language. Supported languages: en, es, zh, fr" }),
+            headers: { 'Content-Type': 'application/json' }
+        };
+    }
     
     if (!supabaseUrl || !supabaseAnonKey || !geminiApiKey) {
         return { 
@@ -257,12 +257,12 @@ const handler: Handler = async (event: HandlerEvent) => {
     }
 
     try {
-        console.log(`🔍 Searching for dish: "${dishName}" in language: ${language}`);
+        console.log(`🔍 Searching for dish: "${dishName}" in language: ${language}${restaurantId ? ` for restaurant: ${restaurantId}` : ''}`);
         
-        // 1. Search for existing dishes in the requested language
-        const { data: allDishes, error: fetchError } = await supabase
+        // 1. Enhanced database search - prioritize dishes from the same restaurant
+        let { data: allDishes, error: fetchError } = await supabase
             .from('dishes')
-            .select('name, explanation, tags, allergens, cuisine')
+            .select('name, explanation, tags, allergens, cuisine, restaurant_id')
             .eq('language', language);
 
         if (fetchError) {
@@ -272,23 +272,28 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         console.log(`📊 Database returned ${allDishes ? allDishes.length : 0} dishes for language: ${language}`);
 
-        // 2. Perform universal fuzzy search on dishes in this language
+        // 2. Enhanced fuzzy search with restaurant preference
         let bestMatch = null;
         let bestScore = 0;
         const FUZZY_THRESHOLD = 0.85;
 
         if (allDishes && allDishes.length > 0) {
-            console.log(`🔎 Starting fuzzy search for ${language}...`);
+            console.log(`🔎 Starting enhanced fuzzy search for ${language}...`);
             
             for (const dish of allDishes) {
                 if (dish.name) {
                     const score = universalFuzzySearch(dishName, dish.name);
                     
-                    if (score > bestScore) {
-                        bestScore = score;
-                        if (score >= FUZZY_THRESHOLD) {
+                    // Boost score if from same restaurant
+                    const restaurantBonus = (restaurantId && dish.restaurant_id && 
+                                           dish.restaurant_id.toString() === restaurantId) ? 0.1 : 0;
+                    const finalScore = Math.min(score + restaurantBonus, 1.0);
+                    
+                    if (finalScore > bestScore) {
+                        bestScore = finalScore;
+                        if (finalScore >= FUZZY_THRESHOLD) {
                             bestMatch = dish;
-                            console.log(`✅ NEW BEST MATCH: "${dish.name}" with score ${score.toFixed(3)}`);
+                            console.log(`✅ NEW BEST MATCH: "${dish.name}" with score ${finalScore.toFixed(3)} ${restaurantBonus > 0 ? '(restaurant bonus applied)' : ''}`);
                         }
                     }
                 }
@@ -313,7 +318,7 @@ const handler: Handler = async (event: HandlerEvent) => {
                     'X-Data-Source': 'Database',
                     'X-Match-Score': bestScore.toString(),
                     'X-Language': language,
-  		      'X-Processing-Time': (Date.now() - startTime).toString() // Add start time tracking
+                    'X-Processing-Time': (Date.now() - startTime).toString()
                 }
             };
         }
@@ -337,7 +342,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         const jsonText = response.text.trim();
         const dishExplanation: DishExplanation = JSON.parse(jsonText);
 
-        // 5. Save to database for future use (for ALL languages now)
+        // 5. Save to database with restaurant link
         console.log(`💾 Checking for duplicates before saving: "${dishName}" in ${language}`);
         
         const duplicateExists = allDishes?.some(dish => 
@@ -345,21 +350,24 @@ const handler: Handler = async (event: HandlerEvent) => {
         );
         
         if (!duplicateExists) {
+            const insertData = { 
+                name: dishName,
+                language: language,
+                explanation: dishExplanation.explanation,
+                tags: dishExplanation.tags || [],
+                allergens: dishExplanation.allergens || [],
+                cuisine: dishExplanation.cuisine || null,
+                restaurant_id: restaurantId ? parseInt(restaurantId) : null // NEW: Link to restaurant
+            };
+
             const { error: insertError } = await supabase
                 .from('dishes')
-                .insert({ 
-                    name: dishName,
-                    language: language,  // Include language in the insert!
-                    explanation: dishExplanation.explanation,
-                    tags: dishExplanation.tags || [],
-                    allergens: dishExplanation.allergens || [],
-                    cuisine: dishExplanation.cuisine || null
-                });
+                .insert(insertData);
                 
             if (insertError) {
                 console.error("❌ Supabase insert error:", insertError);
             } else {
-                console.log(`✅ Successfully saved new dish to DB: "${dishName}" in ${language}`);
+                console.log(`✅ Successfully saved new dish to DB: "${dishName}" in ${language}${restaurantId ? ` linked to restaurant ${restaurantId}` : ''}`);
             }
         } else {
             console.log(`ℹ️ Similar dish already exists in database for ${language}, skipping insert`);
@@ -372,8 +380,7 @@ const handler: Handler = async (event: HandlerEvent) => {
                 'Content-Type': 'application/json',
                 'X-Data-Source': 'Gemini-API',
                 'X-Language': language,
-       		 'X-Processing-Time': (Date.now() - startTime).toString() // Add start time tracking
-
+                'X-Processing-Time': (Date.now() - startTime).toString()
             }
         };
 
