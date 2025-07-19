@@ -422,13 +422,11 @@ const MenuResults: React.FC<{
 
     // Handle mobile accordion click
     const handleMobileAccordionClick = (dishName: string) => {
-        // Always expand the accordion first
-        if (!expandedDishes.has(dishName)) {
-            toggleDishExpansion(dishName);
-        }
+        // Toggle accordion expansion
+        toggleDishExpansion(dishName);
         
-        // Then fetch explanation if not already fetched/loading
-        if (!explanations[dishName]?.[selectedLanguage]) {
+        // Fetch explanation if not already fetched/loading and accordion is being expanded
+        if (!expandedDishes.has(dishName) && !explanations[dishName]?.[selectedLanguage]) {
             handleDishClick(dishName);
         }
     };
@@ -618,16 +616,10 @@ const MenuResults: React.FC<{
                                                         <span className="text-lg font-medium text-charcoal tracking-tight">
                                                             {dish.name}
                                                         </span>
-                                                        {isLoading && (
-                                                            <div className="flex items-center space-x-2 mt-2">
-                                                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-coral"></div>
-                                                                <span className="text-sm text-coral font-medium">{t.explaining}</span>
-                                                            </div>
-                                                        )}
                                                     </div>
                                                     <div className="ml-4 flex-shrink-0">
-                                                        <span className={`text-xl transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
-                                                            ▶
+                                                        <span className={`text-xl transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                                                            ▼
                                                         </span>
                                                     </div>
                                                 </button>
@@ -652,6 +644,7 @@ const MenuResults: React.FC<{
         </div>
     );
 };
+
 
 
 
