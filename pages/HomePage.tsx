@@ -315,7 +315,7 @@ const MenuResults: React.FC<{
 
     const t = translations[selectedLanguage as keyof typeof translations];
 
-    // Language options with flags (NO SHORT CODES)
+    // Language options - clean names only
     const languageOptions = [
         { code: 'en', name: 'English' },
         { code: 'es', name: 'Español' },
@@ -440,39 +440,22 @@ const MenuResults: React.FC<{
                     </div>
                 )}
 
-                {/* 3. LANGUAGE FILTER - Small, subtle, top-right corner style */}
-                <div className="flex justify-end mb-4">
-                    <div className="bg-white/60 border-2 border-charcoal/30 rounded-xl p-3 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium text-charcoal/70">🌍</span>
-                            <div className="flex gap-2">
-                                {languageOptions.map((option) => (
-                                    <button
-                                        key={option.code}
-                                        onClick={() => handleLanguageChange(option.code)}
-                                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
-                                            selectedLanguage === option.code
-                                                ? 'bg-coral text-white shadow-sm'
-                                                : 'bg-white/50 text-charcoal/70 hover:bg-white hover:text-charcoal'
-                                        }`}
-                                    >
-                                        {option.flag} {option.name}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 4. INSTRUCTIONS - Small blue info box */}
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
-                    <div className="flex items-center justify-center gap-3 text-blue-700">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="font-medium text-center">
-                            {t.instructions}
-                        </span>
+                {/* 3. LANGUAGE FILTER - Clean grey pills, centered */}
+                <div className="flex justify-center mb-6">
+                    <div className="flex gap-2">
+                        {languageOptions.map((option) => (
+                            <button
+                                key={option.code}
+                                onClick={() => handleLanguageChange(option.code)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                    selectedLanguage === option.code
+                                        ? 'bg-gray-800 text-white'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                            >
+                                {option.name}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
@@ -578,7 +561,6 @@ const MenuResults: React.FC<{
         </div>
     );
 };
-
 
 
 const ReviewsSection: React.FC = () => (
