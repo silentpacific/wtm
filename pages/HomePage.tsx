@@ -210,7 +210,7 @@ const HeroSection: React.FC<{
                         </div>
                     </div>
                      <div className="text-charcoal/50 font-black text-2xl hidden sm:block">OR</div>
-                    <button onClick={handleCameraClick} className={`${boxStyle} hover:shadow-[10px_10px_0px_#FF6B6B]`}>
+		    <button onClick={handleCameraClick} className={`${boxStyle} hover:shadow-[10px_10px_0px_#FF6B6B] flex flex-col items-center justify-center`}>
                          <CameraIcon className="w-16 h-16 text-charcoal mb-2"/>
                         <p className="font-bold text-xl text-charcoal">Take a picture</p>
                         <p className="text-md text-charcoal/70">using your camera</p>
