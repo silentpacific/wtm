@@ -85,6 +85,39 @@ const getLanguagePrompt = (dishName: string, language: string): string => {
         }
     };
 
+        zh: {
+            prompt: `你是一位烹饪专家。请解释"${decodeURIComponent(dishName)}"这道菜。
+            为游客提供300字符以内的简明解释。
+            
+            标签包括：饮食限制（素食、纯素、无麸质、无乳制品），烹饪方法（烤制、油炸、蒸制、生食），以及口味特征（辛辣、甜、咸、温和、热）。
+            
+            对于过敏原，请具体列出菜品包含的成分，使用此格式："含有[过敏原]"（如"含有坚果"、"含有乳制品"、"含有麸质"、"含有贝类"、"含有鸡蛋"、"含有鱼类"、"含有大豆"）。
+            
+            对于菜系，请识别具体的菜系类型（如"中式"、"日式"、"意式"、"印度"、"泰式"、"法式"、"地中海"、"美式"、"韩式"、"越式"、"希腊"、"西班牙"、"黎巴嫩"、"摩洛哥"等）。请具体 - 使用最精确的菜系分类。
+            
+            如果菜品不含常见过敏原，请为过敏原返回空数组。
+            
+            请用中文回应，并使用请求的JSON格式。`,
+            tagExamples: '素食, 纯素, 无麸质, 辛辣, 甜, 烤制, 油炸',
+            allergenFormat: '含有[过敏原]'
+        },
+        fr: {
+            prompt: `Vous êtes un expert culinaire. Expliquez le plat "${decodeURIComponent(dishName)}". 
+            Fournissez une explication concise adaptée à un touriste en moins de 300 caractères.
+            
+            Pour les étiquettes, incluez: restrictions alimentaires (Végétarien, Végan, Sans Gluten, Sans Lactose), méthodes de cuisson (Grillé, Frit, Vapeur, Cru), et profils de saveur (Épicé, Sucré, Salé, Doux, Chaud).
+            
+            Pour les allergènes, spécifiez spécifiquement ce que contient le plat en utilisant ce format: "Contient [allergène]" (ex., "Contient Noix", "Contient Produits Laitiers", "Contient Gluten", "Contient Fruits de Mer", "Contient Œufs", "Contient Poisson", "Contient Soja").
+            
+            Pour la cuisine, identifiez le type de cuisine spécifique (ex., "Italienne", "Japonaise", "Mexicaine", "Indienne", "Thaïlandaise", "Française", "Chinoise", "Méditerranéenne", "Américaine", "Coréenne", "Vietnamienne", "Grecque", "Espagnole", "Libanaise", "Marocaine", etc.). Soyez spécifique - utilisez la classification culinaire la plus précise.
+            
+            Si le plat ne contient pas d'allergènes courants, retournez un tableau vide pour les allergènes.
+            
+            Répondez au format JSON demandé, mais avec tout le contenu en français.`,
+            tagExamples: 'Végétarien, Végan, Sans Gluten, Épicé, Sucré, Grillé, Frit',
+            allergenFormat: 'Contient [allergène]'
+        }
+
     return baseInstructions[language as keyof typeof baseInstructions]?.prompt || baseInstructions.en.prompt;
 };
 
@@ -220,13 +253,13 @@ const handler: Handler = async (event: HandlerEvent) => {
     }
 
     // Validate language parameter
-    if (!['en', 'es'].includes(language)) {
-        return { 
-            statusCode: 400, 
-            body: JSON.stringify({ error: "Unsupported language. Supported languages: en, es" }),
-            headers: { 'Content-Type': 'application/json' }
-        };
-    }
+	if (!['en', 'es', 'zh', 'fr'].includes(language)) {
+	    return { 
+	        statusCode: 400, 
+	        body: JSON.stringify({ error: "Unsupported language. Supported languages: en, es, zh, fr" }),
+	        headers: { 'Content-Type': 'application/json' }
+	    };
+	}
     
     if (!supabaseUrl || !supabaseAnonKey || !geminiApiKey) {
         return { 

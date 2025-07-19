@@ -242,7 +242,7 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
     // Load language preference from localStorage
     useEffect(() => {
         const savedLanguage = localStorage.getItem('preferred-language');
-        if (savedLanguage && ['en', 'es'].includes(savedLanguage)) {
+        if (savedLanguage && ['en', 'es', 'zh', 'fr'].includes(savedLanguage)) {
             setSelectedLanguage(savedLanguage);
         }
     }, []);
@@ -366,13 +366,19 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
                                                             <div className="flex items-center space-x-2 font-medium">
                                                                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-coral"></div>
                                                                 <span>
-                                                                    {selectedLanguage === 'es' ? 'Explicando...' : 'Explaining...'}
+                                                                    {selectedLanguage === 'es' ? 'Explicando...' : 
+							             selectedLanguage === 'zh' ? '解释中...' :
+							             selectedLanguage === 'fr' ? 'Explication...' : 
+        							     'Explaining...'}
                                                                 </span>
                                                             </div>
                                                         )}
                                                         {explanations[dish.name]?.[selectedLanguage]?.error && (
                                                             <p className="text-red-600 font-medium">
-                                                                {selectedLanguage === 'es' ? 'Error: ' : 'Error: '}
+                                                                        {selectedLanguage === 'es' ? 'Error: ' :
+								         selectedLanguage === 'zh' ? '错误: ' :
+								         selectedLanguage === 'fr' ? 'Erreur: ' :
+								         'Error: '}
                                                                 {explanations[dish.name]?.[selectedLanguage]?.error}
                                                             </p>
                                                         )}
@@ -384,7 +390,10 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
                                                                 {explanations[dish.name]?.[selectedLanguage]?.data?.tags && explanations[dish.name]?.[selectedLanguage]?.data?.tags?.length > 0 && (
                                                                     <div className="space-y-2">
                                                                         <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">
-                                                                            {selectedLanguage === 'es' ? 'Dieta y Estilo' : 'Dietary & Style'}
+                                                                            {selectedLanguage === 'es' ? 'Dieta y Estilo' :
+									     selectedLanguage === 'zh' ? '饮食与风格' :
+									     selectedLanguage === 'fr' ? 'Régime et Style' :
+									     'Dietary & Style'}
                                                                         </p>
                                                                         <div className="flex flex-wrap gap-2">
                                                                             {explanations[dish.name]?.[selectedLanguage]?.data?.tags?.map(tag => (
@@ -398,7 +407,10 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
                                                                 {explanations[dish.name]?.[selectedLanguage]?.data?.allergens && explanations[dish.name]?.[selectedLanguage]?.data?.allergens?.length > 0 && (
                                                                     <div className="space-y-2">
                                                                         <p className="text-xs font-bold text-red-700 uppercase tracking-wide">
-                                                                            ⚠️ {selectedLanguage === 'es' ? 'Información de Alérgenos' : 'Allergen Information'}
+                                                                            ⚠️ {selectedLanguage === 'es' ? 'Información de Alérgenos' :
+									         selectedLanguage === 'zh' ? '过敏原信息' :
+									         selectedLanguage === 'fr' ? 'Informations Allergènes' :
+ 									        'Allergen Information'}
                                                                         </p>
                                                                         <div className="flex flex-wrap gap-2">
                                                                             {explanations[dish.name]?.[selectedLanguage]?.data?.allergens?.map(allergen => (

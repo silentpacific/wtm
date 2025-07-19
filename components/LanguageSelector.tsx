@@ -1,4 +1,4 @@
-// src/components/LanguageSelector.tsx
+// Updated src/components/LanguageSelector.tsx
 import React from 'react';
 
 export interface Language {
@@ -10,6 +10,8 @@ export interface Language {
 export const SUPPORTED_LANGUAGES: Language[] = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
   { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
 ];
 
 interface LanguageSelectorProps {
