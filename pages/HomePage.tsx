@@ -64,21 +64,31 @@ const CameraModal: React.FC<{
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleCapture = () => {
-        if (videoRef.current && canvasRef.current) {
-            const video = videoRef.current;
-            const canvas = canvasRef.current;
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const context = canvas.getContext('2d');
-            if(context){
-                context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-                const dataUrl = canvas.toDataURL('image/jpeg');
-                onCapture(dataUrl.split(',')[1]);
-                onClose();
-            }
-        }
-    };
+	const handleCapture = () => {
+	    if (videoRef.current && canvasRef.current) {
+	        const video = videoRef.current;
+	        const canvas = canvasRef.current;
+	        canvas.width = video.videoWidth;
+	        canvas.height = video.videoHeight;
+	        const context = canvas.getContext('2d');
+	        if(context){
+	            context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+	            const dataUrl = canvas.toDataURL('image/jpeg');
+	            
+	            // Track camera capture
+	            gtag('event', 'menu_upload_method', {
+	                'upload_type': 'camera_capture',
+	                'file_type': 'jpeg',
+	                'file_size_kb': Math.round(dataUrl.length * 0.75 / 1024), // Estimate base64 size
+	                'image_width': video.videoWidth,
+	                'image_height': video.videoHeight
+	            });
+	            
+	            onCapture(dataUrl.split(',')[1]);
+	            onClose();
+	        }
+	    }
+	};
 
     return (
         <div className="fixed inset-0 bg-charcoal/80 flex items-center justify-center z-50 p-4">
@@ -253,52 +263,74 @@ const MenuResults: React.FC<{ menuSections: MenuSection[] }> = ({ menuSections }
         localStorage.setItem('preferred-language', languageCode);
     };
 
-    const handleDishClick = async (dishName: string) => {
-        // Create nested structure if it doesn't exist
-        if (!explanations[dishName]) {
-            explanations[dishName] = {};
+const handleDishClick = async (dishName: string) => {
+    if (!explanations[dishName]) {
+        explanations[dishName] = {};
+    }
+    
+    if (explanations[dishName][selectedLanguage]) return;
+
+    const startTime = Date.now();
+    
+    setExplanations(prev => ({
+        ...prev,
+        [dishName]: {
+            ...prev[dishName],
+            [selectedLanguage]: { data: null, isLoading: true, error: null }
+        }
+    }));
+
+    try {
+        const response = await fetch(`/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`);
+        const loadTime = Date.now() - startTime;
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
+            throw new Error(errorData.error || `Request failed`);
         }
         
-        // Don't refetch if already loading or has data/error for this language
-        if (explanations[dishName][selectedLanguage]) return;
-
+        const data: DishExplanation = await response.json();
+        const dataSource = response.headers.get('X-Data-Source') || 'unknown';
+        
+        // Track successful dish explanation
+        gtag('event', 'dish_explanation_success', {
+            'dish_name': dishName,
+            'language': selectedLanguage,
+            'load_time_ms': loadTime,
+            'source': dataSource.toLowerCase() === 'database' ? 'database' : 'api'
+        });
+        
+        await incrementDishExplanation();
+        
         setExplanations(prev => ({
             ...prev,
             [dishName]: {
                 ...prev[dishName],
-                [selectedLanguage]: { data: null, isLoading: true, error: null }
+                [selectedLanguage]: { data, isLoading: false, error: null }
             }
         }));
-
-        try {
-            const response = await fetch(`/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`);
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
-                throw new Error(errorData.error || `Request failed`);
+    } catch (err) {
+        const loadTime = Date.now() - startTime;
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch explanation.";
+        
+        // Track failed dish explanation
+        gtag('event', 'dish_explanation_error', {
+            'dish_name': dishName,
+            'language': selectedLanguage,
+            'load_time_ms': loadTime,
+            'error_message': errorMessage,
+            'source': 'unknown'
+        });
+        
+        setExplanations(prev => ({
+            ...prev,
+            [dishName]: {
+                ...prev[dishName],
+                [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
             }
-            const data: DishExplanation = await response.json();
-            
-            // Increment global dish explanation counter
-            await incrementDishExplanation();
-            
-            setExplanations(prev => ({
-                ...prev,
-                [dishName]: {
-                    ...prev[dishName],
-                    [selectedLanguage]: { data, isLoading: false, error: null }
-                }
-            }));
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to fetch explanation.";
-            setExplanations(prev => ({
-                ...prev,
-                [dishName]: {
-                    ...prev[dishName],
-                    [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
-                }
-            }));
-        }
-    };
+        }));
+    }
+};
 
     return (
         <div className="py-12 sm:py-16">
@@ -603,53 +635,80 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess }) => {
         setScanError(null);
     }, []);
 
-    const handleScan = useCallback(async (base64Image: string) => {
-        if (!canScan()) {
-            handleScanAttempt();
-            return;
-        }
+const handleScan = useCallback(async (base64Image: string) => {
+    if (!canScan()) {
+        handleScanAttempt();
+        return;
+    }
 
-        setIsScanning(true);
-        setScanError(null);
-        setScanResult(null);
+    const scanStartTime = Date.now();
+    setIsScanning(true);
+    setScanError(null);
+    setScanResult(null);
 
-        try {
-            const menuSections = await analyzeMenu(base64Image);
-            setScanResult(menuSections);
-            
-            if (menuSections.length > 0) {
-                // Update scan count after successful scan
-                if (user && userProfile?.subscription_type === 'free') {
-                    // Update database for logged-in free users
-                    await supabase
-                        .from('user_profiles')
-                        .update({ scans_used: userProfile.scans_used + 1 })
-                        .eq('id', user.id);
-                        
-                    // Update local state
-                    setUserProfile(prev => prev ? { ...prev, scans_used: prev.scans_used + 1 } : null);
-                } else if (!user) {
-                    // Update local state for non-logged users
-                    setNonUserScans(prev => prev + 1);
-                }
-                
-                // Increment global menu counter
-                await incrementMenuScanned();
-                
-                onScanSuccess();
+    try {
+        const menuSections = await analyzeMenu(base64Image);
+        const scanTime = Date.now() - scanStartTime;
+        
+        // Track successful menu scan
+        gtag('event', 'menu_scan_complete', {
+            'scan_success': true,
+            'processing_time_ms': scanTime,
+            'dishes_detected': menuSections.reduce((total, section) => total + section.dishes.length, 0),
+            'sections_detected': menuSections.length
+        });
+
+        setScanResult(menuSections);
+        
+        if (menuSections.length > 0) {
+            // Update scan count after successful scan
+            if (user && userProfile?.subscription_type === 'free') {
+                await supabase
+                    .from('user_profiles')
+                    .update({ scans_used: userProfile.scans_used + 1 })
+                    .eq('id', user.id);
+                    
+                setUserProfile(prev => prev ? { ...prev, scans_used: prev.scans_used + 1 } : null);
+            } else if (!user) {
+                setNonUserScans(prev => prev + 1);
             }
-        } catch (err) {
-            console.error(err);
-            setScanError(err instanceof Error ? err.message : "An unexpected error occurred.");
-        } finally {
-            setIsScanning(false);
+            
+            await incrementMenuScanned();
+            onScanSuccess();
         }
-    }, [canScan, user, userProfile, onScanSuccess]);
+    } catch (err) {
+        const scanTime = Date.now() - scanStartTime;
+        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+        
+        // Track failed menu scan
+        gtag('event', 'menu_scan_complete', {
+            'scan_success': false,
+            'processing_time_ms': scanTime,
+            'error_message': errorMessage,
+            'dishes_detected': 0,
+            'sections_detected': 0
+        });
+        
+        console.error(err);
+        setScanError(errorMessage);
+    } finally {
+        setIsScanning(false);
+    }
+}, [canScan, user, userProfile, onScanSuccess]);
 
-    const handleFileSelect = useCallback(async (file: File) => {
-      const base64 = await fileToGenerativePart(file);
-      handleScan(base64);
-    }, [handleScan]);
+	const handleFileSelect = useCallback(async (file: File) => {
+	  // Track file upload method and details
+	  gtag('event', 'menu_upload_method', {
+	    'upload_type': 'file_upload',
+	    'file_type': file.type.split('/')[1] || 'unknown',
+	    'file_size_kb': Math.round(file.size / 1024),
+	    'image_width': 0, // We don't have dimensions yet
+	    'image_height': 0
+	  });
+
+  const base64 = await fileToGenerativePart(file);
+  handleScan(base64);
+}, [handleScan]);
 
     const handleBase64Select = useCallback((base64: string) => {
       handleScan(base64);

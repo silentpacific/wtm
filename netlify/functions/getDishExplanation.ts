@@ -227,6 +227,7 @@ const universalFuzzySearch = (searchTerm: string, targetString: string): number 
 };
 
 const handler: Handler = async (event: HandlerEvent) => {
+    const startTime = Date.now();
     const dishName = event.queryStringParameters?.dishName;
     const language = event.queryStringParameters?.language || 'en';
 
@@ -311,7 +312,8 @@ const handler: Handler = async (event: HandlerEvent) => {
                     'Content-Type': 'application/json',
                     'X-Data-Source': 'Database',
                     'X-Match-Score': bestScore.toString(),
-                    'X-Language': language
+                    'X-Language': language,
+  		      'X-Processing-Time': (Date.now() - startTime).toString() // Add start time tracking
                 }
             };
         }
@@ -369,7 +371,9 @@ const handler: Handler = async (event: HandlerEvent) => {
             headers: { 
                 'Content-Type': 'application/json',
                 'X-Data-Source': 'Gemini-API',
-                'X-Language': language
+                'X-Language': language,
+       		 'X-Processing-Time': (Date.now() - startTime).toString() // Add start time tracking
+
             }
         };
 

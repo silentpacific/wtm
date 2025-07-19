@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Routes, Route, Link, NavLink } from 'react-router-dom';
+import { Routes, Route, Link, NavLink, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
 import { PrivacyPolicyPage, TermsOfUsePage, FaqPage } from './pages/LegalPages';
@@ -104,11 +104,19 @@ const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }
 );
 
 const AppContent: React.FC = () => {
+  const location = useLocation();
   const [globalCounters, setGlobalCounters] = useState<GlobalCounters>({
     menus_scanned: 1337,
     dish_explanations: 0
   });
   const [userScans, setUserScans] = useState(3);
+
+  // Track page views
+  useEffect(() => {
+    gtag('config', 'G-36SHN00S7N', {
+      page_path: location.pathname
+    });
+  }, [location]);
 
   // Load initial counters and subscribe to changes
   useEffect(() => {
