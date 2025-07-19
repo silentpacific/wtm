@@ -254,6 +254,7 @@ const MenuResults: React.FC<{
         isLoading: boolean;
         error: string | null;
     }>>>({});
+    const [expandedDishes, setExpandedDishes] = useState<Set<string>>(new Set());
 
     // Load language preference from localStorage
     useEffect(() => {
@@ -267,6 +268,21 @@ const MenuResults: React.FC<{
     const handleLanguageChange = (languageCode: string) => {
         setSelectedLanguage(languageCode);
         localStorage.setItem('preferred-language', languageCode);
+    };
+
+    // Toggle accordion expansion
+    const toggleDishExpansion = (dishName: string) => {
+        setExpandedDishes(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(dishName)) {
+                newSet.delete(dishName);
+            } else {
+                newSet.add(dishName);
+                // Also trigger explanation loading if not already loaded
+                handleDishClick(dishName);
+            }
+            return newSet;
+        });
     };
 
     // Translations object
@@ -315,7 +331,7 @@ const MenuResults: React.FC<{
 
     const t = translations[selectedLanguage as keyof typeof translations];
 
-    // Language options - clean names only
+    // Language options with flags (NO SHORT CODES)
     const languageOptions = [
         { code: 'en', name: 'English' },
         { code: 'es', name: 'Español' },
@@ -440,22 +456,39 @@ const MenuResults: React.FC<{
                     </div>
                 )}
 
-                {/* 3. LANGUAGE FILTER - Clean grey pills, centered */}
-                <div className="flex justify-center mb-6">
-                    <div className="flex gap-2">
-                        {languageOptions.map((option) => (
-                            <button
-                                key={option.code}
-                                onClick={() => handleLanguageChange(option.code)}
-                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                                    selectedLanguage === option.code
-                                        ? 'bg-gray-800 text-white'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                            >
-                                {option.name}
-                            </button>
-                        ))}
+                {/* 3. LANGUAGE FILTER - Small, subtle, top-right corner style */}
+                <div className="flex justify-end mb-4">
+                    <div className="bg-white/60 border-2 border-charcoal/30 rounded-xl p-3 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-charcoal/70">🌍</span>
+                            <div className="flex gap-2">
+                                {languageOptions.map((option) => (
+                                    <button
+                                        key={option.code}
+                                        onClick={() => handleLanguageChange(option.code)}
+                                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
+                                            selectedLanguage === option.code
+                                                ? 'bg-coral text-white shadow-sm'
+                                                : 'bg-white/50 text-charcoal/70 hover:bg-white hover:text-charcoal'
+                                        }`}
+                                    >
+                                        {option.flag} {option.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. INSTRUCTIONS - Small blue info box */}
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
+                    <div className="flex items-center justify-center gap-3 text-blue-700">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium text-center">
+                            {t.instructions}
+                        </span>
                     </div>
                 </div>
 
@@ -469,7 +502,7 @@ const MenuResults: React.FC<{
                     </div>
                 </div>
 
-                {/* 5. MENU TABLE - Dominates the page, large clear layout */}
+                {/* 5. MENU TABLE/ACCORDION - Responsive layout */}
                 <div className="bg-white rounded-2xl shadow-[8px_8px_0px_#292524] p-6 sm:p-8 border-4 border-charcoal space-y-10">
                     {menuSections.length > 0 ? (
                         menuSections.map((section, sectionIndex) => (
@@ -479,7 +512,9 @@ const MenuResults: React.FC<{
                                         {section.sectionTitle}
                                     </h3>
                                 )}
-                                <div className="overflow-x-auto">
+                                
+                                {/* Desktop Table Layout (768px and above) */}
+                                <div className="hidden md:block overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="border-b-2 border-charcoal/50">
@@ -550,6 +585,90 @@ const MenuResults: React.FC<{
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
+
+                                {/* Mobile Accordion Layout (below 768px) */}
+                                <div className="md:hidden space-y-3">
+                                    {section.dishes.map((dish, dishIndex) => {
+                                        const isExpanded = expandedDishes.has(dish.name);
+                                        const hasExplanation = explanations[dish.name]?.[selectedLanguage]?.data;
+                                        const isLoading = explanations[dish.name]?.[selectedLanguage]?.isLoading;
+                                        const error = explanations[dish.name]?.[selectedLanguage]?.error;
+
+                                        return (
+                                            <div key={dishIndex} className="border-2 border-charcoal/20 rounded-lg overflow-hidden">
+                                                {/* Accordion Header */}
+                                                <button
+                                                    onClick={() => toggleDishExpansion(dish.name)}
+                                                    className="w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
+                                                    disabled={isLoading}
+                                                >
+                                                    <span className="text-lg font-medium text-charcoal">{dish.name}</span>
+                                                    <span className="text-charcoal/60 text-xl">
+                                                        {isLoading ? (
+                                                            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-coral"></div>
+                                                        ) : (
+                                                            isExpanded ? '▼' : '▶'
+                                                        )}
+                                                    </span>
+                                                </button>
+
+                                                {/* Accordion Content */}
+                                                {isExpanded && (
+                                                    <div className="border-t-2 border-charcoal/20 p-4 bg-gray-50">
+                                                        {isLoading && (
+                                                            <div className="flex items-center space-x-2 font-medium text-charcoal/70">
+                                                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-coral"></div>
+                                                                <span>{t.explaining}</span>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {error && (
+                                                            <p className="text-red-600 font-medium">
+                                                                {t.error}{error}
+                                                            </p>
+                                                        )}
+                                                        
+                                                        {hasExplanation && (
+                                                            <div className="space-y-4">
+                                                                <p className="font-medium text-base leading-relaxed">
+                                                                    {explanations[dish.name]?.[selectedLanguage]?.data?.explanation}
+                                                                </p>
+                                                                
+                                                                {/* Tags Section */}
+                                                                {explanations[dish.name]?.[selectedLanguage]?.data?.tags && explanations[dish.name]?.[selectedLanguage]?.data?.tags?.length > 0 && (
+                                                                    <div className="space-y-2">
+                                                                        <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">
+                                                                            {t.dietaryStyle}
+                                                                        </p>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {explanations[dish.name]?.[selectedLanguage]?.data?.tags?.map(tag => (
+                                                                                <span key={tag} className="px-2 py-1 text-xs font-bold bg-teal/20 text-teal-800 rounded-full border border-teal/30">{tag}</span>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Allergens Section */}
+                                                                {explanations[dish.name]?.[selectedLanguage]?.data?.allergens && explanations[dish.name]?.[selectedLanguage]?.data?.allergens?.length > 0 && (
+                                                                    <div className="space-y-2">
+                                                                        <p className="text-xs font-bold text-red-700 uppercase tracking-wide">
+                                                                            ⚠️ {t.allergenInfo}
+                                                                        </p>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {explanations[dish.name]?.[selectedLanguage]?.data?.allergens?.map(allergen => (
+                                                                                <span key={allergen} className="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         ))
