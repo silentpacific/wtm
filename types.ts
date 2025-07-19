@@ -38,6 +38,7 @@ export interface Restaurant {
   latitude?: number;
   longitude?: number;
   total_scans?: number;
+  dishes_scanned?: number; // NEW: Track total dishes scanned
   last_scanned_at?: string;
   name_location_hash?: string;
   created_at?: string;

@@ -47,22 +47,32 @@ const createRestaurantHash = (name: string, city?: string, state?: string): stri
 };
 
 // Find or create restaurant
+// Find or create restaurant
 export const findOrCreateRestaurant = async (
   restaurantName: string,
   cuisineType: string,
-  userLocation: any
+  userLocation: {
+    city?: string;
+    state?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
+  },
+  dishCount: number = 0 // NEW: Add dish count parameter
 ): Promise<number | null> => {
   if (!restaurantName || restaurantName.trim() === '') {
+    console.log('No restaurant name provided');
     return null;
   }
 
   try {
     const hash = createRestaurantHash(restaurantName, userLocation.city, userLocation.state);
+    console.log(`Looking for restaurant with hash: ${hash}`);
     
     // Try to find existing restaurant
     const { data: existingRestaurants, error: searchError } = await supabase
       .from('restaurants')
-      .select('id, total_scans')
+      .select('id, total_scans, dishes_scanned')
       .eq('name_location_hash', hash)
       .limit(1);
 
@@ -72,20 +82,37 @@ export const findOrCreateRestaurant = async (
     }
 
     if (existingRestaurants && existingRestaurants.length > 0) {
-      // Update scan count for existing restaurant
+      // Update scan count AND dish count for existing restaurant
       const restaurantId = existingRestaurants[0].id;
-      await supabase
+      console.log(`Found existing restaurant with ID: ${restaurantId}`);
+      
+      const { error: updateError } = await supabase
         .from('restaurants')
         .update({ 
           total_scans: existingRestaurants[0].total_scans + 1,
+          dishes_scanned: (existingRestaurants[0].dishes_scanned || 0) + dishCount, // NEW: Add dish count
           last_scanned_at: new Date().toISOString()
         })
         .eq('id', restaurantId);
       
+      if (updateError) {
+        console.error('Error updating restaurant scan count:', updateError);
+      } else {
+        console.log(`Updated restaurant ${restaurantId}: +1 scan, +${dishCount} dishes`);
+      }
+      
       return restaurantId;
     }
 
-    // Create new restaurant
+    // Create new restaurant with initial dish count
+    console.log('Creating new restaurant:', {
+      name: restaurantName,
+      city: userLocation.city,
+      state: userLocation.state,
+      country: userLocation.country,
+      dishCount
+    });
+
     const { data: newRestaurant, error: insertError } = await supabase
       .from('restaurants')
       .insert({
@@ -97,6 +124,7 @@ export const findOrCreateRestaurant = async (
         latitude: userLocation.latitude || null,
         longitude: userLocation.longitude || null,
         total_scans: 1,
+        dishes_scanned: dishCount, // NEW: Set initial dish count
         last_scanned_at: new Date().toISOString(),
         name_location_hash: hash
       })
@@ -108,6 +136,7 @@ export const findOrCreateRestaurant = async (
       return null;
     }
 
+    console.log(`Created new restaurant with ID: ${newRestaurant.id}, ${dishCount} dishes`);
     return newRestaurant.id;
   } catch (error) {
     console.error('Error in findOrCreateRestaurant:', error);

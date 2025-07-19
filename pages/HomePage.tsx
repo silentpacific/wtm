@@ -710,16 +710,22 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess }) => {
                 dishesCount: menuAnalysis.sections.reduce((total, section) => total + section.dishes.length, 0)
             });
 
-            // Find or create restaurant record
-            let restaurantId = null;
-            if (menuAnalysis.restaurantName) {
-                restaurantId = await findOrCreateRestaurant(
-                    menuAnalysis.restaurantName,
-                    menuAnalysis.detectedCuisine || '',
-                    userLocation
-                );
-                console.log('Restaurant ID:', restaurantId);
-            }
+		// Find or create restaurant record
+		let restaurantId = null;
+		if (menuAnalysis.restaurantName) {
+		    const totalDishCount = menuAnalysis.sections.reduce(
+		        (total, section) => total + section.dishes.length, 
+		        0
+		    );
+		    
+		    restaurantId = await findOrCreateRestaurant(
+		        menuAnalysis.restaurantName,
+		        menuAnalysis.detectedCuisine || '',
+		        userLocation,
+		        totalDishCount // Pass the dish count
+		    );
+		    console.log(`Restaurant ID: ${restaurantId}, Dishes: ${totalDishCount}`);
+		}
 
             // Track successful menu scan with restaurant info
             gtag('event', 'menu_scan_complete', {
