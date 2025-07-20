@@ -846,7 +846,7 @@ const ReviewsSection: React.FC = () => (
   </div>
 );
 
-const PricingTier: React.FC<{
+interface PricingTierProps {
   title: string;
   description: string;
   price: string;
@@ -854,8 +854,25 @@ const PricingTier: React.FC<{
   subtext: string;
   features: string[];
   buttonText: string;
+  onPurchase?: () => void;
+  isLoading?: boolean;
   isPopular?: boolean;
-}> = ({ title, description, price, period, subtext, features, buttonText, isPopular }) => (
+  isFree?: boolean;
+}
+
+const PricingTier: React.FC<PricingTierProps> = ({ 
+  title, 
+  description, 
+  price, 
+  period, 
+  subtext, 
+  features, 
+  buttonText, 
+  onPurchase,
+  isLoading = false,
+  isPopular = false,
+  isFree = false
+}) => (
   <div className={`border-4 border-charcoal bg-white rounded-2xl p-8 flex flex-col h-full transition-transform duration-300 relative ${isPopular ? 'shadow-[12px_12px_0px_#FF6B6B] -rotate-2 hover:rotate-0' : 'shadow-[8px_8px_0px_#292524]'}`}>
     {isPopular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-yellow text-charcoal text-sm font-bold px-4 py-1 rounded-full border-2 border-charcoal uppercase">Most Popular</div>}
     <h3 className="text-3xl font-black text-charcoal tracking-tight">{title}</h3>
@@ -873,46 +890,144 @@ const PricingTier: React.FC<{
         </li>
       ))}
     </ul>
-    <button className={`mt-8 w-full py-4 rounded-full font-bold border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all text-lg ${isPopular ? 'bg-coral text-white' : 'bg-yellow text-charcoal'}`}>{buttonText}</button>
+    <button 
+      onClick={onPurchase}
+      disabled={isLoading || isFree}
+      className={`mt-8 w-full py-4 rounded-full font-bold border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+        isPopular ? 'bg-coral text-white' : 
+        isFree ? 'bg-gray-300 text-charcoal cursor-default' : 
+        'bg-yellow text-charcoal'
+      }`}
+    >
+      {isLoading ? (
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white mr-2"></div>
+          Processing...
+        </div>
+      ) : (
+        buttonText
+      )}
+    </button>
   </div>
 );
 
-const PricingSection: React.FC = () => (
-  <div className="py-12 sm:py-24">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8">
-        <PricingTier
-          title="Try It Free"
-          description="Perfect for testing the app and getting a taste of what it can do."
-          price="$0"
-          period="to start"
-          subtext="5 free menu scans, 5 dishes per menu."
-          features={["5 free menu scans", "Up to 5 dishes explained per scan", "All major languages", "No signup required", "Works on any device"]}
-          buttonText="Get Started"
-        />
-        <PricingTier
-          title="Daily Pass"
-          description="Perfect for a day of exploring restaurants and trying new dishes."
-          price="$1"
-          period="for 1 day"
-          subtext="Unlimited scans for 24 hours."
-          features={["Unlimited menu scans for 24 hours", "All dishes explained on every menu", "All major languages", "Instant dish explanations", "No commitments"]}
-          buttonText="Get Daily Pass"
-        />
-        <PricingTier
-          title="Weekly Pass"
-          description="Perfect for travelers and food explorers who scan multiple menus."
-          price="$5"
-          period="for 7 days"
-          subtext="Unlimited scans for a week."
-          features={["Unlimited menu scans for 7 days", "All dishes explained on every menu", "All major languages", "Priority processing", "Perfect for trips"]}
-          buttonText="Get Weekly Pass"
-          isPopular={true}
-        />
+const PricingSection: React.FC = () => {
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  const handlePurchase = async (planType: 'daily' | 'weekly') => {
+    if (!user) {
+      alert('Please sign up or log in to purchase a plan.');
+      return;
+    }
+
+    setLoadingPlan(planType);
+
+    try {
+      const priceId = planType === 'daily' 
+        ? 'price_1RmxCTCQTpkhE1YN7TUfDxmp' 
+        : 'price_1RmxEXCQTpkhE1YN4NrAoatP';
+
+      const response = await fetch('/.netlify/functions/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          priceId,
+          userId: user.id,
+          planType,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      alert('Failed to start checkout. Please try again.');
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  return (
+    <div className="py-12 sm:py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="font-black text-5xl text-charcoal sm:text-6xl tracking-tighter">Choose Your Plan</h2>
+          <p className="mt-4 text-xl text-charcoal/80">Start with free scans, upgrade when you need more!</p>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8">
+          <PricingTier
+            title="Try It Free"
+            description="Perfect for testing the app and getting a taste of what it can do."
+            price="$0"
+            period="to start"
+            subtext="5 free menu scans, 5 dishes per menu."
+            features={[
+              "5 free menu scans", 
+              "Up to 5 dishes explained per scan", 
+              "All major languages", 
+              "No signup required", 
+              "Works on any device"
+            ]}
+            buttonText="Get Started"
+            isFree={true}
+          />
+          
+          <PricingTier
+            title="Daily Pass"
+            description="Perfect for a day of exploring restaurants and trying new dishes."
+            price="$1"
+            period="for 1 day"
+            subtext="Unlimited scans for 24 hours."
+            features={[
+              "Unlimited menu scans for 24 hours", 
+              "All dishes explained on every menu", 
+              "All major languages", 
+              "Instant dish explanations", 
+              "No commitments"
+            ]}
+            buttonText="Get Daily Pass"
+            onPurchase={() => handlePurchase('daily')}
+            isLoading={loadingPlan === 'daily'}
+          />
+          
+          <PricingTier
+            title="Weekly Pass"
+            description="Perfect for travelers and food explorers who scan multiple menus."
+            price="$5"
+            period="for 7 days"
+            subtext="Unlimited scans for a week."
+            features={[
+              "Unlimited menu scans for 7 days", 
+              "All dishes explained on every menu", 
+              "All major languages", 
+              "Priority processing", 
+              "Perfect for trips"
+            ]}
+            buttonText="Get Weekly Pass"
+            onPurchase={() => handlePurchase('weekly')}
+            isLoading={loadingPlan === 'weekly'}
+            isPopular={true}
+          />
+        </div>
+        
+        <div className="mt-12 text-center">
+          <p className="text-sm text-charcoal/60">
+            💳 Secure payments powered by Stripe • 🔒 SSL encrypted • 📱 Works on all devices
+          </p>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess }) => {
     const { user } = useAuth();

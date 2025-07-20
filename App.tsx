@@ -14,6 +14,10 @@ import {
   incrementMenuScans, 
   incrementDishExplanations 
 } from './services/counterService';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import PaymentCancelledPage from './pages/PaymentCancelledPage';
+
+
 
 const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => (
   <footer className="bg-yellow border-t-4 border-charcoal">
@@ -121,30 +125,33 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
-  return (
-    <div className="min-h-screen flex flex-col bg-cream text-charcoal font-sans">
-      <Header onCounterUpdate={counterUpdateTrigger} />
-      <main className="flex-grow">
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              <HomePage 
-                onScanSuccess={handleScanSuccess}
-                onExplanationSuccess={handleExplanationSuccess}
-              />
-            } 
-          />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/privacy" element={<PrivacyPolicyPage />} />
-          <Route path="/terms" element={<TermsOfUsePage />} />
-          <Route path="/faq" element={<FaqPage />} />
-        </Routes>
-      </main>
-      <Footer globalCounters={globalCounters} />
-    </div>
-  );
-};
+return (
+  <div className="min-h-screen flex flex-col bg-cream text-charcoal font-sans">
+    <Header onCounterUpdate={counterUpdateTrigger} />
+    <main className="flex-grow">
+      <Routes>
+        <Route 
+          path="/" 
+          element={
+            <HomePage 
+              onScanSuccess={handleScanSuccess}
+              onExplanationSuccess={handleExplanationSuccess}
+            />
+          } 
+        />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsOfUsePage />} />
+        <Route path="/faq" element={<FaqPage />} />
+        
+        {/* ADD THESE TWO NEW ROUTES */}
+        <Route path="/payment-success" element={<PaymentSuccessPage />} />
+        <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
+      </Routes>
+    </main>
+    <Footer globalCounters={globalCounters} />
+  </div>
+);
 
 const App: React.FC = () => {
   return (
