@@ -294,6 +294,10 @@ const MenuResults: React.FC<{
             error: "Error: ",
             dietaryStyle: "Dietary & Style",
             allergenInfo: "Allergen Information"
+        // NEW: Friendly retry messages
+        serversBusy: "Oops! Too many hungry people asking about dishes! Give me a moment to catch up... 🍽️",
+        stillTrying: "Still cooking up your answer... Almost there! 👨‍🍳",
+        finalError: "Hmm, our kitchen is really backed up! Please try again in a minute! 😅"
         },
         es: {
             pageTitle: "Tu Menú",
@@ -304,6 +308,10 @@ const MenuResults: React.FC<{
             error: "Error: ",
             dietaryStyle: "Dieta y Estilo",
             allergenInfo: "Información de Alérgenos"
+        // NEW: Friendly retry messages
+        serversBusy: "¡Ups! ¡Demasiada gente hambrienta preguntando sobre platos! Dame un momento para ponerme al día... 🍽️",
+        stillTrying: "Todavía cocinando tu respuesta... ¡Casi listo! 👨‍🍳",
+        finalError: "¡Hmm, nuestra cocina está muy ocupada! ¡Inténtalo de nuevo en un minuto! 😅"
         },
         zh: {
             pageTitle: "您的菜单",
@@ -314,6 +322,10 @@ const MenuResults: React.FC<{
             error: "错误: ",
             dietaryStyle: "饮食与风格",
             allergenInfo: "过敏原信息"
+        // NEW: Friendly retry messages
+        serversBusy: "哎呀！太多饿肚子的人在问菜品了！给我一点时间赶上... 🍽️",
+        stillTrying: "还在为您烹饪答案...快好了！👨‍🍳",
+        finalError: "嗯，我们的厨房真的很忙！请一分钟后再试！😅"
         },
         fr: {
             pageTitle: "Votre Menu",
@@ -324,6 +336,10 @@ const MenuResults: React.FC<{
             error: "Erreur: ",
             dietaryStyle: "Régime et Style",
             allergenInfo: "Informations Allergènes"
+        // NEW: Friendly retry messages
+        serversBusy: "Oups ! Trop de gens affamés posent des questions sur les plats ! Donnez-moi un moment pour rattraper... 🍽️",
+        stillTrying: "Je cuisine encore votre réponse... Presque là ! 👨‍🍳",
+        finalError: "Hmm, notre cuisine est vraiment occupée ! Réessayez dans une minute ! 😅"
         }
     };
 
@@ -337,53 +353,71 @@ const MenuResults: React.FC<{
         { code: 'fr', name: 'Français' },
     ];
 
-    const handleDishClick = async (dishName: string) => {
-        if (!explanations[dishName]) {
-            explanations[dishName] = {};
+
+// Replace the handleDishClick function in MenuResults component (HomePage.tsx)
+
+const handleDishClick = async (dishName: string) => {
+    if (!explanations[dishName]) {
+        explanations[dishName] = {};
+    }
+    
+    if (explanations[dishName][selectedLanguage]) return;
+    
+    // Helper function to make the API request
+    const makeRequest = async (): Promise<DishExplanation> => {
+        let url = `/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`;
+        
+        if (restaurantInfo?.id) {
+            url += `&restaurantId=${restaurantInfo.id}`;
         }
         
-        if (explanations[dishName][selectedLanguage]) return;
-        const startTime = Date.now();
+        if (restaurantInfo?.name) {
+            url += `&restaurantName=${encodeURIComponent(restaurantInfo.name)}`;
+        }
+
+        const response = await fetch(url);
         
-        setExplanations(prev => ({
-            ...prev,
-            [dishName]: {
-                ...prev[dishName],
-                [selectedLanguage]: { data: null, isLoading: true, error: null }
-            }
-        }));
-
-        try {
-            // Build URL with restaurant ID AND name if available
-            let url = `/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`;
-            
-            if (restaurantInfo?.id) {
-                url += `&restaurantId=${restaurantInfo.id}`;
-            }
-            
-            if (restaurantInfo?.name) {
-                url += `&restaurantName=${encodeURIComponent(restaurantInfo.name)}`;
-            }
-
-            const response = await fetch(url);
-            const loadTime = Date.now() - startTime;
-            
-            if (!response.ok) {
+        if (!response.ok) {
+            if (response.status === 429) {
+                throw new Error('RATE_LIMIT');
+            } else {
                 const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
                 throw new Error(errorData.error || `Request failed`);
             }
+        }
+        
+        return await response.json();
+    };
+
+    // Auto-retry logic with friendly messages
+    const startTime = Date.now();
+    let retryCount = 0;
+    const maxRetries = 2; // Try initial + 2 retries = 3 total attempts
+    const retryDelays = [3000, 5000]; // 3 seconds, then 5 seconds
+
+    setExplanations(prev => ({
+        ...prev,
+        [dishName]: {
+            ...prev[dishName],
+            [selectedLanguage]: { data: null, isLoading: true, error: null }
+        }
+    }));
+
+    const attemptRequest = async (): Promise<void> => {
+        try {
+            const data = await makeRequest();
+            const loadTime = Date.now() - startTime;
+            const dataSource = 'api'; // We can get this from response headers if needed
             
-            const data: DishExplanation = await response.json();
-            const dataSource = response.headers.get('X-Data-Source') || 'unknown';
-            
-            // Track successful dish explanation with restaurant context
+            // Track successful dish explanation
             gtag('event', 'dish_explanation_success', {
                 'dish_name': dishName,
                 'language': selectedLanguage,
                 'load_time_ms': loadTime,
-                'source': dataSource.toLowerCase() === 'database' ? 'database' : 'api',
+                'source': dataSource,
                 'restaurant_name': restaurantInfo?.name || 'unknown',
-                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown'
+                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+                'retry_count': retryCount
             });
             
             await incrementDishExplanation();
@@ -395,30 +429,74 @@ const MenuResults: React.FC<{
                     [selectedLanguage]: { data, isLoading: false, error: null }
                 }
             }));
+
         } catch (err) {
-            const loadTime = Date.now() - startTime;
-            const errorMessage = err instanceof Error ? err.message : "Failed to fetch explanation.";
-            
-            // Track failed dish explanation with restaurant context
-            gtag('event', 'dish_explanation_error', {
-                'dish_name': dishName,
-                'language': selectedLanguage,
-                'load_time_ms': loadTime,
-                'error_message': errorMessage,
-                'source': 'unknown',
-                'restaurant_name': restaurantInfo?.name || 'unknown',
-                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown'
-            });
-            
-            setExplanations(prev => ({
-                ...prev,
-                [dishName]: {
-                    ...prev[dishName],
-                    [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+            if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
+                // Show friendly message for rate limit
+                const isFirstRetry = retryCount === 0;
+                const message = isFirstRetry ? t.serversBusy : t.stillTrying;
+                
+                setExplanations(prev => ({
+                    ...prev,
+                    [dishName]: {
+                        ...prev[dishName],
+                        [selectedLanguage]: { data: null, isLoading: true, error: message }
+                    }
+                }));
+
+                // Wait and retry
+                const delay = retryDelays[retryCount];
+                retryCount++;
+                
+                setTimeout(() => {
+                    // Clear the message and show loading again
+                    setExplanations(prev => ({
+                        ...prev,
+                        [dishName]: {
+                            ...prev[dishName],
+                            [selectedLanguage]: { data: null, isLoading: true, error: null }
+                        }
+                    }));
+                    
+                    attemptRequest();
+                }, delay);
+
+            } else {
+                // Final error - either max retries exceeded or non-rate-limit error
+                const loadTime = Date.now() - startTime;
+                let errorMessage = t.finalError;
+                
+                if (err instanceof Error && err.message !== 'RATE_LIMIT') {
+                    errorMessage = err.message;
                 }
-            }));
+                
+                // Track failed dish explanation
+                gtag('event', 'dish_explanation_error', {
+                    'dish_name': dishName,
+                    'language': selectedLanguage,
+                    'load_time_ms': loadTime,
+                    'error_message': errorMessage,
+                    'error_type': err instanceof Error && err.message === 'RATE_LIMIT' ? 'rate_limit_final' : 'other',
+                    'restaurant_name': restaurantInfo?.name || 'unknown',
+                    'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+                    'retry_count': retryCount
+                });
+                
+                setExplanations(prev => ({
+                    ...prev,
+                    [dishName]: {
+                        ...prev[dishName],
+                        [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+                    }
+                }));
+            }
         }
     };
+
+    // Start the initial request
+    attemptRequest();
+};
+
 
     // Handle mobile accordion click
     const handleMobileAccordionClick = (dishName: string) => {
@@ -432,64 +510,95 @@ const MenuResults: React.FC<{
     };
 
     // Render explanation content (shared between desktop and mobile)
-    const renderExplanationContent = (dish: any) => {
-        const dishExplanation = explanations[dish.name]?.[selectedLanguage];
-        
-        if (dishExplanation?.isLoading) {
-            return (
-                <div className="flex items-center space-x-2 font-medium">
-                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-coral"></div>
-                    <span>{t.explaining}</span>
-                </div>
-            );
-        }
-        
-        if (dishExplanation?.error) {
-            return (
-                <p className="text-red-600 font-medium">
-                    {t.error}{dishExplanation.error}
-                </p>
-            );
-        }
-        
-        if (dishExplanation?.data) {
-            return (
-                <div className="space-y-4">
-                    <p className="font-medium text-lg">{dishExplanation.data.explanation}</p>
-                    
-                    {/* Tags Section */}
-                    {dishExplanation.data.tags && dishExplanation.data.tags.length > 0 && (
-                        <div className="space-y-2">
-                            <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">
-                                {t.dietaryStyle}
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                {dishExplanation.data.tags.map(tag => (
-                                    <span key={tag} className="px-2 py-1 text-xs font-bold bg-teal/20 text-teal-800 rounded-full border border-teal/30">{tag}</span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+// Update the renderExplanationContent function in MenuResults component (HomePage.tsx)
 
-                    {/* Allergens Section */}
-                    {dishExplanation.data.allergens && dishExplanation.data.allergens.length > 0 && (
-                        <div className="space-y-2">
-                            <p className="text-xs font-bold text-red-700 uppercase tracking-wide">
-                                ⚠️ {t.allergenInfo}
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                {dishExplanation.data.allergens.map(allergen => (
-                                    <span key={allergen} className="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
+const renderExplanationContent = (dish: any) => {
+    const dishExplanation = explanations[dish.name]?.[selectedLanguage];
+    
+    if (dishExplanation?.isLoading) {
+        return (
+            <div className="flex items-center space-x-2 font-medium">
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-coral"></div>
+                <span>{dishExplanation.error || t.explaining}</span>
+            </div>
+        );
+    }
+    
+    if (dishExplanation?.error) {
+        const isFriendlyMessage = dishExplanation.error.includes('🍽️') || 
+                                 dishExplanation.error.includes('👨‍🍳') || 
+                                 dishExplanation.error.includes('😅');
         
-        return null;
-    };
+        return (
+            <div className="space-y-2">
+                <div className={`p-3 rounded-lg border-2 ${
+                    isFriendlyMessage 
+                        ? 'bg-orange-50 border-orange-200 text-orange-800' 
+                        : 'bg-red-50 border-red-200 text-red-700'
+                }`}>
+                    <div className="flex items-start space-x-2">
+                        <span className="text-lg flex-shrink-0">
+                            {isFriendlyMessage ? '🤖' : '❌'}
+                        </span>
+                        <div>
+                            <p className="font-medium text-sm">
+                                {dishExplanation.error}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                {/* Only show retry button for final errors */}
+                {!isFriendlyMessage && (
+                    <button
+                        onClick={() => handleDishClick(dish.name)}
+                        className="text-sm px-3 py-1 bg-coral text-white rounded-full hover:bg-coral/80 transition-colors"
+                    >
+                        Try Again
+                    </button>
+                )}
+            </div>
+        );
+    }
+    
+    if (dishExplanation?.data) {
+        return (
+            <div className="space-y-4">
+                <p className="font-medium text-lg">{dishExplanation.data.explanation}</p>
+                
+                {/* Tags Section */}
+                {dishExplanation.data.tags && dishExplanation.data.tags.length > 0 && (
+                    <div className="space-y-2">
+                        <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">
+                            {t.dietaryStyle}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {dishExplanation.data.tags.map(tag => (
+                                <span key={tag} className="px-2 py-1 text-xs font-bold bg-teal/20 text-teal-800 rounded-full border border-teal/30">{tag}</span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Allergens Section */}
+                {dishExplanation.data.allergens && dishExplanation.data.allergens.length > 0 && (
+                    <div className="space-y-2">
+                        <p className="text-xs font-bold text-red-700 uppercase tracking-wide">
+                            ⚠️ {t.allergenInfo}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {dishExplanation.data.allergens.map(allergen => (
+                                <span key={allergen} className="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+    
+    return null;
+};
 
     return (
         <div className="py-12 sm:py-16">
