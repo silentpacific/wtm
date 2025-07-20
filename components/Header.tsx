@@ -1,4 +1,4 @@
-// Fixed Header component - Replace your existing Header component
+// Fixed Header component - Remove duplicate updateUsageData function
 
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
@@ -28,7 +28,6 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
     timeRemaining: null
   });
 
-
   // Fetch user profile and calculate usage
   const updateUsageData = async () => {
     if (user) {
@@ -50,74 +49,6 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
       setUsage(anonymousUsage);
     }
   };
-
-
-
-
-
-  // Load global counters and subscribe to changes
-  useEffect(() => {
-    const loadCounters = async () => {
-      try {
-        const counters = await getGlobalCounters();
-        setGlobalCounters(counters);
-        console.log('Header: Loaded global counters:', counters);
-      } catch (error) {
-        console.error('Error loading global counters in header:', error);
-      }
-    };
-
-    loadCounters();
-
-    // Subscribe to real-time updates
-    const subscription = subscribeToCounters((newCounters) => {
-      console.log('Header: Received counter update:', newCounters);
-      setGlobalCounters(newCounters);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // Force refresh counters when onCounterUpdate changes
-  useEffect(() => {
-    if (onCounterUpdate > 0) {
-      const refreshCounters = async () => {
-        try {
-          const counters = await getGlobalCounters();
-          setGlobalCounters(counters);
-          console.log('Header: Force refreshed counters:', counters);
-        } catch (error) {
-          console.error('Error force refreshing counters:', error);
-        }
-      };
-      refreshCounters();
-    }
-  }, [onCounterUpdate]);
-
-  // Fetch user profile and calculate usage
-  const updateUsageData = async () => {
-    if (user) {
-      setLoading(true);
-      try {
-        const profile = await getOrCreateEnhancedUserProfile(user.id, user.email || undefined);
-        setUserProfile(profile);
-        const usageSummary = getEnhancedUsageSummary(profile);
-        setUsage(usageSummary);
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // Anonymous user
-      setUserProfile(null);
-      const anonymousUsage = getAnonymousLimits();
-      setUsage(anonymousUsage);
-    }
-  };
-
 
   // Update usage when user changes or when counter update is triggered
   useEffect(() => {
