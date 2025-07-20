@@ -293,7 +293,7 @@ const MenuResults: React.FC<{
             explaining: "Explaining...",
             error: "Error: ",
             dietaryStyle: "Dietary & Style",
-            allergenInfo: "Allergen Information"
+            allergenInfo: "Allergen Information",
         // NEW: Friendly retry messages
         serversBusy: "Oops! Too many hungry people asking about dishes! Give me a moment to catch up... 🍽️",
         stillTrying: "Still cooking up your answer... Almost there! 👨‍🍳",
@@ -307,7 +307,7 @@ const MenuResults: React.FC<{
             explaining: "Explicando...",
             error: "Error: ",
             dietaryStyle: "Dieta y Estilo",
-            allergenInfo: "Información de Alérgenos"
+            allergenInfo: "Información de Alérgenos",
         // NEW: Friendly retry messages
         serversBusy: "¡Ups! ¡Demasiada gente hambrienta preguntando sobre platos! Dame un momento para ponerme al día... 🍽️",
         stillTrying: "Todavía cocinando tu respuesta... ¡Casi listo! 👨‍🍳",
@@ -321,7 +321,7 @@ const MenuResults: React.FC<{
             explaining: "解释中...",
             error: "错误: ",
             dietaryStyle: "饮食与风格",
-            allergenInfo: "过敏原信息"
+            allergenInfo: "过敏原信息",
         // NEW: Friendly retry messages
         serversBusy: "哎呀！太多饿肚子的人在问菜品了！给我一点时间赶上... 🍽️",
         stillTrying: "还在为您烹饪答案...快好了！👨‍🍳",
@@ -335,7 +335,7 @@ const MenuResults: React.FC<{
             explaining: "Explication...",
             error: "Erreur: ",
             dietaryStyle: "Régime et Style",
-            allergenInfo: "Informations Allergènes"
+            allergenInfo: "Informations Allergènes",
         // NEW: Friendly retry messages
         serversBusy: "Oups ! Trop de gens affamés posent des questions sur les plats ! Donnez-moi un moment pour rattraper... 🍽️",
         stillTrying: "Je cuisine encore votre réponse... Presque là ! 👨‍🍳",
