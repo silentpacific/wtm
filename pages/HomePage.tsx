@@ -514,6 +514,8 @@ const handleDishClick = async (dishName: string) => {
 
 // Update the renderExplanationContent function in MenuResults component (HomePage.tsx)
 
+// Update the renderExplanationContent function in MenuResults component (HomePage.tsx)
+
 const renderExplanationContent = (dish: any) => {
     const dishExplanation = explanations[dish.name]?.[selectedLanguage];
     
@@ -530,6 +532,21 @@ const renderExplanationContent = (dish: any) => {
         const isFriendlyMessage = dishExplanation.error.includes('🍽️') || 
                                  dishExplanation.error.includes('👨‍🍳');
         const isFinalError = dishExplanation.error.includes('😅'); // Final error message
+        
+        // Function to handle retry
+        const handleRetry = () => {
+            // Clear the error state first
+            setExplanations(prev => ({
+                ...prev,
+                [dish.name]: {
+                    ...prev[dish.name],
+                    [selectedLanguage]: undefined // Reset to allow retry
+                }
+            }));
+            
+            // Then immediately trigger new request
+            setTimeout(() => handleDishClick(dish.name), 50);
+        };
         
         return (
             <div className="space-y-2">
@@ -555,19 +572,8 @@ const renderExplanationContent = (dish: any) => {
                 {/* Show retry button for final errors AND non-friendly errors */}
                 {(isFinalError || (!isFriendlyMessage && !isFinalError)) && (
                     <button
-                        onClick={() => {
-                            // Clear the error state and allow retry
-                            setExplanations(prev => ({
-                                ...prev,
-                                [dish.name]: {
-                                    ...prev[dish.name],
-                                    [selectedLanguage]: undefined // Reset to allow retry
-                                }
-                            }));
-                            // Then trigger new request
-                            setTimeout(() => handleDishClick(dish.name), 100);
-                        }}
-                        className="text-sm px-3 py-1 bg-coral text-white rounded-full hover:bg-coral/80 transition-colors"
+                        onClick={handleRetry}
+                        className="text-sm px-3 py-1 bg-coral text-white rounded-full hover:bg-coral/80 transition-colors font-medium"
                     >
                         Try Again
                     </button>
@@ -614,6 +620,7 @@ const renderExplanationContent = (dish: any) => {
     
     return null;
 };
+
 
 
     return (
