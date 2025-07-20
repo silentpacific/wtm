@@ -11,7 +11,7 @@ import { getUserLocation, findOrCreateRestaurant } from '../services/restaurantS
 
 interface HomePageProps {
   onScanSuccess: () => void;
-  onExplanationSuccess: () => void; // ADD THIS LINE
+  onExplanationSuccess: () => void;
 }
 
 interface UserProfile {
@@ -429,35 +429,39 @@ const handleDishClick = async (dishName: string) => {
     }));
 
     const attemptRequest = async (): Promise<void> => {
-        try {
-            const data = await makeRequest();
-            const loadTime = Date.now() - startTime;
-            const dataSource = 'api'; // We can get this from response headers if needed
+try {
+    const data = await makeRequest();
+    const loadTime = Date.now() - startTime;
+    const dataSource = 'api';
             
-            // Track successful dish explanation
-            gtag('event', 'dish_explanation_success', {
-                'dish_name': dishName,
-                'language': selectedLanguage,
-                'load_time_ms': loadTime,
-                'source': dataSource,
-                'restaurant_name': restaurantInfo?.name || 'unknown',
-                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
-                'retry_count': retryCount
-            });
+    gtag('event', 'dish_explanation_success', {
+        'dish_name': dishName,
+        'language': selectedLanguage,
+        'load_time_ms': loadTime,
+        'source': dataSource,
+        'restaurant_name': restaurantInfo?.name || 'unknown',
+        'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+        'retry_count': retryCount
+    });
 
+   // ONLY call the counter increment and callback ONCE here
+    try {
         await incrementDishExplanations();
-        await onExplanationSuccess();
-            
-            
-            setExplanations(prev => ({
-                ...prev,
-                [dishName]: {
-                    ...prev[dishName],
-                    [selectedLanguage]: { data, isLoading: false, error: null }
-                }
-            }));
+        onExplanationSuccess();
+    } catch (error) {
+        console.error('Error updating explanation counter:', error);
+    }
+    
+    setExplanations(prev => ({
+        ...prev,
+        [dishName]: {
+            ...prev[dishName],
+            [selectedLanguage]: { data, isLoading: false, error: null }
+        }
+    }));
 
-        } catch (err) {
+} catch (err) {
+
             if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
                 // Show friendly message for rate limit
                 const isFirstRetry = retryCount === 0;
@@ -977,100 +981,108 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         setScanError(null);
         setScanResult(null);
 
-        try {
-            // Get user location first (non-blocking)
-            const userLocation = await getUserLocation();
-            console.log('User location:', userLocation);
+    try {
+        // Get user location first (non-blocking)
+        const userLocation = await getUserLocation();
+        console.log('User location:', userLocation);
 
-            // Analyze menu with restaurant detection
-            const menuAnalysis: MenuAnalysisResult = await analyzeMenu(base64Image);
-            const scanTime = Date.now() - scanStartTime;
+        // Analyze menu with restaurant detection
+        const menuAnalysis: MenuAnalysisResult = await analyzeMenu(base64Image);
+        const scanTime = Date.now() - scanStartTime;
+        
+        console.log('Menu analysis result:', {
+            restaurantName: menuAnalysis.restaurantName,
+            detectedCuisine: menuAnalysis.detectedCuisine,
+            sectionsCount: menuAnalysis.sections.length,
+            dishesCount: menuAnalysis.sections.reduce((total, section) => total + section.dishes.length, 0)
+        });
+
+       // Find or create restaurant record
+        let restaurantId = null;
+        if (menuAnalysis.restaurantName) {
+            const totalDishCount = menuAnalysis.sections.reduce(
+                (total, section) => total + section.dishes.length, 
+                0
+            );
             
-            console.log('Menu analysis result:', {
-                restaurantName: menuAnalysis.restaurantName,
-                detectedCuisine: menuAnalysis.detectedCuisine,
-                sectionsCount: menuAnalysis.sections.length,
-                dishesCount: menuAnalysis.sections.reduce((total, section) => total + section.dishes.length, 0)
-            });
+            restaurantId = await findOrCreateRestaurant(
+                menuAnalysis.restaurantName,
+                menuAnalysis.detectedCuisine || '',
+                userLocation,
+                totalDishCount // Pass the dish count
+            );
+            console.log(`Restaurant ID: ${restaurantId}, Dishes: ${totalDishCount}`);
+        }
 
-		// Find or create restaurant record
-		let restaurantId = null;
-		if (menuAnalysis.restaurantName) {
-		    const totalDishCount = menuAnalysis.sections.reduce(
-		        (total, section) => total + section.dishes.length, 
-		        0
-		    );
-		    
-		    restaurantId = await findOrCreateRestaurant(
-		        menuAnalysis.restaurantName,
-		        menuAnalysis.detectedCuisine || '',
-		        userLocation,
-		        totalDishCount // Pass the dish count
-		    );
-		    console.log(`Restaurant ID: ${restaurantId}, Dishes: ${totalDishCount}`);
-		}
 
-            // Track successful menu scan with restaurant info
-            gtag('event', 'menu_scan_complete', {
-                'scan_success': true,
-                'processing_time_ms': scanTime,
-                'dishes_detected': menuAnalysis.sections.reduce((total, section) => total + section.dishes.length, 0),
-                'sections_detected': menuAnalysis.sections.length,
-                'restaurant_name': menuAnalysis.restaurantName || 'unknown',
-                'detected_cuisine': menuAnalysis.detectedCuisine || 'unknown',
-                'location_city': userLocation.city || 'unknown',
-                'location_country': userLocation.country || 'unknown'
-            });
 
-            setScanResult(menuAnalysis.sections);
-            
-            if (menuAnalysis.sections.length > 0) {
-                // Store restaurant info with ID
-                if (menuAnalysis.restaurantName || menuAnalysis.detectedCuisine) {
-                    setRestaurantInfo({
-                        name: menuAnalysis.restaurantName || '',
-                        cuisine: menuAnalysis.detectedCuisine || '',
-                        location: userLocation,
-                        id: restaurantId || undefined // Store the restaurant ID
-                    });
-                }
+       // Track successful menu scan with restaurant info
+        gtag('event', 'menu_scan_complete', {
+            'scan_success': true,
+            'processing_time_ms': scanTime,
+            'dishes_detected': menuAnalysis.sections.reduce((total, section) => total + section.dishes.length, 0),
+            'sections_detected': menuAnalysis.sections.length,
+            'restaurant_name': menuAnalysis.restaurantName || 'unknown',
+            'detected_cuisine': menuAnalysis.detectedCuisine || 'unknown',
+            'location_city': userLocation.city || 'unknown',
+            'location_country': userLocation.country || 'unknown'
+        });
 
-                // Update scan count after successful scan
-                if (user && userProfile?.subscription_type === 'free') {
-                    await supabase
-                        .from('user_profiles')
-                        .update({ scans_used: userProfile.scans_used + 1 })
-                        .eq('id', user.id);
-                        
-                    setUserProfile(prev => prev ? { ...prev, scans_used: prev.scans_used + 1 } : null);
-                } else if (!user) {
-                    setNonUserScans(prev => prev + 1);
-                }
+       setScanResult(menuAnalysis.sections);
+        
+        if (menuAnalysis.sections.length > 0) {
+            // Store restaurant info with ID
+            if (menuAnalysis.restaurantName || menuAnalysis.detectedCuisine) {
+                setRestaurantInfo({
+                    name: menuAnalysis.restaurantName || '',
+                    cuisine: menuAnalysis.detectedCuisine || '',
+                    location: userLocation,
+                    id: restaurantId || undefined // Store the restaurant ID
+                });
+            }
+
+            // Update scan count after successful scan
+            if (user && userProfile?.subscription_type === 'free') {
+                await supabase
+                    .from('user_profiles')
+                    .update({ scans_used: userProfile.scans_used + 1 })
+                    .eq('id', user.id);
+                    
+                setUserProfile(prev => prev ? { ...prev, scans_used: prev.scans_used + 1 } : null);
+            } else if (!user) {
+                setNonUserScans(prev => prev + 1);
+            }
                 
+            // ONLY call the counter increment and callback ONCE here
+            try {
                 await incrementMenuScans();
                 onScanSuccess();
+            } catch (error) {
+                console.error('Error updating scan counter:', error);
             }
-        } catch (err) {
-            const scanTime = Date.now() - scanStartTime;
-            const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-            
-            // Track failed menu scan
-            gtag('event', 'menu_scan_complete', {
-                'scan_success': false,
-                'processing_time_ms': scanTime,
-                'error_message': errorMessage,
-                'dishes_detected': 0,
-                'sections_detected': 0,
-                'restaurant_name': 'error',
-                'detected_cuisine': 'error'
-            });
-            
-            console.error(err);
-            setScanError(errorMessage);
-        } finally {
-            setIsScanning(false);
         }
-    }, [canScan, user, userProfile, onScanSuccess]);
+    } catch (err) {
+        const scanTime = Date.now() - scanStartTime;
+        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+            
+         // Track failed menu scan
+        gtag('event', 'menu_scan_complete', {
+            'scan_success': false,
+            'processing_time_ms': scanTime,
+            'error_message': errorMessage,
+            'dishes_detected': 0,
+            'sections_detected': 0,
+            'restaurant_name': 'error',
+            'detected_cuisine': 'error'
+        });
+            
+        console.error(err);
+        setScanError(errorMessage);
+    } finally {
+        setIsScanning(false);
+    }
+}, [canScan, user, userProfile, onScanSuccess]);
+
 
     const handleFileSelect = useCallback(async (file: File) => {
       // Track file upload method and details
