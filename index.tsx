@@ -1,8 +1,12 @@
-
+// Updated index.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
+import { initErrorTracking } from './services/errorTracking';
 import App from './App';
+
+// Initialize error tracking FIRST
+initErrorTracking();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
