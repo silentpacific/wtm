@@ -5,12 +5,13 @@ import { MenuSection, DishExplanation, MenuAnalysisResult } from '../types';
 import { CameraIcon, UploadIcon } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
-import { incrementMenuScanned, incrementDishExplanation } from '../services/counterService';
+import { incrementMenuScans, incrementDishExplanations } from '../services/counterService';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { getUserLocation, findOrCreateRestaurant } from '../services/restaurantService';
 
 interface HomePageProps {
   onScanSuccess: () => void;
+  onExplanationSuccess: () => void; // ADD THIS LINE
 }
 
 interface UserProfile {
@@ -443,8 +444,10 @@ const handleDishClick = async (dishName: string) => {
                 'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
                 'retry_count': retryCount
             });
+
+        await incrementDishExplanations();
+        await onExplanationSuccess();
             
-            await incrementDishExplanation();
             
             setExplanations(prev => ({
                 ...prev,
@@ -887,7 +890,7 @@ const PricingSection: React.FC = () => (
   </div>
 );
 
-const HomePage: React.FC<HomePageProps> = ({ onScanSuccess }) => {
+const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess }) => {
     const { user } = useAuth();
     const [isScanning, setIsScanning] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
@@ -1044,7 +1047,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess }) => {
                     setNonUserScans(prev => prev + 1);
                 }
                 
-                await incrementMenuScanned();
+                await incrementMenuScans();
                 onScanSuccess();
             }
         } catch (err) {

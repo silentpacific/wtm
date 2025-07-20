@@ -1,99 +1,107 @@
-// src/services/counterService.ts
-import { supabase } from './supabaseClient';
+// services/counterService.ts
 
 export interface GlobalCounters {
   menus_scanned: number;
   dish_explanations: number;
 }
 
-// Get current counter values
+// In-memory storage for counters (replace with your actual database logic)
+let globalCounters: GlobalCounters = {
+  menus_scanned: 1337,
+  dish_explanations: 0
+};
+
+// Subscribers for real-time updates
+type CounterSubscriber = (counters: GlobalCounters) => void;
+let subscribers: CounterSubscriber[] = [];
+
+// Get current global counters
 export const getGlobalCounters = async (): Promise<GlobalCounters> => {
+  // TODO: Replace with actual database call
+  // For now, return the in-memory counters
+  return { ...globalCounters };
+};
+
+// Increment menu scans counter
+export const incrementMenuScans = async (): Promise<void> => {
   try {
-    const { data, error } = await supabase
-      .from('global_counters')
-      .select('counter_type, count');
-
-    if (error) {
-      console.error('Error fetching counters:', error);
-      // Return default values on error
-      return { menus_scanned: 1337, dish_explanations: 0 };
-    }
-
-    // Convert array to object
-    const counters: GlobalCounters = {
-      menus_scanned: 1337,
-      dish_explanations: 0
-    };
-
-    data?.forEach(row => {
-      if (row.counter_type === 'menus_scanned') {
-        counters.menus_scanned = row.count;
-      } else if (row.counter_type === 'dish_explanations') {
-        counters.dish_explanations = row.count;
-      }
-    });
-
-    return counters;
+    // TODO: Replace with actual database update
+    // For example, if using Supabase:
+    // const { error } = await supabase
+    //   .from('global_counters')
+    //   .update({ menus_scanned: globalCounters.menus_scanned + 1 })
+    //   .eq('id', 1);
+    
+    // For now, update in-memory counter
+    globalCounters.menus_scanned += 1;
+    
+    // Notify all subscribers of the update
+    notifySubscribers();
+    
+    console.log('Menu scan counter incremented to:', globalCounters.menus_scanned);
   } catch (error) {
-    console.error('Error in getGlobalCounters:', error);
-    return { menus_scanned: 1337, dish_explanations: 0 };
+    console.error('Error incrementing menu scans:', error);
+    throw error;
   }
 };
 
-// Increment menu scanned counter
-export const incrementMenuScanned = async (): Promise<number | null> => {
+// Increment dish explanations counter
+export const incrementDishExplanations = async (): Promise<void> => {
   try {
-    const { data, error } = await supabase.rpc('increment_counter', {
-      counter_name: 'menus_scanned'
-    });
-
-    if (error) {
-      console.error('Error incrementing menu counter:', error);
-      return null;
-    }
-
-    return data;
+    // TODO: Replace with actual database update
+    // For example, if using Supabase:
+    // const { error } = await supabase
+    //   .from('global_counters')
+    //   .update({ dish_explanations: globalCounters.dish_explanations + 1 })
+    //   .eq('id', 1);
+    
+    // For now, update in-memory counter
+    globalCounters.dish_explanations += 1;
+    
+    // Notify all subscribers of the update
+    notifySubscribers();
+    
+    console.log('Dish explanation counter incremented to:', globalCounters.dish_explanations);
   } catch (error) {
-    console.error('Error in incrementMenuScanned:', error);
-    return null;
+    console.error('Error incrementing dish explanations:', error);
+    throw error;
   }
 };
 
-// Increment dish explanation counter
-export const incrementDishExplanation = async (): Promise<number | null> => {
-  try {
-    const { data, error } = await supabase.rpc('increment_counter', {
-      counter_name: 'dish_explanations'
-    });
-
-    if (error) {
-      console.error('Error incrementing dish explanation counter:', error);
-      return null;
+// Subscribe to counter updates
+export const subscribeToCounters = (callback: CounterSubscriber) => {
+  subscribers.push(callback);
+  
+  return {
+    unsubscribe: () => {
+      subscribers = subscribers.filter(sub => sub !== callback);
     }
-
-    return data;
-  } catch (error) {
-    console.error('Error in incrementDishExplanation:', error);
-    return null;
-  }
+  };
 };
 
-// Subscribe to real-time counter changes
-export const subscribeToCounters = (callback: (counters: GlobalCounters) => void) => {
-  return supabase
-    .channel('global_counters_channel')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'global_counters'
-      },
-      async () => {
-        // Fetch updated counters when any change occurs
-        const counters = await getGlobalCounters();
-        callback(counters);
+// Notify all subscribers of counter updates
+const notifySubscribers = () => {
+  subscribers.forEach(callback => {
+    callback({ ...globalCounters });
+  });
+};
+
+// If you're using Supabase, you could set up real-time subscriptions like this:
+/*
+import { supabase } from './supabase';
+
+export const setupRealtimeCounters = () => {
+  const subscription = supabase
+    .channel('global_counters')
+    .on('postgres_changes', 
+      { event: 'UPDATE', schema: 'public', table: 'global_counters' },
+      (payload) => {
+        globalCounters = payload.new as GlobalCounters;
+        notifySubscribers();
       }
     )
     .subscribe();
+
+  return subscription;
 };
+*/

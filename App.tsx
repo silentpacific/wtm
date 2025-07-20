@@ -6,8 +6,14 @@ import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
 import { PrivacyPolicyPage, TermsOfUsePage, FaqPage } from './pages/LegalPages';
 import { AuthProvider } from './contexts/AuthContext';
-import Header from './components/Header'; // Import the enhanced Header
-import { getGlobalCounters, subscribeToCounters, GlobalCounters } from './services/counterService';
+import Header from './components/Header';
+import { 
+  getGlobalCounters, 
+  subscribeToCounters, 
+  GlobalCounters, 
+  incrementMenuScans, 
+  incrementDishExplanations 
+} from './services/counterService';
 
 const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => (
   <footer className="bg-yellow border-t-4 border-charcoal">
@@ -76,13 +82,37 @@ const AppContent: React.FC = () => {
     };
   }, []);
 
-  // Callbacks to trigger header counter updates
-  const handleScanSuccess = useCallback(() => {
-    setCounterUpdateTrigger(prev => prev + 1);
+  // Callbacks to actually increment counters and trigger updates
+  const handleScanSuccess = useCallback(async () => {
+    try {
+      // Actually increment the counter in the database/service
+      await incrementMenuScans();
+      
+      // Trigger header counter updates
+      setCounterUpdateTrigger(prev => prev + 1);
+      
+      // Optional: Force refresh the global counters immediately
+      const updatedCounters = await getGlobalCounters();
+      setGlobalCounters(updatedCounters);
+    } catch (error) {
+      console.error('Error updating menu scan counter:', error);
+    }
   }, []);
 
-  const handleExplanationSuccess = useCallback(() => {
-    setCounterUpdateTrigger(prev => prev + 1);
+  const handleExplanationSuccess = useCallback(async () => {
+    try {
+      // Actually increment the counter in the database/service
+      await incrementDishExplanations();
+      
+      // Trigger header counter updates
+      setCounterUpdateTrigger(prev => prev + 1);
+      
+      // Optional: Force refresh the global counters immediately
+      const updatedCounters = await getGlobalCounters();
+      setGlobalCounters(updatedCounters);
+    } catch (error) {
+      console.error('Error updating dish explanation counter:', error);
+    }
   }, []);
 
   return (
