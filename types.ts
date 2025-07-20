@@ -51,3 +51,49 @@ export interface MenuAnalysisResult {
   restaurantName?: string;
   detectedCuisine?: string;
 }
+
+// SAFE - Only adds new types, doesn't change existing ones
+
+// Enhanced user profile with historical tracking
+export interface EnhancedUserProfile extends UserProfile {
+  lifetime_menus_scanned?: number;
+  lifetime_dishes_explained?: number;
+  lifetime_restaurants_visited?: number;
+  lifetime_countries_explored?: number;
+  current_month_menus?: number;
+  current_month_dishes?: number;
+  current_month_restaurants?: number;
+  current_month_countries?: number;
+  usage_month?: string;
+}
+
+// Usage summary for display components
+export interface UsageSummary {
+  scansUsed: number;
+  scansLimit: number | string; // string for "∞"
+  explanationsUsed: number;
+  explanationsLimit: number | string; // string for "∞"
+  hasUnlimited: boolean;
+  canScan: boolean;
+  timeRemaining: number | null;
+  lifetimeStats?: {
+    menus: number;
+    dishes: number;
+    restaurants: number;
+    countries: number;
+  };
+  monthlyStats?: {
+    menus: number;
+    dishes: number;
+    restaurants: number;
+    countries: number;
+  };
+}
+
+// Anonymous user usage interface
+export interface AnonymousUsage {
+  scansUsed: number;
+  explanationsUsed: number;
+  lastResetMonth: string;
+  fingerprint: string;
+}
