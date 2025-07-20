@@ -1,4 +1,4 @@
-// Updated App.tsx - Replace your existing App.tsx
+// Updated App.tsx - Background global counters, user limits only
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
@@ -9,7 +9,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
 import { 
   getGlobalCounters, 
-  subscribeToCounters, 
+  setupRealtimeCounters,
   GlobalCounters, 
   incrementMenuScans, 
   incrementDishExplanations 
@@ -27,7 +27,7 @@ const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }
         <Link to="/contact" className="hover:text-charcoal">Contact Us</Link>
       </div>
       
-      {/* Enhanced counters section */}
+      {/* Keep global counters in footer for analytics/marketing */}
       <div className="my-4 space-y-2">
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-8">
           <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
@@ -49,7 +49,7 @@ const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }
 const AppContent: React.FC = () => {
   const location = useLocation();
   const [globalCounters, setGlobalCounters] = useState<GlobalCounters>({
-    menus_scanned: 1337,
+    menus_scanned: 0,
     dish_explanations: 0
   });
   
@@ -63,18 +63,28 @@ const AppContent: React.FC = () => {
     });
   }, [location]);
 
-  // Load initial counters and subscribe to changes
+  // Load initial global counters and set up real-time subscriptions (for analytics/footer)
   useEffect(() => {
     const loadCounters = async () => {
-      const counters = await getGlobalCounters();
-      setGlobalCounters(counters);
+      try {
+        const counters = await getGlobalCounters();
+        setGlobalCounters(counters);
+        console.log('Background global counters loaded:', counters);
+      } catch (error) {
+        console.error('Error loading background global counters:', error);
+      }
     };
 
     loadCounters();
 
-    // Subscribe to real-time updates
-    const subscription = subscribeToCounters((newCounters) => {
-      setGlobalCounters(newCounters);
+    // Set up real-time subscriptions for global counters
+    const subscription = setupRealtimeCounters();
+    
+    // Subscribe to updates
+    subscription.on('postgres_changes', async () => {
+      const updatedCounters = await getGlobalCounters();
+      setGlobalCounters(updatedCounters);
+      console.log('Background global counters updated:', updatedCounters);
     });
 
     return () => {
@@ -82,36 +92,32 @@ const AppContent: React.FC = () => {
     };
   }, []);
 
-  // Callbacks to actually increment counters and trigger updates
+  // Callbacks to increment global counters and trigger header updates
   const handleScanSuccess = useCallback(async () => {
     try {
-      // Actually increment the counter in the database/service
+      // Increment global counter (for analytics)
       await incrementMenuScans();
       
-      // Trigger header counter updates
+      // Trigger header counter updates (for user limits)
       setCounterUpdateTrigger(prev => prev + 1);
       
-      // Optional: Force refresh the global counters immediately
-      const updatedCounters = await getGlobalCounters();
-      setGlobalCounters(updatedCounters);
+      console.log('Scan success: global counter incremented, header updated');
     } catch (error) {
-      console.error('Error updating menu scan counter:', error);
+      console.error('Error updating scan counter:', error);
     }
   }, []);
 
   const handleExplanationSuccess = useCallback(async () => {
     try {
-      // Actually increment the counter in the database/service
+      // Increment global counter (for analytics)
       await incrementDishExplanations();
       
-      // Trigger header counter updates
+      // Trigger header counter updates (for user limits)
       setCounterUpdateTrigger(prev => prev + 1);
       
-      // Optional: Force refresh the global counters immediately
-      const updatedCounters = await getGlobalCounters();
-      setGlobalCounters(updatedCounters);
+      console.log('Explanation success: global counter incremented, header updated');
     } catch (error) {
-      console.error('Error updating dish explanation counter:', error);
+      console.error('Error updating explanation counter:', error);
     }
   }, []);
 

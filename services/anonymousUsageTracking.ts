@@ -1,9 +1,9 @@
 // src/services/anonymousUsageTracking.ts
-// SAFE - New file, doesn't affect existing code
+// Updated for per-menu dish limits
 
 interface AnonymousUsage {
   scansUsed: number;
-  explanationsUsed: number;
+  currentMenuDishExplanations: number; // Changed: track current menu only
   lastResetMonth: string; // Format: "2025-07"
   fingerprint: string;
 }
@@ -65,7 +65,7 @@ export const getAnonymousUsage = (): AnonymousUsage => {
         console.log('🗓️ New month detected, resetting anonymous usage');
         usage = {
           scansUsed: 0,
-          explanationsUsed: 0,
+          currentMenuDishExplanations: 0,
           lastResetMonth: currentMonth,
           fingerprint
         };
@@ -77,11 +77,23 @@ export const getAnonymousUsage = (): AnonymousUsage => {
         usage.fingerprint = fingerprint; // Update fingerprint but keep usage
       }
       
+      // Migrate old format if needed
+      if ('explanationsUsed' in usage) {
+        console.log('🔄 Migrating old anonymous usage format');
+        const oldUsage = usage as any;
+        usage = {
+          scansUsed: oldUsage.scansUsed || 0,
+          currentMenuDishExplanations: 0, // Reset to 0 for new per-menu system
+          lastResetMonth: currentMonth,
+          fingerprint
+        };
+      }
+      
     } catch (error) {
       console.error('Error parsing stored anonymous usage:', error);
       usage = {
         scansUsed: 0,
-        explanationsUsed: 0,
+        currentMenuDishExplanations: 0,
         lastResetMonth: currentMonth,
         fingerprint
       };
@@ -90,7 +102,7 @@ export const getAnonymousUsage = (): AnonymousUsage => {
     // First time user
     usage = {
       scansUsed: 0,
-      explanationsUsed: 0,
+      currentMenuDishExplanations: 0,
       lastResetMonth: currentMonth,
       fingerprint
     };
@@ -105,17 +117,18 @@ export const getAnonymousUsage = (): AnonymousUsage => {
 export const incrementAnonymousScan = (): AnonymousUsage => {
   const usage = getAnonymousUsage();
   usage.scansUsed += 1;
+  usage.currentMenuDishExplanations = 0; // Reset dish counter for new menu
   localStorage.setItem('anonymousUsage', JSON.stringify(usage));
-  console.log(`📸 Anonymous scans: ${usage.scansUsed}/5`);
+  console.log(`📸 Anonymous scans: ${usage.scansUsed}/5, dishes reset to 0/5`);
   return usage;
 };
 
-// Increment anonymous explanation count
+// Increment anonymous explanation count for current menu
 export const incrementAnonymousExplanation = (): AnonymousUsage => {
   const usage = getAnonymousUsage();
-  usage.explanationsUsed += 1;
+  usage.currentMenuDishExplanations += 1;
   localStorage.setItem('anonymousUsage', JSON.stringify(usage));
-  console.log(`💡 Anonymous explanations: ${usage.explanationsUsed}/25`);
+  console.log(`💡 Anonymous dish explanations: ${usage.currentMenuDishExplanations}/5 (current menu)`);
   return usage;
 };
 
@@ -125,16 +138,32 @@ export const canAnonymousUserScan = (): boolean => {
   return usage.scansUsed < 5;
 };
 
+// Check if anonymous user can explain more dishes in current menu
+export const canAnonymousUserExplainDish = (): boolean => {
+  const usage = getAnonymousUsage();
+  return usage.currentMenuDishExplanations < 5;
+};
+
+// Reset dish explanations for new menu (called when scan starts)
+export const resetAnonymousDishCounter = (): AnonymousUsage => {
+  const usage = getAnonymousUsage();
+  usage.currentMenuDishExplanations = 0;
+  localStorage.setItem('anonymousUsage', JSON.stringify(usage));
+  console.log('🔄 Anonymous dish counter reset to 0/5 for new menu');
+  return usage;
+};
+
 // Get anonymous user limits
 export const getAnonymousLimits = () => {
   const usage = getAnonymousUsage();
   return {
     scansUsed: usage.scansUsed,
     scansLimit: 5,
-    explanationsUsed: usage.explanationsUsed,
-    explanationsLimit: 25, // 5 scans × 5 dishes each
+    explanationsUsed: usage.currentMenuDishExplanations, // Current menu only
+    explanationsLimit: 5, // 5 dishes per menu
     hasUnlimited: false,
     canScan: usage.scansUsed < 5,
+    canExplainDish: usage.currentMenuDishExplanations < 5,
     timeRemaining: null
   };
 };

@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { LoginModal } from './LoginModal';
 import { getOrCreateEnhancedUserProfile, getEnhancedUsageSummary, EnhancedUserProfile } from '../services/enhancedUsageTracking';
 import { getAnonymousLimits } from '../services/anonymousUsageTracking';
-import { getGlobalCounters, subscribeToCounters, GlobalCounters } from '../services/counterService';
 import { UsageSummary } from '../types';
 
 interface HeaderProps {
@@ -19,19 +18,42 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [userProfile, setUserProfile] = useState<EnhancedUserProfile | null>(null);
   const [loading, setLoading] = useState(false);
-  const [globalCounters, setGlobalCounters] = useState<GlobalCounters>({
-    menus_scanned: 1337,
-    dish_explanations: 0
-  });
   const [usage, setUsage] = useState<UsageSummary>({
     scansUsed: 0,
     scansLimit: 5,
     explanationsUsed: 0,
-    explanationsLimit: 25,
+    explanationsLimit: 5,
     hasUnlimited: false,
     canScan: true,
     timeRemaining: null
   });
+
+
+  // Fetch user profile and calculate usage
+  const updateUsageData = async () => {
+    if (user) {
+      setLoading(true);
+      try {
+        const profile = await getOrCreateEnhancedUserProfile(user.id, user.email || undefined);
+        setUserProfile(profile);
+        const usageSummary = getEnhancedUsageSummary(profile);
+        setUsage(usageSummary);
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Anonymous user
+      setUserProfile(null);
+      const anonymousUsage = getAnonymousLimits();
+      setUsage(anonymousUsage);
+    }
+  };
+
+
+
+
 
   // Load global counters and subscribe to changes
   useEffect(() => {
@@ -96,10 +118,11 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
     }
   };
 
-  // Update usage when user changes
+
+  // Update usage when user changes or when counter update is triggered
   useEffect(() => {
     updateUsageData();
-  }, [user]);
+  }, [user, onCounterUpdate]);
 
   // Format time remaining for unlimited users
   const formatTimeRemaining = (ms: number) => {
@@ -135,33 +158,33 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
               </nav>
             </div>
 
-            {/* Desktop Counters (hidden on mobile) - NOW USING GLOBAL COUNTERS */}
+            {/* Desktop Counters - Centered between logo and auth */}
             <div className="hidden lg:flex items-center gap-4">
-              {/* Global Menus Scanned Counter */}
-              <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-green-50 text-green-700 border-green-300">
-                Global Menus: {globalCounters.menus_scanned.toLocaleString()}
-              </div>
-
-              {/* Global Dishes Explained Counter */}
-              <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-blue-50 text-blue-700 border-blue-300">
-                Global Dishes: {globalCounters.dish_explanations.toLocaleString()}
-              </div>
-
-              {/* User Personal Counters */}
-              <div className={`px-4 py-2 rounded-full border-2 text-sm font-medium select-none ${
-                usage.hasUnlimited ? 'bg-green-50 text-green-700 border-green-300' : 
-                usage.scansUsed >= (usage.scansLimit as number) ? 'bg-red-50 text-red-700 border-red-300' : 
-                usage.scansUsed >= (usage.scansLimit as number) * 0.8 ? 'bg-yellow-50 text-yellow-700 border-yellow-300' :
-                'bg-gray-50 text-gray-700 border-gray-300'
-              }`}>
-                Your Scans: {usage.scansUsed}/{usage.scansLimit}
-              </div>
-
-              {/* Time Remaining for Unlimited Users */}
-              {usage.hasUnlimited && usage.timeRemaining && (
-                <div className="px-4 py-2 rounded-full border-2 border-green-300 bg-green-50 text-green-700 text-sm font-medium select-none">
-                  Expires in {formatTimeRemaining(usage.timeRemaining)}
+              {usage.hasUnlimited ? (
+                // Unlimited users - single green pill
+                <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-green-50 text-green-700 border-green-300">
+                  Unlimited scans. Enjoy your meal
+                  {usage.timeRemaining && (
+                    <span className="ml-2 text-xs opacity-75">
+                      (expires in {formatTimeRemaining(usage.timeRemaining)})
+                    </span>
+                  )}
                 </div>
+              ) : usage.scansUsed >= (usage.scansLimit as number) ? (
+                // Limit reached - upgrade pill
+                <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-green-50 text-green-700 border-green-300">
+                  Purchase one of our plans to continue scanning
+                </div>
+              ) : (
+                // Normal usage - two grey pills
+                <>
+                  <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-gray-50 text-gray-700 border-gray-300">
+                    Menus Scanned: {usage.scansUsed}/{usage.scansLimit}
+                  </div>
+                  <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-gray-50 text-gray-700 border-gray-300">
+                    Dish Explanations: {usage.explanationsUsed}/{usage.explanationsLimit}
+                  </div>
+                </>
               )}
             </div>
 
@@ -201,26 +224,26 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
           {/* Second Line: Mobile Counters (only visible on mobile) */}
           <div className="lg:hidden border-t border-charcoal/20 py-2">
             <div className="flex items-center justify-center gap-4 text-xs">
-              <div className="px-2 py-1 rounded-full bg-green-50 text-green-700 font-medium">
-                Global: {globalCounters.menus_scanned.toLocaleString()}
-              </div>
-              
-              <div className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">
-                Dishes: {globalCounters.dish_explanations.toLocaleString()}
-              </div>
-              
-              <div className={`px-2 py-1 rounded-full font-medium ${
-                usage.hasUnlimited ? 'bg-green-50 text-green-700' : 
-                usage.scansUsed >= (usage.scansLimit as number) ? 'bg-red-50 text-red-700' : 
-                'bg-gray-50 text-gray-700'
-              }`}>
-                Your: {usage.scansUsed}/{usage.scansLimit}
-              </div>
-
-              {usage.hasUnlimited && usage.timeRemaining && (
-                <div className="px-2 py-1 rounded-full bg-green-50 text-green-700 font-medium">
-                  {formatTimeRemaining(usage.timeRemaining)}
+              {usage.hasUnlimited ? (
+                // Unlimited users - single green pill
+                <div className="px-3 py-1 rounded-full bg-green-50 text-green-700 font-medium">
+                  Unlimited scans. Enjoy your meal
                 </div>
+              ) : usage.scansUsed >= (usage.scansLimit as number) ? (
+                // Limit reached - upgrade pill
+                <div className="px-3 py-1 rounded-full bg-green-50 text-green-700 font-medium text-center">
+                  Purchase one of our plans to continue scanning
+                </div>
+              ) : (
+                // Normal usage - two grey pills
+                <>
+                  <div className="px-3 py-1 rounded-full bg-gray-50 text-gray-700 font-medium">
+                    Menus: {usage.scansUsed}/{usage.scansLimit}
+                  </div>
+                  <div className="px-3 py-1 rounded-full bg-gray-50 text-gray-700 font-medium">
+                    Dishes: {usage.explanationsUsed}/{usage.explanationsLimit}
+                  </div>
+                </>
               )}
             </div>
           </div>

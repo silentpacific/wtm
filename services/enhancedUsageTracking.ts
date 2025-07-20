@@ -1,5 +1,5 @@
 // src/services/enhancedUsageTracking.ts
-// SAFE - New file, doesn't affect existing code
+// Updated for per-menu dish limits
 
 import { supabase } from './supabaseClient';
 import { UserProfile } from '../types';
@@ -15,6 +15,7 @@ export interface EnhancedUserProfile extends UserProfile {
   current_month_restaurants: number;
   current_month_countries: number;
   usage_month: string;
+  current_menu_dish_explanations: number; // NEW: track current menu only
 }
 
 // Get current month string (YYYY-MM format)
@@ -70,6 +71,7 @@ export const getOrCreateEnhancedUserProfile = async (
             current_month_dishes: 0,
             current_month_restaurants: 0,
             current_month_countries: 0,
+            current_menu_dish_explanations: 0, // Reset current menu counter too
             updated_at: new Date().toISOString()
           })
           .eq('id', userId)
@@ -78,6 +80,26 @@ export const getOrCreateEnhancedUserProfile = async (
           
         if (updateError) {
           console.error('Error updating profile for new month:', updateError);
+          return existingProfile as EnhancedUserProfile;
+        }
+        
+        return updatedProfile as EnhancedUserProfile;
+      }
+      
+      // Ensure current_menu_dish_explanations field exists (for existing users)
+      if (existingProfile.current_menu_dish_explanations === undefined) {
+        const { data: updatedProfile, error: updateError } = await supabase
+          .from('user_profiles')
+          .update({
+            current_menu_dish_explanations: 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId)
+          .select()
+          .single();
+          
+        if (updateError) {
+          console.error('Error adding current_menu_dish_explanations field:', updateError);
           return existingProfile as EnhancedUserProfile;
         }
         
@@ -104,6 +126,7 @@ export const getOrCreateEnhancedUserProfile = async (
       current_month_dishes: 0,
       current_month_restaurants: 0,
       current_month_countries: 0,
+      current_menu_dish_explanations: 0, // NEW: track current menu
       usage_month: currentMonth
     };
 
@@ -125,7 +148,7 @@ export const getOrCreateEnhancedUserProfile = async (
   }
 };
 
-// Increment user's menu scan count
+// Increment user's menu scan count and reset dish counter
 export const incrementUserMenuScan = async (userId: string): Promise<boolean> => {
   try {
     const { data: profile, error: fetchError } = await supabase
@@ -145,6 +168,7 @@ export const incrementUserMenuScan = async (userId: string): Promise<boolean> =>
         scans_used: profile.scans_used + 1,
         lifetime_menus_scanned: (profile.lifetime_menus_scanned || 0) + 1,
         current_month_menus: (profile.current_month_menus || 0) + 1,
+        current_menu_dish_explanations: 0, // Reset current menu dish counter
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
@@ -154,7 +178,7 @@ export const incrementUserMenuScan = async (userId: string): Promise<boolean> =>
       return false;
     }
 
-    console.log(`📸 User ${userId} menu scans: ${profile.scans_used + 1}`);
+    console.log(`📸 User ${userId} menu scans: ${profile.scans_used + 1}, dishes reset to 0/5`);
     return true;
   } catch (error) {
     console.error('Error in incrementUserMenuScan:', error);
@@ -162,12 +186,12 @@ export const incrementUserMenuScan = async (userId: string): Promise<boolean> =>
   }
 };
 
-// Increment user's dish explanation count
+// Increment user's dish explanation count for current menu
 export const incrementUserDishExplanation = async (userId: string): Promise<boolean> => {
   try {
     const { data: profile, error: fetchError } = await supabase
       .from('user_profiles')
-      .select('dish_explanations_used, lifetime_dishes_explained, current_month_dishes')
+      .select('dish_explanations_used, lifetime_dishes_explained, current_month_dishes, current_menu_dish_explanations')
       .eq('id', userId)
       .single();
 
@@ -182,6 +206,7 @@ export const incrementUserDishExplanation = async (userId: string): Promise<bool
         dish_explanations_used: (profile.dish_explanations_used || 0) + 1,
         lifetime_dishes_explained: (profile.lifetime_dishes_explained || 0) + 1,
         current_month_dishes: (profile.current_month_dishes || 0) + 1,
+        current_menu_dish_explanations: (profile.current_menu_dish_explanations || 0) + 1,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
@@ -191,10 +216,34 @@ export const incrementUserDishExplanation = async (userId: string): Promise<bool
       return false;
     }
 
-    console.log(`💡 User ${userId} dish explanations: ${(profile.dish_explanations_used || 0) + 1}`);
+    console.log(`💡 User ${userId} dish explanations: ${(profile.current_menu_dish_explanations || 0) + 1}/5 (current menu)`);
     return true;
   } catch (error) {
     console.error('Error in incrementUserDishExplanation:', error);
+    return false;
+  }
+};
+
+// Reset user's current menu dish explanations (called when new scan starts)
+export const resetUserDishCounter = async (userId: string): Promise<boolean> => {
+  try {
+    const { error: updateError } = await supabase
+      .from('user_profiles')
+      .update({
+        current_menu_dish_explanations: 0,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('Error resetting dish counter:', updateError);
+      return false;
+    }
+
+    console.log(`🔄 User ${userId} dish counter reset to 0/5 for new menu`);
+    return true;
+  } catch (error) {
+    console.error('Error in resetUserDishCounter:', error);
     return false;
   }
 };
@@ -206,9 +255,10 @@ export const getEnhancedUsageSummary = (profile: EnhancedUserProfile | null) => 
       scansUsed: 0,
       scansLimit: 5,
       explanationsUsed: 0,
-      explanationsLimit: 25,
+      explanationsLimit: 5, // Changed: 5 per menu
       hasUnlimited: false,
       canScan: true,
+      canExplainDish: true,
       timeRemaining: null,
       // Historical data
       lifetimeStats: {
@@ -235,10 +285,11 @@ export const getEnhancedUsageSummary = (profile: EnhancedUserProfile | null) => 
       return {
         scansUsed: profile.scans_used,
         scansLimit: '∞',
-        explanationsUsed: profile.dish_explanations_used,
+        explanationsUsed: profile.current_menu_dish_explanations || 0,
         explanationsLimit: '∞',
         hasUnlimited: true,
         canScan: true,
+        canExplainDish: true,
         timeRemaining: expiresAt.getTime() - now.getTime(),
         lifetimeStats: {
           menus: profile.lifetime_menus_scanned || 0,
@@ -260,10 +311,11 @@ export const getEnhancedUsageSummary = (profile: EnhancedUserProfile | null) => 
   return {
     scansUsed: profile.scans_used,
     scansLimit: profile.scans_limit,
-    explanationsUsed: profile.dish_explanations_used,
-    explanationsLimit: profile.scans_limit * 5, // 5 dishes per scan
+    explanationsUsed: profile.current_menu_dish_explanations || 0, // Current menu only
+    explanationsLimit: 5, // 5 dishes per menu
     hasUnlimited: false,
     canScan: profile.scans_used < profile.scans_limit,
+    canExplainDish: (profile.current_menu_dish_explanations || 0) < 5,
     timeRemaining: null,
     lifetimeStats: {
       menus: profile.lifetime_menus_scanned || 0,

@@ -5,22 +5,26 @@ import { MenuSection, DishExplanation, MenuAnalysisResult } from '../types';
 import { CameraIcon, UploadIcon } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
-import { incrementMenuScans, incrementDishExplanations } from '../services/counterService';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { getUserLocation, findOrCreateRestaurant } from '../services/restaurantService';
+import { 
+  incrementUserMenuScan, 
+  incrementUserDishExplanation, 
+  resetUserDishCounter,
+  getOrCreateEnhancedUserProfile,
+  EnhancedUserProfile 
+} from '../services/enhancedUsageTracking';
+import { 
+  incrementAnonymousScan, 
+  incrementAnonymousExplanation, 
+  resetAnonymousDishCounter,
+  canAnonymousUserScan,
+  canAnonymousUserExplainDish 
+} from '../services/anonymousUsageTracking';
 
 interface HomePageProps {
   onScanSuccess: () => void;
   onExplanationSuccess: () => void;
-}
-
-interface UserProfile {
-  id: string;
-  email: string;
-  subscription_type: 'free' | 'daily' | 'weekly';
-  subscription_expires_at: string | null;
-  scans_used: number;
-  scans_limit: number;
 }
 
 const fileToGenerativePart = async (file: File) => {
@@ -106,7 +110,7 @@ const CameraModal: React.FC<{
 const ScanLimitModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
-    userProfile: UserProfile | null;
+    userProfile: EnhancedUserProfile | null;
     isLoggedIn: boolean;
 }> = ({ isOpen, onClose, userProfile, isLoggedIn }) => {
     if (!isOpen) return null;
@@ -247,8 +251,11 @@ const MenuResults: React.FC<{
         cuisine: string; 
         location: any;
         id?: number;
-    } 
-}> = ({ menuSections, restaurantInfo }) => {
+    };
+    onExplanationSuccess: () => void;
+    userProfile: EnhancedUserProfile | null;
+    user: any;
+}> = ({ menuSections, restaurantInfo, onExplanationSuccess, userProfile, user }) => {
     const [selectedLanguage, setSelectedLanguage] = useState('en');
     const [explanations, setExplanations] = useState<Record<string, Record<string, {
         data: DishExplanation | null;
@@ -265,9 +272,7 @@ const MenuResults: React.FC<{
         }
     }, []);
 
-
-
-   // Handle language change
+    // Handle language change
     const handleLanguageChange = (languageCode: string) => {
         setSelectedLanguage(languageCode);
         localStorage.setItem('preferred-language', languageCode);
@@ -286,23 +291,22 @@ const MenuResults: React.FC<{
         });
     };
 
-   // NEW: Dedicated retry function
-const handleRetryDish = (dishName: string) => {
-    // Completely clear the explanation state for this dish and language
-    setExplanations(prev => ({
-        ...prev,
-        [dishName]: {
-            ...prev[dishName],
-            [selectedLanguage]: undefined // Completely remove the entry
-        }
-    }));
-    
-    // Small delay to ensure state is cleared, then retry
-    setTimeout(() => {
-        handleDishClick(dishName);
-    }, 50);
-};
-
+    // Dedicated retry function
+    const handleRetryDish = (dishName: string) => {
+        // Completely clear the explanation state for this dish and language
+        setExplanations(prev => ({
+            ...prev,
+            [dishName]: {
+                ...prev[dishName],
+                [selectedLanguage]: undefined // Completely remove the entry
+            }
+        }));
+        
+        // Small delay to ensure state is cleared, then retry
+        setTimeout(() => {
+            handleDishClick(dishName);
+        }, 50);
+    };
 
     // Translations object
     const translations = {
@@ -315,10 +319,10 @@ const handleRetryDish = (dishName: string) => {
             error: "Error: ",
             dietaryStyle: "Dietary & Style",
             allergenInfo: "Allergen Information",
-        // NEW: Friendly retry messages
-        serversBusy: "Oops! Too many hungry people asking about dishes! Give me a moment to catch up... 🍽️",
-        stillTrying: "Still cooking up your answer... Almost there! 👨‍🍳",
-        finalError: "Hmm, our kitchen is really backed up! Please try again in a minute! 😅"
+            serversBusy: "Oops! Too many hungry people asking about dishes! Give me a moment to catch up... 🍽️",
+            stillTrying: "Still cooking up your answer... Almost there! 👨‍🍳",
+            finalError: "Hmm, our kitchen is really backed up! Please try again in a minute! 😅",
+            dishLimitReached: "You've reached the limit of 5 dish explanations for this menu. Scan a new menu or upgrade your plan!"
         },
         es: {
             pageTitle: "Tu Menú",
@@ -329,10 +333,10 @@ const handleRetryDish = (dishName: string) => {
             error: "Error: ",
             dietaryStyle: "Dieta y Estilo",
             allergenInfo: "Información de Alérgenos",
-        // NEW: Friendly retry messages
-        serversBusy: "¡Ups! ¡Demasiada gente hambrienta preguntando sobre platos! Dame un momento para ponerme al día... 🍽️",
-        stillTrying: "Todavía cocinando tu respuesta... ¡Casi listo! 👨‍🍳",
-        finalError: "¡Hmm, nuestra cocina está muy ocupada! ¡Inténtalo de nuevo en un minuto! 😅"
+            serversBusy: "¡Ups! ¡Demasiada gente hambrienta preguntando sobre platos! Dame un momento para ponerme al día... 🍽️",
+            stillTrying: "Todavía cocinando tu respuesta... ¡Casi listo! 👨‍🍳",
+            finalError: "¡Hmm, nuestra cocina está muy ocupada! ¡Inténtalo de nuevo en un minuto! 😅",
+            dishLimitReached: "¡Has alcanzado el límite de 5 explicaciones de platos para este menú. ¡Escanea un nuevo menú o mejora tu plan!"
         },
         zh: {
             pageTitle: "您的菜单",
@@ -343,10 +347,10 @@ const handleRetryDish = (dishName: string) => {
             error: "错误: ",
             dietaryStyle: "饮食与风格",
             allergenInfo: "过敏原信息",
-        // NEW: Friendly retry messages
-        serversBusy: "哎呀！太多饿肚子的人在问菜品了！给我一点时间赶上... 🍽️",
-        stillTrying: "还在为您烹饪答案...快好了！👨‍🍳",
-        finalError: "嗯，我们的厨房真的很忙！请一分钟后再试！😅"
+            serversBusy: "哎呀！太多饿肚子的人在问菜品了！给我一点时间赶上... 🍽️",
+            stillTrying: "还在为您烹饪答案...快好了！👨‍🍳",
+            finalError: "嗯，我们的厨房真的很忙！请一分钟后再试！😅",
+            dishLimitReached: "您已达到此菜单5道菜解释的限制。请扫描新菜单或升级您的计划！"
         },
         fr: {
             pageTitle: "Votre Menu",
@@ -357,10 +361,10 @@ const handleRetryDish = (dishName: string) => {
             error: "Erreur: ",
             dietaryStyle: "Régime et Style",
             allergenInfo: "Informations Allergènes",
-        // NEW: Friendly retry messages
-        serversBusy: "Oups ! Trop de gens affamés posent des questions sur les plats ! Donnez-moi un moment pour rattraper... 🍽️",
-        stillTrying: "Je cuisine encore votre réponse... Presque là ! 👨‍🍳",
-        finalError: "Hmm, notre cuisine est vraiment occupée ! Réessayez dans une minute ! 😅"
+            serversBusy: "Oups ! Trop de gens affamés posent des questions sur les plats ! Donnez-moi un moment pour rattraper... 🍽️",
+            stillTrying: "Je cuisine encore votre réponse... Presque là ! 👨‍🍳",
+            finalError: "Hmm, notre cuisine est vraiment occupée ! Réessayez dans une minute ! 😅",
+            dishLimitReached: "Vous avez atteint la limite de 5 explications de plats pour ce menu. Scannez un nouveau menu ou améliorez votre plan !"
         }
     };
 
@@ -374,165 +378,182 @@ const handleRetryDish = (dishName: string) => {
         { code: 'fr', name: 'Français' },
     ];
 
-
-// Replace the handleDishClick function in MenuResults component (HomePage.tsx)
-
-// Fix for the onExplanationSuccess scope issue in HomePage.tsx
-
-// Replace the handleDishClick function in your HomePage component with this version:
-
-const handleDishClick = async (dishName: string) => {
-    if (!explanations[dishName]) {
-        explanations[dishName] = {};
-    }
-    
-    // Check for successful data OR currently loading
-    const currentExplanation = explanations[dishName][selectedLanguage];
-    if (currentExplanation?.data || currentExplanation?.isLoading) {
-        return;
-    }
-    
-    // Helper function to make the API request
-    const makeRequest = async (): Promise<DishExplanation> => {
-        let url = `/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`;
-        
-        if (restaurantInfo?.id) {
-            url += `&restaurantId=${restaurantInfo.id}`;
+    const handleDishClick = async (dishName: string) => {
+        if (!explanations[dishName]) {
+            explanations[dishName] = {};
         }
         
-        if (restaurantInfo?.name) {
-            url += `&restaurantName=${encodeURIComponent(restaurantInfo.name)}`;
-        }
-
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            if (response.status === 429) {
-                throw new Error('RATE_LIMIT');
-            } else {
-                const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
-                throw new Error(errorData.error || `Request failed`);
-            }
+        // Check for successful data OR currently loading
+        const currentExplanation = explanations[dishName][selectedLanguage];
+        if (currentExplanation?.data || currentExplanation?.isLoading) {
+            return;
         }
         
-        return await response.json();
-    };
-
-    // Auto-retry logic with friendly messages
-    const startTime = Date.now();
-    let retryCount = 0;
-    const maxRetries = 2;
-    const retryDelays = [3000, 5000];
-
-    setExplanations(prev => ({
-        ...prev,
-        [dishName]: {
-            ...prev[dishName],
-            [selectedLanguage]: { data: null, isLoading: true, error: null }
-        }
-    }));
-
-    const attemptRequest = async (): Promise<void> => {
-        try {
-            const data = await makeRequest();
-            const loadTime = Date.now() - startTime;
-            const dataSource = 'api';
-            
-            // Track successful dish explanation
-            gtag('event', 'dish_explanation_success', {
-                'dish_name': dishName,
-                'language': selectedLanguage,
-                'load_time_ms': loadTime,
-                'source': dataSource,
-                'restaurant_name': restaurantInfo?.name || 'unknown',
-                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
-                'retry_count': retryCount
-            });
-            
-            // FIXED: Call the counter increment and callback - using the prop from parent scope
-            try {
-                await incrementDishExplanations();
-                onExplanationSuccess(); // This should now work since it's passed as a prop
-            } catch (error) {
-                console.error('Error updating explanation counter:', error);
-            }
-            
+        // Check if user can explain more dishes before making API call
+        const canExplain = user ? 
+            (userProfile?.current_menu_dish_explanations || 0) < 5 : 
+            canAnonymousUserExplainDish();
+        
+        if (!canExplain) {
             setExplanations(prev => ({
                 ...prev,
                 [dishName]: {
                     ...prev[dishName],
-                    [selectedLanguage]: { data, isLoading: false, error: null }
+                    [selectedLanguage]: { 
+                        data: null, 
+                        isLoading: false, 
+                        error: t.dishLimitReached 
+                    }
                 }
             }));
+            return;
+        }
+        
+        // Helper function to make the API request
+        const makeRequest = async (): Promise<DishExplanation> => {
+            let url = `/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`;
+            
+            if (restaurantInfo?.id) {
+                url += `&restaurantId=${restaurantInfo.id}`;
+            }
+            
+            if (restaurantInfo?.name) {
+                url += `&restaurantName=${encodeURIComponent(restaurantInfo.name)}`;
+            }
 
-        } catch (err) {
-            if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
-                // Show friendly message for rate limit
-                const isFirstRetry = retryCount === 0;
-                const message = isFirstRetry ? t.serversBusy : t.stillTrying;
-                
-                setExplanations(prev => ({
-                    ...prev,
-                    [dishName]: {
-                        ...prev[dishName],
-                        [selectedLanguage]: { data: null, isLoading: true, error: message }
-                    }
-                }));
-
-                // Wait and retry
-                const delay = retryDelays[retryCount];
-                retryCount++;
-                
-                setTimeout(() => {
-                    // Clear the message and show loading again
-                    setExplanations(prev => ({
-                        ...prev,
-                        [dishName]: {
-                            ...prev[dishName],
-                            [selectedLanguage]: { data: null, isLoading: true, error: null }
-                        }
-                    }));
-                    
-                    attemptRequest();
-                }, delay);
-
-            } else {
-                // Final error
-                const loadTime = Date.now() - startTime;
-                let errorMessage = t.finalError;
-                
-                if (err instanceof Error && err.message !== 'RATE_LIMIT') {
-                    errorMessage = err.message;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                if (response.status === 429) {
+                    throw new Error('RATE_LIMIT');
+                } else {
+                    const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
+                    throw new Error(errorData.error || `Request failed`);
                 }
+            }
+            
+            return await response.json();
+        };
+
+        // Auto-retry logic with friendly messages
+        const startTime = Date.now();
+        let retryCount = 0;
+        const maxRetries = 2;
+        const retryDelays = [3000, 5000];
+
+        setExplanations(prev => ({
+            ...prev,
+            [dishName]: {
+                ...prev[dishName],
+                [selectedLanguage]: { data: null, isLoading: true, error: null }
+            }
+        }));
+
+        const attemptRequest = async (): Promise<void> => {
+            try {
+                const data = await makeRequest();
+                const loadTime = Date.now() - startTime;
+                const dataSource = 'api';
                 
-                // Track failed dish explanation
-                gtag('event', 'dish_explanation_error', {
+                // Track successful dish explanation
+                gtag('event', 'dish_explanation_success', {
                     'dish_name': dishName,
                     'language': selectedLanguage,
                     'load_time_ms': loadTime,
-                    'error_message': errorMessage,
-                    'error_type': err instanceof Error && err.message === 'RATE_LIMIT' ? 'rate_limit_final' : 'other',
+                    'source': dataSource,
                     'restaurant_name': restaurantInfo?.name || 'unknown',
                     'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
                     'retry_count': retryCount
                 });
                 
+                // Update user-specific counters
+                try {
+                    if (user) {
+                        await incrementUserDishExplanation(user.id);
+                    } else {
+                        incrementAnonymousExplanation();
+                    }
+                    
+                    // Call the global counter increment callback
+                    onExplanationSuccess();
+                } catch (error) {
+                    console.error('Error updating explanation counter:', error);
+                }
+                
                 setExplanations(prev => ({
                     ...prev,
                     [dishName]: {
                         ...prev[dishName],
-                        [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+                        [selectedLanguage]: { data, isLoading: false, error: null }
                     }
                 }));
+
+            } catch (err) {
+                if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
+                    // Show friendly message for rate limit
+                    const isFirstRetry = retryCount === 0;
+                    const message = isFirstRetry ? t.serversBusy : t.stillTrying;
+                    
+                    setExplanations(prev => ({
+                        ...prev,
+                        [dishName]: {
+                            ...prev[dishName],
+                            [selectedLanguage]: { data: null, isLoading: true, error: message }
+                        }
+                    }));
+
+                    // Wait and retry
+                    const delay = retryDelays[retryCount];
+                    retryCount++;
+                    
+                    setTimeout(() => {
+                        // Clear the message and show loading again
+                        setExplanations(prev => ({
+                            ...prev,
+                            [dishName]: {
+                                ...prev[dishName],
+                                [selectedLanguage]: { data: null, isLoading: true, error: null }
+                            }
+                        }));
+                        
+                        attemptRequest();
+                    }, delay);
+
+                } else {
+                    // Final error
+                    const loadTime = Date.now() - startTime;
+                    let errorMessage = t.finalError;
+                    
+                    if (err instanceof Error && err.message !== 'RATE_LIMIT') {
+                        errorMessage = err.message;
+                    }
+                    
+                    // Track failed dish explanation
+                    gtag('event', 'dish_explanation_error', {
+                        'dish_name': dishName,
+                        'language': selectedLanguage,
+                        'load_time_ms': loadTime,
+                        'error_message': errorMessage,
+                        'error_type': err instanceof Error && err.message === 'RATE_LIMIT' ? 'rate_limit_final' : 'other',
+                        'restaurant_name': restaurantInfo?.name || 'unknown',
+                        'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+                        'retry_count': retryCount
+                    });
+                    
+                    setExplanations(prev => ({
+                        ...prev,
+                        [dishName]: {
+                            ...prev[dishName],
+                            [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+                        }
+                    }));
+                }
             }
-        }
+        };
+
+        // Start the initial request
+        attemptRequest();
     };
-
-    // Start the initial request
-    attemptRequest();
-};
-
-
 
     // Handle mobile accordion click
     const handleMobileAccordionClick = (dishName: string) => {
@@ -546,9 +567,7 @@ const handleDishClick = async (dishName: string) => {
     };
 
     // Render explanation content (shared between desktop and mobile)
-
-
-const renderExplanationContent = (dish: any) => {
+    const renderExplanationContent = (dish: any) => {
         const dishExplanation = explanations[dish.name]?.[selectedLanguage];
         
         if (dishExplanation?.isLoading) {
@@ -564,11 +583,14 @@ const renderExplanationContent = (dish: any) => {
             const isFriendlyMessage = dishExplanation.error.includes('🍽️') || 
                                      dishExplanation.error.includes('👨‍🍳');
             const isFinalError = dishExplanation.error.includes('😅');
+            const isLimitError = dishExplanation.error.includes('limit') || dishExplanation.error.includes('límite') || dishExplanation.error.includes('限制') || dishExplanation.error.includes('limite');
             
             return (
                 <div className="space-y-2">
                     <div className={`p-3 rounded-lg border-2 ${
-                        isFriendlyMessage 
+                        isLimitError 
+                            ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+                            : isFriendlyMessage 
                             ? 'bg-orange-50 border-orange-200 text-orange-800' 
                             : isFinalError
                             ? 'bg-red-50 border-red-200 text-red-700'
@@ -576,7 +598,7 @@ const renderExplanationContent = (dish: any) => {
                     }`}>
                         <div className="flex items-start space-x-2">
                             <span className="text-lg flex-shrink-0">
-                                {isFriendlyMessage ? '🤖' : isFinalError ? '😅' : '❌'}
+                                {isLimitError ? '⚠️' : isFriendlyMessage ? '🤖' : isFinalError ? '😅' : '❌'}
                             </span>
                             <div>
                                 <p className="font-medium text-sm">
@@ -586,8 +608,8 @@ const renderExplanationContent = (dish: any) => {
                         </div>
                     </div>
                     
-                    {/* Show retry button for final errors AND non-friendly errors */}
-                    {(isFinalError || (!isFriendlyMessage && !isFinalError)) && (
+                    {/* Show retry button for final errors AND non-friendly errors (but not limit errors) */}
+                    {!isLimitError && (isFinalError || (!isFriendlyMessage && !isFinalError)) && (
                         <button
                             onClick={() => {
                                 console.log(`🖱️ Try Again clicked for: ${dish.name}`);
@@ -602,8 +624,6 @@ const renderExplanationContent = (dish: any) => {
             );
         }
         
-
-    
         // ... rest of the function for successful data display
         if (dishExplanation?.data) {
             return (
@@ -643,9 +663,6 @@ const renderExplanationContent = (dish: any) => {
         
         return null;
     };
-
-
-
 
     return (
         <div className="py-12 sm:py-16">
@@ -801,9 +818,6 @@ const renderExplanationContent = (dish: any) => {
     );
 };
 
-
-
-
 const ReviewsSection: React.FC = () => (
   <div className="py-12 sm:py-24 bg-teal border-y-4 border-charcoal">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -872,7 +886,7 @@ const PricingSection: React.FC = () => (
           description="Perfect for testing the app and getting a taste of what it can do."
           price="$0"
           period="to start"
-          subtext="You have 3 of 5 free scans remaining."
+          subtext="5 free menu scans, 5 dishes per menu."
           features={["5 free menu scans", "Up to 5 dishes explained per scan", "All major languages", "No signup required", "Works on any device"]}
           buttonText="Get Started"
         />
@@ -905,9 +919,8 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
     const [isScanning, setIsScanning] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
     const [scanResult, setScanResult] = useState<MenuSection[] | null>(null);
-    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [userProfile, setUserProfile] = useState<EnhancedUserProfile | null>(null);
     const [showLimitModal, setShowLimitModal] = useState(false);
-    const [nonUserScans, setNonUserScans] = useState(3); // For non-logged in users
     const [restaurantInfo, setRestaurantInfo] = useState<{
         name: string; 
         cuisine: string; 
@@ -920,18 +933,8 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         const fetchUserProfile = async () => {
             if (user) {
                 try {
-                    const { data, error } = await supabase
-                        .from('user_profiles')
-                        .select('*')
-                        .eq('id', user.id)
-                        .single();
-
-                    if (error) {
-                        console.error('Error fetching user profile:', error);
-                        return;
-                    }
-
-                    setUserProfile(data);
+                    const profile = await getOrCreateEnhancedUserProfile(user.id, user.email || undefined);
+                    setUserProfile(profile);
                 } catch (error) {
                     console.error('Error fetching user profile:', error);
                 }
@@ -946,8 +949,8 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
     // Check if user can scan
     const canScan = useCallback(() => {
         if (!user) {
-            // Non-logged in users: check local state
-            return nonUserScans < 5;
+            // Non-logged in users: use anonymous tracking
+            return canAnonymousUserScan();
         }
 
         if (!userProfile) return false;
@@ -964,7 +967,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
 
         // Free users (logged in or subscription expired): check scan limit
         return userProfile.scans_used < userProfile.scans_limit;
-    }, [user, userProfile, nonUserScans]);
+    }, [user, userProfile]);
 
     const handleScanAttempt = () => {
         setShowLimitModal(true);
@@ -987,108 +990,113 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         setScanError(null);
         setScanResult(null);
 
-    try {
-        // Get user location first (non-blocking)
-        const userLocation = await getUserLocation();
-        console.log('User location:', userLocation);
+        try {
+            // Reset dish counter when starting new scan
+            if (user) {
+                await resetUserDishCounter(user.id);
+                setUserProfile(prev => prev ? { 
+                    ...prev, 
+                    current_menu_dish_explanations: 0 
+                } : null);
+            } else {
+                resetAnonymousDishCounter();
+            }
 
-        // Analyze menu with restaurant detection
-        const menuAnalysis: MenuAnalysisResult = await analyzeMenu(base64Image);
-        const scanTime = Date.now() - scanStartTime;
-        
-        console.log('Menu analysis result:', {
-            restaurantName: menuAnalysis.restaurantName,
-            detectedCuisine: menuAnalysis.detectedCuisine,
-            sectionsCount: menuAnalysis.sections.length,
-            dishesCount: menuAnalysis.sections.reduce((total, section) => total + section.dishes.length, 0)
-        });
+            // Get user location first (non-blocking)
+            const userLocation = await getUserLocation();
+            console.log('User location:', userLocation);
 
-       // Find or create restaurant record
-        let restaurantId = null;
-        if (menuAnalysis.restaurantName) {
-            const totalDishCount = menuAnalysis.sections.reduce(
-                (total, section) => total + section.dishes.length, 
-                0
-            );
+            // Analyze menu with restaurant detection
+            const menuAnalysis: MenuAnalysisResult = await analyzeMenu(base64Image);
+            const scanTime = Date.now() - scanStartTime;
             
-            restaurantId = await findOrCreateRestaurant(
-                menuAnalysis.restaurantName,
-                menuAnalysis.detectedCuisine || '',
-                userLocation,
-                totalDishCount // Pass the dish count
-            );
-            console.log(`Restaurant ID: ${restaurantId}, Dishes: ${totalDishCount}`);
-        }
+            console.log('Menu analysis result:', {
+                restaurantName: menuAnalysis.restaurantName,
+                detectedCuisine: menuAnalysis.detectedCuisine,
+                sectionsCount: menuAnalysis.sections.length,
+                dishesCount: menuAnalysis.sections.reduce((total, section) => total + section.dishes.length, 0)
+            });
 
-
-
-       // Track successful menu scan with restaurant info
-        gtag('event', 'menu_scan_complete', {
-            'scan_success': true,
-            'processing_time_ms': scanTime,
-            'dishes_detected': menuAnalysis.sections.reduce((total, section) => total + section.dishes.length, 0),
-            'sections_detected': menuAnalysis.sections.length,
-            'restaurant_name': menuAnalysis.restaurantName || 'unknown',
-            'detected_cuisine': menuAnalysis.detectedCuisine || 'unknown',
-            'location_city': userLocation.city || 'unknown',
-            'location_country': userLocation.country || 'unknown'
-        });
-
-       setScanResult(menuAnalysis.sections);
-        
-        if (menuAnalysis.sections.length > 0) {
-            // Store restaurant info with ID
-            if (menuAnalysis.restaurantName || menuAnalysis.detectedCuisine) {
-                setRestaurantInfo({
-                    name: menuAnalysis.restaurantName || '',
-                    cuisine: menuAnalysis.detectedCuisine || '',
-                    location: userLocation,
-                    id: restaurantId || undefined // Store the restaurant ID
-                });
-            }
-
-            // Update scan count after successful scan
-            if (user && userProfile?.subscription_type === 'free') {
-                await supabase
-                    .from('user_profiles')
-                    .update({ scans_used: userProfile.scans_used + 1 })
-                    .eq('id', user.id);
-                    
-                setUserProfile(prev => prev ? { ...prev, scans_used: prev.scans_used + 1 } : null);
-            } else if (!user) {
-                setNonUserScans(prev => prev + 1);
-            }
+            // Find or create restaurant record
+            let restaurantId = null;
+            if (menuAnalysis.restaurantName) {
+                const totalDishCount = menuAnalysis.sections.reduce(
+                    (total, section) => total + section.dishes.length, 
+                    0
+                );
                 
-            // ONLY call the counter increment and callback ONCE here
-            try {
-                await incrementMenuScans();
-                onScanSuccess();
-            } catch (error) {
-                console.error('Error updating scan counter:', error);
+                restaurantId = await findOrCreateRestaurant(
+                    menuAnalysis.restaurantName,
+                    menuAnalysis.detectedCuisine || '',
+                    userLocation,
+                    totalDishCount
+                );
+                console.log(`Restaurant ID: ${restaurantId}, Dishes: ${totalDishCount}`);
             }
-        }
-    } catch (err) {
-        const scanTime = Date.now() - scanStartTime;
-        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-            
-         // Track failed menu scan
-        gtag('event', 'menu_scan_complete', {
-            'scan_success': false,
-            'processing_time_ms': scanTime,
-            'error_message': errorMessage,
-            'dishes_detected': 0,
-            'sections_detected': 0,
-            'restaurant_name': 'error',
-            'detected_cuisine': 'error'
-        });
-            
-        console.error(err);
-        setScanError(errorMessage);
-    } finally {
-        setIsScanning(false);
-    }
-}, [canScan, user, userProfile, onScanSuccess]);
 
+            // Track successful menu scan with restaurant info
+            gtag('event', 'menu_scan_complete', {
+                'scan_success': true,
+                'processing_time_ms': scanTime,
+                'dishes_detected': menuAnalysis.sections.reduce((total, section) => total + section.dishes.length, 0),
+                'sections_detected': menuAnalysis.sections.length,
+                'restaurant_name': menuAnalysis.restaurantName || 'unknown',
+                'detected_cuisine': menuAnalysis.detectedCuisine || 'unknown',
+                'location_city': userLocation.city || 'unknown',
+                'location_country': userLocation.country || 'unknown'
+            });
+
+            setScanResult(menuAnalysis.sections);
+            
+            if (menuAnalysis.sections.length > 0) {
+                // Store restaurant info with ID
+                if (menuAnalysis.restaurantName || menuAnalysis.detectedCuisine) {
+                    setRestaurantInfo({
+                        name: menuAnalysis.restaurantName || '',
+                        cuisine: menuAnalysis.detectedCuisine || '',
+                        location: userLocation,
+                        id: restaurantId || undefined
+                    });
+                }
+
+                // Update scan count after successful scan
+                if (user) {
+                    // Logged in user: use enhanced tracking
+                    await incrementUserMenuScan(user.id);
+                    setUserProfile(prev => prev ? { 
+                        ...prev, 
+                        scans_used: prev.scans_used + 1,
+                        current_menu_dish_explanations: 0 // Reset dish counter
+                    } : null);
+                } else {
+                    // Anonymous user: use anonymous tracking
+                    incrementAnonymousScan(); // This also resets dish counter
+                }
+                
+                // Call the global counter increment callback
+                onScanSuccess();
+            }
+        } catch (err) {
+            const scanTime = Date.now() - scanStartTime;
+            const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+            
+            // Track failed menu scan
+            gtag('event', 'menu_scan_complete', {
+                'scan_success': false,
+                'processing_time_ms': scanTime,
+                'error_message': errorMessage,
+                'dishes_detected': 0,
+                'sections_detected': 0,
+                'restaurant_name': 'error',
+                'detected_cuisine': 'error'
+            });
+            
+            console.error(err);
+            setScanError(errorMessage);
+        } finally {
+            setIsScanning(false);
+        }
+    }, [canScan, user, userProfile, onScanSuccess]);
 
     const handleFileSelect = useCallback(async (file: File) => {
       // Track file upload method and details
@@ -1137,6 +1145,9 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
                         <MenuResults 
                             menuSections={scanResult} 
                             restaurantInfo={restaurantInfo || undefined}
+                            onExplanationSuccess={onExplanationSuccess}
+                            userProfile={userProfile}
+                            user={user}
                         />
                         <div className="text-center pb-12 sm:pb-16">
                             <button
