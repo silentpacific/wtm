@@ -264,7 +264,9 @@ const MenuResults: React.FC<{
         }
     }, []);
 
-    // Handle language change
+
+
+   // Handle language change
     const handleLanguageChange = (languageCode: string) => {
         setSelectedLanguage(languageCode);
         localStorage.setItem('preferred-language', languageCode);
@@ -282,6 +284,27 @@ const MenuResults: React.FC<{
             return newSet;
         });
     };
+
+   // NEW: Dedicated retry function
+    const handleRetryDish = (dishName: string) => {
+        console.log(`🔄 Retrying dish: ${dishName}`);
+        
+        // Clear the error state first
+        setExplanations(prev => ({
+            ...prev,
+            [dishName]: {
+                ...prev[dishName],
+                [selectedLanguage]: undefined // Reset to allow retry
+            }
+        }));
+        
+        // Small delay to ensure state is cleared, then retry
+        setTimeout(() => {
+            console.log(`🚀 Triggering handleDishClick for: ${dishName}`);
+            handleDishClick(dishName);
+        }, 100);
+    };
+
 
     // Translations object
     const translations = {
@@ -510,116 +533,104 @@ const handleDishClick = async (dishName: string) => {
     };
 
     // Render explanation content (shared between desktop and mobile)
-// Update the renderExplanationContent function in MenuResults component (HomePage.tsx)
 
-// Update the renderExplanationContent function in MenuResults component (HomePage.tsx)
-
-// Update the renderExplanationContent function in MenuResults component (HomePage.tsx)
 
 const renderExplanationContent = (dish: any) => {
-    const dishExplanation = explanations[dish.name]?.[selectedLanguage];
-    
-    if (dishExplanation?.isLoading) {
-        return (
-            <div className="flex items-center space-x-2 font-medium">
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-coral"></div>
-                <span>{dishExplanation.error || t.explaining}</span>
-            </div>
-        );
-    }
-    
-    if (dishExplanation?.error) {
-        const isFriendlyMessage = dishExplanation.error.includes('🍽️') || 
-                                 dishExplanation.error.includes('👨‍🍳');
-        const isFinalError = dishExplanation.error.includes('😅'); // Final error message
+        const dishExplanation = explanations[dish.name]?.[selectedLanguage];
         
-        // Function to handle retry
-        const handleRetry = () => {
-            // Clear the error state first
-            setExplanations(prev => ({
-                ...prev,
-                [dish.name]: {
-                    ...prev[dish.name],
-                    [selectedLanguage]: undefined // Reset to allow retry
-                }
-            }));
-            
-            // Then immediately trigger new request
-            setTimeout(() => handleDishClick(dish.name), 50);
-        };
-        
-        return (
-            <div className="space-y-2">
-                <div className={`p-3 rounded-lg border-2 ${
-                    isFriendlyMessage 
-                        ? 'bg-orange-50 border-orange-200 text-orange-800' 
-                        : isFinalError
-                        ? 'bg-red-50 border-red-200 text-red-700'
-                        : 'bg-red-50 border-red-200 text-red-700'
-                }`}>
-                    <div className="flex items-start space-x-2">
-                        <span className="text-lg flex-shrink-0">
-                            {isFriendlyMessage ? '🤖' : isFinalError ? '😅' : '❌'}
-                        </span>
-                        <div>
-                            <p className="font-medium text-sm">
-                                {dishExplanation.error}
-                            </p>
-                        </div>
-                    </div>
+        if (dishExplanation?.isLoading) {
+            return (
+                <div className="flex items-center space-x-2 font-medium">
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-coral"></div>
+                    <span>{dishExplanation.error || t.explaining}</span>
                 </div>
-                
-                {/* Show retry button for final errors AND non-friendly errors */}
-                {(isFinalError || (!isFriendlyMessage && !isFinalError)) && (
-                    <button
-                        onClick={handleRetry}
-                        className="text-sm px-3 py-1 bg-coral text-white rounded-full hover:bg-coral/80 transition-colors font-medium"
-                    >
-                        Try Again
-                    </button>
-                )}
-            </div>
-        );
-    }
-    
-    if (dishExplanation?.data) {
-        return (
-            <div className="space-y-4">
-                <p className="font-medium text-lg">{dishExplanation.data.explanation}</p>
-                
-                {/* Tags Section */}
-                {dishExplanation.data.tags && dishExplanation.data.tags.length > 0 && (
-                    <div className="space-y-2">
-                        <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">
-                            {t.dietaryStyle}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {dishExplanation.data.tags.map(tag => (
-                                <span key={tag} className="px-2 py-1 text-xs font-bold bg-teal/20 text-teal-800 rounded-full border border-teal/30">{tag}</span>
-                            ))}
+            );
+        }
+        
+        if (dishExplanation?.error) {
+            const isFriendlyMessage = dishExplanation.error.includes('🍽️') || 
+                                     dishExplanation.error.includes('👨‍🍳');
+            const isFinalError = dishExplanation.error.includes('😅');
+            
+            return (
+                <div className="space-y-2">
+                    <div className={`p-3 rounded-lg border-2 ${
+                        isFriendlyMessage 
+                            ? 'bg-orange-50 border-orange-200 text-orange-800' 
+                            : isFinalError
+                            ? 'bg-red-50 border-red-200 text-red-700'
+                            : 'bg-red-50 border-red-200 text-red-700'
+                    }`}>
+                        <div className="flex items-start space-x-2">
+                            <span className="text-lg flex-shrink-0">
+                                {isFriendlyMessage ? '🤖' : isFinalError ? '😅' : '❌'}
+                            </span>
+                            <div>
+                                <p className="font-medium text-sm">
+                                    {dishExplanation.error}
+                                </p>
+                            </div>
                         </div>
                     </div>
-                )}
+                    
+                    {/* Show retry button for final errors AND non-friendly errors */}
+                    {(isFinalError || (!isFriendlyMessage && !isFinalError)) && (
+                        <button
+                            onClick={() => {
+                                console.log(`🖱️ Try Again clicked for: ${dish.name}`);
+                                handleRetryDish(dish.name);
+                            }}
+                            className="text-sm px-3 py-1 bg-coral text-white rounded-full hover:bg-coral/80 transition-colors font-medium"
+                        >
+                            Try Again
+                        </button>
+                    )}
+                </div>
+            );
+        }
+        
 
-                {/* Allergens Section */}
-                {dishExplanation.data.allergens && dishExplanation.data.allergens.length > 0 && (
-                    <div className="space-y-2">
-                        <p className="text-xs font-bold text-red-700 uppercase tracking-wide">
-                            ⚠️ {t.allergenInfo}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {dishExplanation.data.allergens.map(allergen => (
-                                <span key={allergen} className="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    }
     
-    return null;
-};
+        // ... rest of the function for successful data display
+        if (dishExplanation?.data) {
+            return (
+                <div className="space-y-4">
+                    <p className="font-medium text-lg">{dishExplanation.data.explanation}</p>
+                    
+                    {/* Tags Section */}
+                    {dishExplanation.data.tags && dishExplanation.data.tags.length > 0 && (
+                        <div className="space-y-2">
+                            <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">
+                                {t.dietaryStyle}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {dishExplanation.data.tags.map(tag => (
+                                    <span key={tag} className="px-2 py-1 text-xs font-bold bg-teal/20 text-teal-800 rounded-full border border-teal/30">{tag}</span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Allergens Section */}
+                    {dishExplanation.data.allergens && dishExplanation.data.allergens.length > 0 && (
+                        <div className="space-y-2">
+                            <p className="text-xs font-bold text-red-700 uppercase tracking-wide">
+                                ⚠️ {t.allergenInfo}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {dishExplanation.data.allergens.map(allergen => (
+                                    <span key={allergen} className="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full border border-red-200">{allergen}</span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        
+        return null;
+    };
+
 
 
 
