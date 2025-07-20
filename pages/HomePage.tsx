@@ -512,6 +512,8 @@ const handleDishClick = async (dishName: string) => {
     // Render explanation content (shared between desktop and mobile)
 // Update the renderExplanationContent function in MenuResults component (HomePage.tsx)
 
+// Update the renderExplanationContent function in MenuResults component (HomePage.tsx)
+
 const renderExplanationContent = (dish: any) => {
     const dishExplanation = explanations[dish.name]?.[selectedLanguage];
     
@@ -526,19 +528,21 @@ const renderExplanationContent = (dish: any) => {
     
     if (dishExplanation?.error) {
         const isFriendlyMessage = dishExplanation.error.includes('🍽️') || 
-                                 dishExplanation.error.includes('👨‍🍳') || 
-                                 dishExplanation.error.includes('😅');
+                                 dishExplanation.error.includes('👨‍🍳');
+        const isFinalError = dishExplanation.error.includes('😅'); // Final error message
         
         return (
             <div className="space-y-2">
                 <div className={`p-3 rounded-lg border-2 ${
                     isFriendlyMessage 
                         ? 'bg-orange-50 border-orange-200 text-orange-800' 
+                        : isFinalError
+                        ? 'bg-red-50 border-red-200 text-red-700'
                         : 'bg-red-50 border-red-200 text-red-700'
                 }`}>
                     <div className="flex items-start space-x-2">
                         <span className="text-lg flex-shrink-0">
-                            {isFriendlyMessage ? '🤖' : '❌'}
+                            {isFriendlyMessage ? '🤖' : isFinalError ? '😅' : '❌'}
                         </span>
                         <div>
                             <p className="font-medium text-sm">
@@ -548,10 +552,21 @@ const renderExplanationContent = (dish: any) => {
                     </div>
                 </div>
                 
-                {/* Only show retry button for final errors */}
-                {!isFriendlyMessage && (
+                {/* Show retry button for final errors AND non-friendly errors */}
+                {(isFinalError || (!isFriendlyMessage && !isFinalError)) && (
                     <button
-                        onClick={() => handleDishClick(dish.name)}
+                        onClick={() => {
+                            // Clear the error state and allow retry
+                            setExplanations(prev => ({
+                                ...prev,
+                                [dish.name]: {
+                                    ...prev[dish.name],
+                                    [selectedLanguage]: undefined // Reset to allow retry
+                                }
+                            }));
+                            // Then trigger new request
+                            setTimeout(() => handleDishClick(dish.name), 100);
+                        }}
                         className="text-sm px-3 py-1 bg-coral text-white rounded-full hover:bg-coral/80 transition-colors"
                     >
                         Try Again
@@ -599,6 +614,7 @@ const renderExplanationContent = (dish: any) => {
     
     return null;
 };
+
 
     return (
         <div className="py-12 sm:py-16">
