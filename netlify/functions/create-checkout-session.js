@@ -3,9 +3,10 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { createClient } = require('@supabase/supabase-js');
 
+// Use service role key for admin operations
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 );
 
 exports.handler = async (event, context) => {
@@ -22,9 +23,9 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { priceId, userId, planType } = JSON.parse(event.body);
+    const { priceId, userId, planType, userEmail } = JSON.parse(event.body);
 
-    console.log('Received request:', { priceId, userId, planType });
+    console.log('Received request:', { priceId, userId, planType, userEmail });
 
     if (!priceId || !userId || !planType) {
       return {
@@ -48,32 +49,27 @@ exports.handler = async (event, context) => {
 
     console.log('User profile query result:', { userProfile, userError });
 
-    // If user profile doesn't exist, create it
+    // If user profile doesn't exist, create it using the email from frontend
     if (userError && userError.code === 'PGRST116') {
       console.log('User profile not found, creating new profile...');
       
-      // Get user's email from Supabase auth
-      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
-      
-      console.log('Auth user lookup:', { authUser: authUser?.user?.email, authError });
-
-      if (authError || !authUser.user) {
+      if (!userEmail) {
         return {
-          statusCode: 404,
+          statusCode: 400,
           headers: {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Headers': 'Content-Type',
           },
-          body: JSON.stringify({ error: 'User not found in authentication system' }),
+          body: JSON.stringify({ error: 'User email is required to create profile' }),
         };
       }
 
-      // Create user profile
+      // Create user profile using email from frontend
       const { data: newProfile, error: createError } = await supabase
         .from('user_profiles')
         .insert({
           id: userId,
-          email: authUser.user.email,
+          email: userEmail,
           subscription_type: 'free',
           scans_used: 0,
           scans_limit: 5,
