@@ -8,6 +8,17 @@ import { getOrCreateEnhancedUserProfile, getEnhancedUsageSummary, EnhancedUserPr
 import { getAnonymousLimits } from '../services/anonymousUsageTracking';
 import { UsageSummary } from '../types';
 
+const scrollToPricing = () => {
+  const pricingSection = document.querySelector('#pricing-section');
+  if (pricingSection) {
+    pricingSection.scrollIntoView({ behavior: 'smooth' });
+  } else {
+    // Fallback: scroll to bottom where pricing usually is
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }
+};
+
+
 interface HeaderProps {
   // Optional props for triggering counter updates
   onCounterUpdate?: number;
@@ -103,9 +114,12 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
                 </div>
               ) : usage.scansUsed >= (usage.scansLimit as number) ? (
                 // Limit reached - upgrade pill
-                <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-green-50 text-green-700 border-green-300">
-                  Purchase one of our plans to continue scanning
-                </div>
+		 <button 
+		  onClick={scrollToPricing}
+		  className="px-4 py-2 rounded-full border-2 text-sm font-medium bg-green-50 text-green-700 border-green-300 hover:bg-green-100 		transition-colors cursor-pointer"
+		>
+		  Purchase one of our plans to continue scanning
+		</button>
               ) : (
                 // Normal usage - two grey pills
                 <>
@@ -162,9 +176,12 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
                 </div>
               ) : usage.scansUsed >= (usage.scansLimit as number) ? (
                 // Limit reached - upgrade pill
-                <div className="px-3 py-1 rounded-full bg-green-50 text-green-700 font-medium text-center">
-                  Purchase one of our plans to continue scanning
-                </div>
+<button 
+  onClick={scrollToPricing}
+  className="px-3 py-1 rounded-full bg-green-50 text-green-700 font-medium text-center hover:bg-green-100 transition-colors cursor-pointer"
+>
+  Purchase one of our plans to continue scanning
+</button>
               ) : (
                 // Normal usage - two grey pills
                 <>

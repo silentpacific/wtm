@@ -911,7 +911,7 @@ const PricingTier: React.FC<PricingTierProps> = ({
   </div>
 );
 
-const PricingSection: React.FC = () => {
+const PricingSection: React.FC<{ user?: any }> = ({ user }) => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const handlePurchase = async (planType: 'daily' | 'weekly') => {
@@ -956,7 +956,7 @@ const PricingSection: React.FC = () => {
   };
 
   return (
-    <div className="py-12 sm:py-24">
+     <div id="pricing-section" className="py-12 sm:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="font-black text-5xl text-charcoal sm:text-6xl tracking-tighter">Choose Your Plan</h2>
@@ -1283,7 +1283,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
             )}
 
             <ReviewsSection />
-            <PricingSection />
+            <PricingSection user={user} />
             
             <ScanLimitModal 
                 isOpen={showLimitModal}
