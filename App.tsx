@@ -152,6 +152,7 @@ return (
     <Footer globalCounters={globalCounters} />
   </div>
 );
+};
 
 const App: React.FC = () => {
   return (
