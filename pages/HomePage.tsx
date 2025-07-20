@@ -377,15 +377,19 @@ const handleRetryDish = (dishName: string) => {
 
 // Replace the handleDishClick function in MenuResults component (HomePage.tsx)
 
+// Fix for the onExplanationSuccess scope issue in HomePage.tsx
+
+// Replace the handleDishClick function in your HomePage component with this version:
+
 const handleDishClick = async (dishName: string) => {
     if (!explanations[dishName]) {
         explanations[dishName] = {};
     }
     
-    // FIXED: Check for successful data OR currently loading, not just existence
+    // Check for successful data OR currently loading
     const currentExplanation = explanations[dishName][selectedLanguage];
     if (currentExplanation?.data || currentExplanation?.isLoading) {
-        return; // Only block if we have data or are currently loading
+        return;
     }
     
     // Helper function to make the API request
@@ -417,8 +421,8 @@ const handleDishClick = async (dishName: string) => {
     // Auto-retry logic with friendly messages
     const startTime = Date.now();
     let retryCount = 0;
-    const maxRetries = 2; // Try initial + 2 retries = 3 total attempts
-    const retryDelays = [3000, 5000]; // 3 seconds, then 5 seconds
+    const maxRetries = 2;
+    const retryDelays = [3000, 5000];
 
     setExplanations(prev => ({
         ...prev,
@@ -429,39 +433,39 @@ const handleDishClick = async (dishName: string) => {
     }));
 
     const attemptRequest = async (): Promise<void> => {
-try {
-    const data = await makeRequest();
-    const loadTime = Date.now() - startTime;
-    const dataSource = 'api';
+        try {
+            const data = await makeRequest();
+            const loadTime = Date.now() - startTime;
+            const dataSource = 'api';
             
-    gtag('event', 'dish_explanation_success', {
-        'dish_name': dishName,
-        'language': selectedLanguage,
-        'load_time_ms': loadTime,
-        'source': dataSource,
-        'restaurant_name': restaurantInfo?.name || 'unknown',
-        'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
-        'retry_count': retryCount
-    });
+            // Track successful dish explanation
+            gtag('event', 'dish_explanation_success', {
+                'dish_name': dishName,
+                'language': selectedLanguage,
+                'load_time_ms': loadTime,
+                'source': dataSource,
+                'restaurant_name': restaurantInfo?.name || 'unknown',
+                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+                'retry_count': retryCount
+            });
+            
+            // FIXED: Call the counter increment and callback - using the prop from parent scope
+            try {
+                await incrementDishExplanations();
+                onExplanationSuccess(); // This should now work since it's passed as a prop
+            } catch (error) {
+                console.error('Error updating explanation counter:', error);
+            }
+            
+            setExplanations(prev => ({
+                ...prev,
+                [dishName]: {
+                    ...prev[dishName],
+                    [selectedLanguage]: { data, isLoading: false, error: null }
+                }
+            }));
 
-   // ONLY call the counter increment and callback ONCE here
-    try {
-        await incrementDishExplanations();
-        onExplanationSuccess();
-    } catch (error) {
-        console.error('Error updating explanation counter:', error);
-    }
-    
-    setExplanations(prev => ({
-        ...prev,
-        [dishName]: {
-            ...prev[dishName],
-            [selectedLanguage]: { data, isLoading: false, error: null }
-        }
-    }));
-
-} catch (err) {
-
+        } catch (err) {
             if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
                 // Show friendly message for rate limit
                 const isFirstRetry = retryCount === 0;
@@ -493,7 +497,7 @@ try {
                 }, delay);
 
             } else {
-                // Final error - either max retries exceeded or non-rate-limit error
+                // Final error
                 const loadTime = Date.now() - startTime;
                 let errorMessage = t.finalError;
                 
@@ -527,6 +531,8 @@ try {
     // Start the initial request
     attemptRequest();
 };
+
+
 
     // Handle mobile accordion click
     const handleMobileAccordionClick = (dishName: string) => {

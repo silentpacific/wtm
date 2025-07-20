@@ -7,7 +7,7 @@ export interface GlobalCounters {
 
 // In-memory storage for counters (replace with your actual database logic)
 let globalCounters: GlobalCounters = {
-  menus_scanned: 1337,
+  menus_scanned: 99,
   dish_explanations: 0
 };
 

@@ -1,4 +1,4 @@
-// Enhanced Header component - Replace your existing Header component
+// Fixed Header component - Replace your existing Header component
 
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
@@ -6,11 +6,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { LoginModal } from './LoginModal';
 import { getOrCreateEnhancedUserProfile, getEnhancedUsageSummary, EnhancedUserProfile } from '../services/enhancedUsageTracking';
 import { getAnonymousLimits } from '../services/anonymousUsageTracking';
+import { getGlobalCounters, subscribeToCounters, GlobalCounters } from '../services/counterService';
 import { UsageSummary } from '../types';
 
 interface HeaderProps {
   // Optional props for triggering counter updates
-  onCounterUpdate?: () => void;
+  onCounterUpdate?: number;
 }
 
 const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
@@ -18,6 +19,10 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [userProfile, setUserProfile] = useState<EnhancedUserProfile | null>(null);
   const [loading, setLoading] = useState(false);
+  const [globalCounters, setGlobalCounters] = useState<GlobalCounters>({
+    menus_scanned: 1337,
+    dish_explanations: 0
+  });
   const [usage, setUsage] = useState<UsageSummary>({
     scansUsed: 0,
     scansLimit: 5,
@@ -27,6 +32,47 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
     canScan: true,
     timeRemaining: null
   });
+
+  // Load global counters and subscribe to changes
+  useEffect(() => {
+    const loadCounters = async () => {
+      try {
+        const counters = await getGlobalCounters();
+        setGlobalCounters(counters);
+        console.log('Header: Loaded global counters:', counters);
+      } catch (error) {
+        console.error('Error loading global counters in header:', error);
+      }
+    };
+
+    loadCounters();
+
+    // Subscribe to real-time updates
+    const subscription = subscribeToCounters((newCounters) => {
+      console.log('Header: Received counter update:', newCounters);
+      setGlobalCounters(newCounters);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Force refresh counters when onCounterUpdate changes
+  useEffect(() => {
+    if (onCounterUpdate > 0) {
+      const refreshCounters = async () => {
+        try {
+          const counters = await getGlobalCounters();
+          setGlobalCounters(counters);
+          console.log('Header: Force refreshed counters:', counters);
+        } catch (error) {
+          console.error('Error force refreshing counters:', error);
+        }
+      };
+      refreshCounters();
+    }
+  }, [onCounterUpdate]);
 
   // Fetch user profile and calculate usage
   const updateUsageData = async () => {
@@ -50,10 +96,10 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
     }
   };
 
-  // Update usage when user changes or when counter update is triggered
+  // Update usage when user changes
   useEffect(() => {
     updateUsageData();
-  }, [user, onCounterUpdate]);
+  }, [user]);
 
   // Format time remaining for unlimited users
   const formatTimeRemaining = (ms: number) => {
@@ -89,26 +135,26 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
               </nav>
             </div>
 
-            {/* Desktop Counters (hidden on mobile) */}
+            {/* Desktop Counters (hidden on mobile) - NOW USING GLOBAL COUNTERS */}
             <div className="hidden lg:flex items-center gap-4">
-              {/* Menus Scanned Counter */}
+              {/* Global Menus Scanned Counter */}
+              <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-green-50 text-green-700 border-green-300">
+                Global Menus: {globalCounters.menus_scanned.toLocaleString()}
+              </div>
+
+              {/* Global Dishes Explained Counter */}
+              <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-blue-50 text-blue-700 border-blue-300">
+                Global Dishes: {globalCounters.dish_explanations.toLocaleString()}
+              </div>
+
+              {/* User Personal Counters */}
               <div className={`px-4 py-2 rounded-full border-2 text-sm font-medium select-none ${
                 usage.hasUnlimited ? 'bg-green-50 text-green-700 border-green-300' : 
                 usage.scansUsed >= (usage.scansLimit as number) ? 'bg-red-50 text-red-700 border-red-300' : 
                 usage.scansUsed >= (usage.scansLimit as number) * 0.8 ? 'bg-yellow-50 text-yellow-700 border-yellow-300' :
                 'bg-gray-50 text-gray-700 border-gray-300'
               }`}>
-                Menus Scanned: {usage.scansUsed}/{usage.scansLimit}
-              </div>
-
-              {/* Dishes Explained Counter */}
-              <div className={`px-4 py-2 rounded-full border-2 text-sm font-medium select-none ${
-                usage.hasUnlimited ? 'bg-green-50 text-green-700 border-green-300' : 
-                usage.explanationsUsed >= (usage.explanationsLimit as number) ? 'bg-red-50 text-red-700 border-red-300' : 
-                usage.explanationsUsed >= (usage.explanationsLimit as number) * 0.8 ? 'bg-yellow-50 text-yellow-700 border-yellow-300' :
-                'bg-gray-50 text-gray-700 border-gray-300'
-              }`}>
-                Dishes Explained: {usage.explanationsUsed}/{usage.explanationsLimit}
+                Your Scans: {usage.scansUsed}/{usage.scansLimit}
               </div>
 
               {/* Time Remaining for Unlimited Users */}
@@ -154,25 +200,25 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
 
           {/* Second Line: Mobile Counters (only visible on mobile) */}
           <div className="lg:hidden border-t border-charcoal/20 py-2">
-            <div className="flex items-center justify-center gap-6">
-              <div className={`px-3 py-1 rounded-full text-xs font-medium select-none ${
+            <div className="flex items-center justify-center gap-4 text-xs">
+              <div className="px-2 py-1 rounded-full bg-green-50 text-green-700 font-medium">
+                Global: {globalCounters.menus_scanned.toLocaleString()}
+              </div>
+              
+              <div className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">
+                Dishes: {globalCounters.dish_explanations.toLocaleString()}
+              </div>
+              
+              <div className={`px-2 py-1 rounded-full font-medium ${
                 usage.hasUnlimited ? 'bg-green-50 text-green-700' : 
                 usage.scansUsed >= (usage.scansLimit as number) ? 'bg-red-50 text-red-700' : 
                 'bg-gray-50 text-gray-700'
               }`}>
-                Menus: {usage.scansUsed}/{usage.scansLimit}
-              </div>
-              
-              <div className={`px-3 py-1 rounded-full text-xs font-medium select-none ${
-                usage.hasUnlimited ? 'bg-green-50 text-green-700' : 
-                usage.explanationsUsed >= (usage.explanationsLimit as number) ? 'bg-red-50 text-red-700' : 
-                'bg-gray-50 text-gray-700'
-              }`}>
-                Dishes: {usage.explanationsUsed}/{usage.explanationsLimit}
+                Your: {usage.scansUsed}/{usage.scansLimit}
               </div>
 
               {usage.hasUnlimited && usage.timeRemaining && (
-                <div className="px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium select-none">
+                <div className="px-2 py-1 rounded-full bg-green-50 text-green-700 font-medium">
                   {formatTimeRemaining(usage.timeRemaining)}
                 </div>
               )}
