@@ -286,24 +286,21 @@ const MenuResults: React.FC<{
     };
 
    // NEW: Dedicated retry function
-    const handleRetryDish = (dishName: string) => {
-        console.log(`🔄 Retrying dish: ${dishName}`);
-        
-        // Clear the error state first
-        setExplanations(prev => ({
-            ...prev,
-            [dishName]: {
-                ...prev[dishName],
-                [selectedLanguage]: undefined // Reset to allow retry
-            }
-        }));
-        
-        // Small delay to ensure state is cleared, then retry
-        setTimeout(() => {
-            console.log(`🚀 Triggering handleDishClick for: ${dishName}`);
-            handleDishClick(dishName);
-        }, 100);
-    };
+const handleRetryDish = (dishName: string) => {
+    // Completely clear the explanation state for this dish and language
+    setExplanations(prev => ({
+        ...prev,
+        [dishName]: {
+            ...prev[dishName],
+            [selectedLanguage]: undefined // Completely remove the entry
+        }
+    }));
+    
+    // Small delay to ensure state is cleared, then retry
+    setTimeout(() => {
+        handleDishClick(dishName);
+    }, 50);
+};
 
 
     // Translations object
@@ -384,7 +381,11 @@ const handleDishClick = async (dishName: string) => {
         explanations[dishName] = {};
     }
     
-    if (explanations[dishName][selectedLanguage]) return;
+    // FIXED: Check for successful data OR currently loading, not just existence
+    const currentExplanation = explanations[dishName][selectedLanguage];
+    if (currentExplanation?.data || currentExplanation?.isLoading) {
+        return; // Only block if we have data or are currently loading
+    }
     
     // Helper function to make the API request
     const makeRequest = async (): Promise<DishExplanation> => {
@@ -519,7 +520,6 @@ const handleDishClick = async (dishName: string) => {
     // Start the initial request
     attemptRequest();
 };
-
 
     // Handle mobile accordion click
     const handleMobileAccordionClick = (dishName: string) => {
