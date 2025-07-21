@@ -9,7 +9,23 @@
 
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
 
+# Headers for CORS (for the API functions)
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"
+
+# Redirect API calls to functions (optional - for cleaner URLs)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Keep your existing SPA redirect (this should be LAST)
 [[redirects]]
   from = "/*"
   to = "/index.html"
