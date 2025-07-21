@@ -20,6 +20,7 @@ import PaymentCancelledPage from './pages/PaymentCancelledPage';
 
 
 
+// Updated Footer component with new URLs
 const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => (
   <footer className="bg-yellow border-t-4 border-charcoal">
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-charcoal/80">
@@ -44,14 +45,14 @@ const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }
           Terms of Use
         </Link>
         <Link 
-          to="/refunds" 
+          to="/refund-policy" 
           onClick={() => window.scrollTo(0, 0)}
           className="hover:text-charcoal px-2 py-1"
         >
           Refund Policy
         </Link>
         <Link 
-          to="/privacy" 
+          to="/privacy-policy" 
           onClick={() => window.scrollTo(0, 0)}
           className="hover:text-charcoal px-2 py-1"
         >
@@ -94,12 +95,37 @@ const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }
           >
             LoFi Simplify
           </a>
-          {' '}with ❤️ in Adelaide, Australia.
+          {' '}with❤️ in Adelaide, Australia.
         </span>
       </p>
     </div>
   </footer>
 );
+
+// Updated Routes section - replace your existing Routes in AppContent component
+const updatedRoutes = (
+  <Routes>
+    <Route 
+      path="/" 
+      element={
+        <HomePage 
+          onScanSuccess={handleScanSuccess}
+          onExplanationSuccess={handleExplanationSuccess}
+        />
+      } 
+    />
+    <Route path="/contact" element={<ContactPage />} />
+    <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+    <Route path="/terms" element={<TermsOfUsePage />} />
+    <Route path="/faq" element={<FaqPage />} />
+    <Route path="/refund-policy" element={<RefundsPolicyPage />} />
+    
+    {/* Payment routes */}
+    <Route path="/payment-success" element={<PaymentSuccessPage />} />
+    <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
+  </Routes>
+);
+
 
 
 
@@ -193,10 +219,10 @@ return (
           } 
         />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsOfUsePage />} />
         <Route path="/faq" element={<FaqPage />} />
-	<Route path="/refunds" element={<RefundsPolicyPage />} />
+	<Route path="/refund-policy" element={<RefundsPolicyPage />} />
 
         
         {/* ADD THESE TWO NEW ROUTES */}
