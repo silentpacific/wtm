@@ -1,4 +1,4 @@
-// Fixed Header component with hamburger menu
+// Fixed Header component - Remove duplicate updateUsageData function
 
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
@@ -18,131 +18,6 @@ const scrollToPricing = () => {
   }
 };
 
-// Hamburger Menu Component
-const HamburgerMenu: React.FC<{ isOpen: boolean; onToggle: () => void }> = ({ isOpen, onToggle }) => {
-  const navigate = useNavigate();
-
-  const handlePricingClick = () => {
-    onToggle(); // Close menu
-    // If not on home page, navigate to home first
-    if (window.location.pathname !== '/') {
-      navigate('/');
-      // Wait for navigation, then scroll
-      setTimeout(() => {
-        scrollToPricing();
-      }, 100);
-    } else {
-      scrollToPricing();
-    }
-  };
-
-  const handleLinkClick = () => {
-    onToggle(); // Close menu when link is clicked
-    window.scrollTo(0, 0); // Scroll to top
-  };
-
-  return (
-    <>
-      {/* Hamburger Button */}
-      <button
-        onClick={onToggle}
-        className="md:hidden flex flex-col justify-center items-center w-8 h-8 space-y-1"
-        aria-label="Toggle menu"
-      >
-        <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${isOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
-        <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${isOpen ? 'opacity-0' : ''}`}></span>
-        <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${isOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
-      </button>
-
-      {/* Mobile Menu Overlay */}
-      {isOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-charcoal/50" onClick={onToggle}>
-          <div 
-            className="fixed top-0 left-0 h-full w-80 bg-cream border-r-4 border-charcoal shadow-[8px_0px_16px_rgba(0,0,0,0.1)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              {/* Close button */}
-              <button
-                onClick={onToggle}
-                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-charcoal hover:text-coral"
-                aria-label="Close menu"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-
-              {/* Menu Title */}
-              <h2 className="text-2xl font-black text-charcoal mb-8 mt-4">Menu</h2>
-
-              {/* Menu Items */}
-              <nav className="space-y-4">
-                <button
-                  onClick={handlePricingClick}
-                  className="block w-full text-left text-lg font-bold text-charcoal hover:text-coral transition-colors py-2"
-                >
-                  Pricing
-                </button>
-                
-                <NavLink
-                  to="/faq"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
-                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
-                  }`}
-                >
-                  FAQ
-                </NavLink>
-                
-                <NavLink
-                  to="/terms"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
-                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
-                  }`}
-                >
-                  Terms of Use
-                </NavLink>
-                
-                <NavLink
-                  to="/privacy-policy"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
-                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
-                  }`}
-                >
-                  Privacy Policy
-                </NavLink>
-                
-                <NavLink
-                  to="/refund-policy"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
-                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
-                  }`}
-                >
-                  Refund Policy
-                </NavLink>
-                
-                <NavLink
-                  to="/contact"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
-                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
-                  }`}
-                >
-                  Contact
-                </NavLink>
-              </nav>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
 interface HeaderProps {
   // Optional props for triggering counter updates
   onCounterUpdate?: number;
@@ -150,6 +25,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [userProfile, setUserProfile] = useState<EnhancedUserProfile | null>(null);
@@ -218,6 +94,26 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
     return `${minutes}m`;
   };
 
+  // Handle mobile menu functions
+  const handlePricingClick = () => {
+    setShowMobileMenu(false); // Close menu
+    // If not on home page, navigate to home first
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      // Wait for navigation, then scroll
+      setTimeout(() => {
+        scrollToPricing();
+      }, 100);
+    } else {
+      scrollToPricing();
+    }
+  };
+
+  const handleLinkClick = () => {
+    setShowMobileMenu(false); // Close menu when link is clicked
+    window.scrollTo(0, 0); // Scroll to top
+  };
+
   return (
     <>
       <header className="bg-cream/80 backdrop-blur-sm sticky top-0 z-40 w-full border-b-4 border-charcoal">
@@ -228,11 +124,16 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
             
             {/* Left Section: Hamburger + Logo + Desktop Nav */}
             <div className="flex items-center space-x-4">
-              {/* Hamburger Menu - Mobile Only */}
-              <HamburgerMenu 
-                isOpen={showMobileMenu} 
-                onToggle={() => setShowMobileMenu(!showMobileMenu)} 
-              />
+              {/* Hamburger Menu Button - Mobile Only */}
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="md:hidden flex flex-col justify-center items-center w-8 h-8 space-y-1"
+                aria-label="Toggle menu"
+              >
+                <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${showMobileMenu ? 'rotate-45 translate-y-1.5' : ''}`}></span>
+                <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${showMobileMenu ? 'opacity-0' : ''}`}></span>
+                <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${showMobileMenu ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
+              </button>
               
               {/* Logo */}
               <Link to="/" className="text-2xl lg:text-3xl font-black text-charcoal tracking-tighter">
@@ -348,6 +249,92 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
 
         </div>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      {showMobileMenu && (
+        <div className="md:hidden fixed inset-0 z-50 bg-charcoal/50" onClick={() => setShowMobileMenu(false)}>
+          <div 
+            className="fixed top-0 left-0 h-full w-80 bg-cream border-r-4 border-charcoal shadow-[8px_0px_16px_rgba(0,0,0,0.1)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              {/* Close button */}
+              <button
+                onClick={() => setShowMobileMenu(false)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-charcoal hover:text-coral"
+                aria-label="Close menu"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* Menu Title */}
+              <h2 className="text-2xl font-black text-charcoal mb-8 mt-4">Menu</h2>
+
+              {/* Menu Items */}
+              <nav className="space-y-4">
+                <button
+                  onClick={handlePricingClick}
+                  className="block w-full text-left text-lg font-bold text-charcoal hover:text-coral transition-colors py-2"
+                >
+                  Pricing
+                </button>
+                
+                <NavLink
+                  to="/faq"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
+                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
+                  }`}
+                >
+                  FAQ
+                </NavLink>
+                
+                <NavLink
+                  to="/terms"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
+                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
+                  }`}
+                >
+                  Terms of Use
+                </NavLink>
+                
+                <NavLink
+                  to="/privacy-policy"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
+                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
+                  }`}
+                >
+                  Privacy Policy
+                </NavLink>
+                
+                <NavLink
+                  to="/refund-policy"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
+                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
+                  }`}
+                >
+                  Refund Policy
+                </NavLink>
+                
+                <NavLink
+                  to="/contact"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
+                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
+                  }`}
+                >
+                  Contact
+                </NavLink>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
       
       <LoginModal 
         isOpen={showLoginModal} 
