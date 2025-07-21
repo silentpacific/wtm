@@ -930,8 +930,8 @@ const handlePurchase = async (planType: 'daily' | 'weekly') => {
 
   try {
     const priceId = planType === 'daily' 
-      ? 'price_1RmxCTCQTpkhE1YN7TUfDxmp' 
-      : 'price_1RmxEXCQTpkhE1YN4NrAoatP';
+ 	     ? import.meta.env.VITE_STRIPE_DAILY_PRICE_ID
+ 	     : import.meta.env.VITE_STRIPE_WEEKLY_PRICE_ID;
 
     const requestBody = {
       priceId,
