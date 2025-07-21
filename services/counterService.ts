@@ -148,10 +148,11 @@ const notifySubscribers = (counters: GlobalCounters) => {
 export const setupRealtimeCounters = () => {
   console.log('⚠️ Real-time replication not available, using manual refresh approach');
   
-  // Return a dummy subscription object
+  // Return a proper mock subscription object that matches Supabase's interface
   return {
+    on: () => ({ unsubscribe: () => {} }),
     unsubscribe: () => {
-      console.log('Dummy subscription unsubscribed');
+      console.log('Mock subscription unsubscribed');
     }
   };
 };
