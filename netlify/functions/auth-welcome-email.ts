@@ -31,9 +31,10 @@ const handler: Handler = async (event, context) => {
     const authHeader = event.headers['authorization'];
     const expectedSecret = process.env.SUPABASE_AUTH_WEBHOOK_SECRET;
     
-    // Check if auth header matches our secret
-    if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
-      console.error('Invalid webhook signature. Expected:', `Bearer ${expectedSecret}`, 'Got:', authHeader);
+    // Check if auth header matches our secret (case insensitive)
+    const expectedAuthHeader = `Bearer ${expectedSecret}`;
+    if (expectedSecret && authHeader?.toLowerCase() !== expectedAuthHeader.toLowerCase()) {
+      console.error('Invalid webhook signature. Expected:', expectedAuthHeader, 'Got:', authHeader);
       return {
         statusCode: 401,
         body: JSON.stringify({ error: 'Unauthorized' }),
