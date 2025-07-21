@@ -1,6 +1,8 @@
 // netlify/functions/contact-submit.ts
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
+import { EmailService } from './shared/emailService';
+import { emailTemplates } from './shared/emailTemplates';
 
 const handler: Handler = async (event, context) => {
   // Only allow POST requests
@@ -65,6 +67,9 @@ const handler: Handler = async (event, context) => {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // Initialize email service
+    const emailService = new EmailService(process.env.RESEND_API_KEY!);
+
     // Insert contact submission into database
     const { data: submission, error: dbError } = await supabase
       .from('contact_submissions')
@@ -81,28 +86,22 @@ const handler: Handler = async (event, context) => {
       throw new Error('Failed to save contact submission');
     }
 
-    // Send email notification using Resend
-    const emailResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'WhatTheMenu Contact <noreply@whatthemenu.com>',
-        to: ['rahul@whatthemenu.com'],
-        subject: `New Contact Form Submission from ${name}`,
-        html: `
-          <h2>New Contact Form Submission</h2>
-          <p><strong>Name:</strong> ${name}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Message:</strong></p>
-          <p style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; white-space: pre-wrap;">${message}</p>
-          <hr>
-          <p><small>Submission ID: ${submission.id}</small></p>
-          <p><small>Submitted at: ${new Date(submission.created_at).toLocaleString()}</small></p>
-        `,
-        text: `
+    // Send notification email to admin
+    const adminTemplate = emailTemplates.contactConfirmation(name, email, message, submission.id);
+    const adminEmailData = {
+      to: ['support@whatthemenu.com'],
+      subject: `New Contact Form Submission from ${name}`,
+      html: `
+        <h2>New Contact Form Submission</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Message:</strong></p>
+        <p style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; white-space: pre-wrap;">${message}</p>
+        <hr>
+        <p><small>Submission ID: ${submission.id}</small></p>
+        <p><small>Submitted at: ${new Date(submission.created_at).toLocaleString()}</small></p>
+      `,
+      text: `
 New Contact Form Submission
 
 Name: ${name}
@@ -114,15 +113,56 @@ ${message}
 ---
 Submission ID: ${submission.id}
 Submitted at: ${new Date(submission.created_at).toLocaleString()}
-        `
-      }),
-    });
+      `
+    };
 
-    if (!emailResponse.ok) {
-      const emailError = await emailResponse.text();
-      console.error('Email sending error:', emailError);
-      // Don't fail the whole request if email fails, just log it
-      console.warn('Contact form submitted successfully but email notification failed');
+    // Send confirmation email to user
+    const userTemplate = emailTemplates.contactConfirmation(name, email, message, submission.id);
+    const userEmailData = {
+      to: [email],
+      subject: userTemplate.subject,
+      html: userTemplate.html,
+      text: userTemplate.text
+    };
+
+    // Send both emails
+    const [adminEmailResult, userEmailResult] = await Promise.allSettled([
+      emailService.sendEmail(adminEmailData),
+      emailService.sendEmail(userEmailData)
+    ]);
+
+    // Log email results
+    if (adminEmailResult.status === 'fulfilled') {
+      await emailService.logEmailSend(
+        supabase, 
+        'contact_admin_notification', 
+        'support@whatthemenu.com', 
+        adminEmailResult.value.success,
+        adminEmailResult.value.id,
+        adminEmailResult.value.error
+      );
+    }
+
+    if (userEmailResult.status === 'fulfilled') {
+      await emailService.logEmailSend(
+        supabase, 
+        'contact_user_confirmation', 
+        email, 
+        userEmailResult.value.success,
+        userEmailResult.value.id,
+        userEmailResult.value.error
+      );
+    }
+
+    // Check if any emails failed
+    const emailErrors = [];
+    if (adminEmailResult.status === 'rejected' || 
+        (adminEmailResult.status === 'fulfilled' && !adminEmailResult.value.success)) {
+      emailErrors.push('Admin notification email failed');
+    }
+    if (userEmailResult.status === 'rejected' || 
+        (userEmailResult.status === 'fulfilled' && !userEmailResult.value.success)) {
+      emailErrors.push('User confirmation email failed');
     }
 
     return {
@@ -134,7 +174,10 @@ Submitted at: ${new Date(submission.created_at).toLocaleString()}
       body: JSON.stringify({ 
         success: true, 
         message: 'Contact form submitted successfully!',
-        submissionId: submission.id
+        submissionId: submission.id,
+        emailStatus: emailErrors.length > 0 ? 
+          `Form submitted but some emails failed: ${emailErrors.join(', ')}` : 
+          'All emails sent successfully'
       }),
     };
 
