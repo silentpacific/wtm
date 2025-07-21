@@ -53,23 +53,25 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
 // Initialize counter if it doesn't exist, without resetting its value
 const initializeCounter = async (counterType: string): Promise<void> => {
   try {
-    // Attempt to insert a new row with count 0.
-    // If a row with the same counter_type already exists,
-    // the 'onConflict' clause will prevent the insert and do nothing,
-    // thus preserving the existing count.
+    // Attempt to upsert, inserting if not exists, and ignoring updates if it does.
+    // This achieves 'insert if not exists' without resetting the count.
     const { error } = await supabase
       .from('global_counters')
-      .insert({
-        counter_type: counterType,
-        count: 0
-      })
-      .onConflict('counter_type') // Specify the unique column to handle conflicts
-      .doNothing(); // If conflict, do nothing (don't update existing row)
+      .upsert(
+        {
+          counter_type: counterType,
+          count: 0 // Initial count if it's a new entry
+        },
+        {
+          onConflict: 'counter_type', // Column(s) to check for conflict
+          ignoreDuplicates: true // Do nothing if a conflict occurs
+        }
+      );
 
-    if (error && error.code !== '23505') { // 23505 is unique_violation, which is expected on conflict
+    if (error) {
       console.error(`Error initializing ${counterType} counter:`, error);
-    } else if (error && error.code === '23505') {
-      console.log(`Counter '${counterType}' already exists, no initialization needed.`);
+    } else {
+      console.log(`Counter '${counterType}' initialized or already exists.`);
     }
   } catch (error) {
     console.error(`Error in initializeCounter for ${counterType}:`, error);
