@@ -82,11 +82,7 @@ export const incrementMenuScans = async (): Promise<void> => {
       throw error;
     }
 
-    // Get updated counters and notify subscribers
-    const updatedCounters = await getGlobalCounters();
-    notifySubscribers(updatedCounters);
-    
-    console.log('Menu scan counter incremented to:', updatedCounters.menus_scanned);
+    console.log('Menu scan counter incremented successfully');
   } catch (error) {
     console.error('Error in incrementMenuScans:', error);
     throw error;
@@ -109,11 +105,7 @@ export const incrementDishExplanations = async (): Promise<void> => {
       throw error;
     }
 
-    // Get updated counters and notify subscribers
-    const updatedCounters = await getGlobalCounters();
-    notifySubscribers(updatedCounters);
-    
-    console.log('Dish explanation counter incremented to:', updatedCounters.dish_explanations);
+    console.log('Dish explanation counter incremented successfully');
   } catch (error) {
     console.error('Error in incrementDishExplanations:', error);
     throw error;
