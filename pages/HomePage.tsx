@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, type FC } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { analyzeMenu } from '../services/geminiService';
 import { MenuSection, DishExplanation, MenuAnalysisResult } from '../types';
@@ -107,14 +107,16 @@ const CameraModal: React.FC<{
     );
 };
 
-const ScanLimitModal: React.FC<{
+interface ScanLimitModalProps {
     isOpen: boolean;
     onClose: () => void;
     userProfile: EnhancedUserProfile | null;
     isLoggedIn: boolean;
     onPurchase: (planType: 'daily' | 'weekly') => void;
     loadingPlan: string | null;
-}> = ({ isOpen, onClose, userProfile, isLoggedIn, onPurchase, loadingPlan }) => {
+}
+
+const ScanLimitModal: React.FC<ScanLimitModalProps> = ({ isOpen, onClose, userProfile, isLoggedIn, onPurchase, loadingPlan }) => {
     if (!isOpen) return null;
 
     return (
@@ -941,67 +943,12 @@ const PricingTier: React.FC<PricingTierProps> = ({
   </div>
 );
 
-const PricingSection: React.FC<{ user?: any }> = ({ user }) => {
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-
-const handlePurchase = async (planType: 'daily' | 'weekly') => {
-  console.log('🔍 Starting purchase process...');
-  console.log('🔍 User object:', user);
-  console.log('🔍 User ID:', user?.id);
-  console.log('🔍 Plan type:', planType);
-  
-  if (!user) {
-    console.log('❌ No user found');
-    alert('Please sign up or log in to purchase a plan.');
-    return;
-  }
-
-  setLoadingPlan(planType);
-
-  try {
-    const priceId = planType === 'daily' 
- 	     ? import.meta.env.VITE_STRIPE_DAILY_PRICE_ID
- 	     : import.meta.env.VITE_STRIPE_WEEKLY_PRICE_ID;
-
-    const requestBody = {
-      priceId,
-      userId: user.id,
-      planType,
-    };
-
-    console.log('🔍 Sending request with:', requestBody);
-
-    const response = await fetch('/.netlify/functions/create-checkout-session', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    console.log('🔍 Response status:', response.status);
-    console.log('🔍 Response ok:', response.ok);
-
-    const data = await response.json();
-    console.log('🔍 Response data:', data);
-
-    if (!response.ok) {
-      console.log('❌ Response not ok, throwing error:', data.error);
-      throw new Error(data.error || 'Failed to create checkout session');
-    }
-
-    console.log('✅ Success! Redirecting to:', data.url);
-    // Redirect to Stripe Checkout
-    window.location.href = data.url;
-  } catch (error) {
-    console.error('❌ Error creating checkout session:', error);
-    console.error('❌ Error message:', error.message);
-    alert(`Failed to start checkout: ${error.message}`);
-  } finally {
-    setLoadingPlan(null);
-  }
-};
-
+interface PricingSectionProps {
+  user?: any;
+  loadingPlan: string | null;
+  handlePurchase: (planType: 'daily' | 'weekly') => void;
+}
+const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, handlePurchase }) => {
   return (
      <div id="pricing-section" className="py-12 sm:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1089,6 +1036,65 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         location: any;
         id?: number;
     } | null>(null);
+    // Moved from PricingSection
+    const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+    const handlePurchase = async (planType: 'daily' | 'weekly') => {
+      console.log('🔍 Starting purchase process...');
+      console.log('🔍 User object:', user);
+      console.log('🔍 User ID:', user?.id);
+      console.log('🔍 Plan type:', planType);
+      
+      if (!user) {
+        console.log('❌ No user found');
+        alert('Please sign up or log in to purchase a plan.');
+        return;
+      }
+    
+      setLoadingPlan(planType);
+    
+      try {
+        const priceId = planType === 'daily' 
+             ? import.meta.env.VITE_STRIPE_DAILY_PRICE_ID
+             : import.meta.env.VITE_STRIPE_WEEKLY_PRICE_ID;
+    
+        const requestBody = {
+          priceId,
+          userId: user.id,
+          planType,
+        };
+    
+        console.log('🔍 Sending request with:', requestBody);
+    
+        const response = await fetch('/.netlify/functions/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+    
+        console.log('🔍 Response status:', response.status);
+        console.log('🔍 Response ok:', response.ok);
+    
+        const data = await response.json();
+        console.log('🔍 Response data:', data);
+    
+        if (!response.ok) {
+          console.log('❌ Response not ok, throwing error:', data.error);
+          throw new Error(data.error || 'Failed to create checkout session');
+        }
+    
+        console.log('✅ Success! Redirecting to:', data.url);
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      } catch (error) {
+        console.error('❌ Error creating checkout session:', error);
+        console.error('❌ Error message:', error.message);
+        alert(`Failed to start checkout: ${error.message}`);
+      } finally {
+        setLoadingPlan(null);
+      }
+    };
 
     // Check if user has active paid subscription - moved inside component
     const hasActivePaidSubscription = useCallback(() => {
@@ -1352,13 +1358,15 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
 
             <ReviewsSection />
             {/* Only show pricing for non-paid users */}
-            {!hasActivePaidSubscription() && <PricingSection user={user} />}
+            {!hasActivePaidSubscription() && <PricingSection user={user} loadingPlan={loadingPlan} onPurchase={handlePurchase} />}
             
             <ScanLimitModal 
                 isOpen={showLimitModal}
                 onClose={() => setShowLimitModal(false)}
                 userProfile={userProfile}
                 isLoggedIn={!!user}
+                onPurchase={handlePurchase}
+                loadingPlan={loadingPlan}
             />
         </div>
     );
