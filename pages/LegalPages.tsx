@@ -368,4 +368,3 @@ export const FaqPage: React.FC = () => {
   );
 };
 
-export { FaqPage, RefundsPolicyPage };
