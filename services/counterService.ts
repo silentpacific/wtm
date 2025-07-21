@@ -17,7 +17,8 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
     const { data, error } = await supabase
       .from('global_counters')
       .select('counter_type, count')
-      .in('counter_type', ['menus_scanned', 'dish_explanations']);
+      .in('counter_type', ['menus_scanned', 'dish_explanations'])
+      .order('updated_at', { ascending: false }); // Force fresh data
 
     if (error) {
       console.error('Error fetching global counters:', error);
@@ -31,6 +32,8 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
       dish_explanations: 0
     };
 
+    console.log('🔍 Raw counter data from database:', data);
+
     data?.forEach(row => {
       if (row.counter_type === 'menus_scanned') {
         counters.menus_scanned = row.count;
@@ -39,6 +42,7 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
       }
     });
 
+    console.log('🔍 Parsed counters:', counters);
     return counters;
   } catch (error) {
     console.error('Error in getGlobalCounters:', error);
