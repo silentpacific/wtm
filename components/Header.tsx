@@ -1,7 +1,7 @@
-// Fixed Header component - Remove duplicate updateUsageData function
+// Fixed Header component with hamburger menu
 
 import React, { useState, useEffect } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginModal } from './LoginModal';
 import { getOrCreateEnhancedUserProfile, getEnhancedUsageSummary, EnhancedUserProfile } from '../services/enhancedUsageTracking';
@@ -18,6 +18,130 @@ const scrollToPricing = () => {
   }
 };
 
+// Hamburger Menu Component
+const HamburgerMenu: React.FC<{ isOpen: boolean; onToggle: () => void }> = ({ isOpen, onToggle }) => {
+  const navigate = useNavigate();
+
+  const handlePricingClick = () => {
+    onToggle(); // Close menu
+    // If not on home page, navigate to home first
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      // Wait for navigation, then scroll
+      setTimeout(() => {
+        scrollToPricing();
+      }, 100);
+    } else {
+      scrollToPricing();
+    }
+  };
+
+  const handleLinkClick = () => {
+    onToggle(); // Close menu when link is clicked
+    window.scrollTo(0, 0); // Scroll to top
+  };
+
+  return (
+    <>
+      {/* Hamburger Button */}
+      <button
+        onClick={onToggle}
+        className="md:hidden flex flex-col justify-center items-center w-8 h-8 space-y-1"
+        aria-label="Toggle menu"
+      >
+        <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${isOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
+        <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${isOpen ? 'opacity-0' : ''}`}></span>
+        <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${isOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
+      </button>
+
+      {/* Mobile Menu Overlay */}
+      {isOpen && (
+        <div className="md:hidden fixed inset-0 z-50 bg-charcoal/50" onClick={onToggle}>
+          <div 
+            className="fixed top-0 left-0 h-full w-80 bg-cream border-r-4 border-charcoal shadow-[8px_0px_16px_rgba(0,0,0,0.1)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              {/* Close button */}
+              <button
+                onClick={onToggle}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-charcoal hover:text-coral"
+                aria-label="Close menu"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* Menu Title */}
+              <h2 className="text-2xl font-black text-charcoal mb-8 mt-4">Menu</h2>
+
+              {/* Menu Items */}
+              <nav className="space-y-4">
+                <button
+                  onClick={handlePricingClick}
+                  className="block w-full text-left text-lg font-bold text-charcoal hover:text-coral transition-colors py-2"
+                >
+                  Pricing
+                </button>
+                
+                <NavLink
+                  to="/faq"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
+                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
+                  }`}
+                >
+                  FAQ
+                </NavLink>
+                
+                <NavLink
+                  to="/terms"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
+                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
+                  }`}
+                >
+                  Terms of Use
+                </NavLink>
+                
+                <NavLink
+                  to="/privacy-policy"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
+                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
+                  }`}
+                >
+                  Privacy Policy
+                </NavLink>
+                
+                <NavLink
+                  to="/refund-policy"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
+                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
+                  }`}
+                >
+                  Refund Policy
+                </NavLink>
+                
+                <NavLink
+                  to="/contact"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
+                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
+                  }`}
+                >
+                  Contact
+                </NavLink>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
 
 interface HeaderProps {
   // Optional props for triggering counter updates
@@ -27,6 +151,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
   const { user, signOut } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [userProfile, setUserProfile] = useState<EnhancedUserProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [usage, setUsage] = useState<UsageSummary>({
@@ -66,6 +191,18 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
     updateUsageData();
   }, [user, onCounterUpdate]);
 
+  // Close mobile menu when clicking outside or on navigation
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowMobileMenu(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, []);
+
   // Format time remaining for unlimited users
   const formatTimeRemaining = (ms: number) => {
     const hours = Math.floor(ms / (1000 * 60 * 60));
@@ -86,15 +223,24 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
       <header className="bg-cream/80 backdrop-blur-sm sticky top-0 z-40 w-full border-b-4 border-charcoal">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           
-          {/* First Line: Logo + Desktop Counters + Auth Buttons */}
+          {/* First Line: Hamburger + Logo + Desktop Nav + Desktop Counters + Auth Buttons */}
           <div className="flex items-center justify-between h-16 lg:h-20">
             
-            {/* Logo + Nav */}
-            <div className="flex items-center space-x-8">
+            {/* Left Section: Hamburger + Logo + Desktop Nav */}
+            <div className="flex items-center space-x-4">
+              {/* Hamburger Menu - Mobile Only */}
+              <HamburgerMenu 
+                isOpen={showMobileMenu} 
+                onToggle={() => setShowMobileMenu(!showMobileMenu)} 
+              />
+              
+              {/* Logo */}
               <Link to="/" className="text-2xl lg:text-3xl font-black text-charcoal tracking-tighter">
                 WhatTheMenu?
               </Link>
-              <nav className="hidden md:flex space-x-6">
+              
+              {/* Desktop Navigation */}
+              <nav className="hidden md:flex space-x-6 ml-8">
                 <NavLink to="/faq" className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}>FAQ</NavLink>
                 <NavLink to="/contact" className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}>Contact</NavLink>
               </nav>
