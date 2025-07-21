@@ -50,20 +50,26 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
   }
 };
 
-// Initialize counter if it doesn't exist
+// Initialize counter if it doesn't exist, without resetting its value
 const initializeCounter = async (counterType: string): Promise<void> => {
   try {
+    // Attempt to insert a new row with count 0.
+    // If a row with the same counter_type already exists,
+    // the 'onConflict' clause will prevent the insert and do nothing,
+    // thus preserving the existing count.
     const { error } = await supabase
       .from('global_counters')
-      .upsert({
+      .insert({
         counter_type: counterType,
         count: 0
-      }, {
-        onConflict: 'counter_type'
-      });
+      })
+      .onConflict('counter_type') // Specify the unique column to handle conflicts
+      .doNothing(); // If conflict, do nothing (don't update existing row)
 
-    if (error) {
+    if (error && error.code !== '23505') { // 23505 is unique_violation, which is expected on conflict
       console.error(`Error initializing ${counterType} counter:`, error);
+    } else if (error && error.code === '23505') {
+      console.log(`Counter '${counterType}' already exists, no initialization needed.`);
     }
   } catch (error) {
     console.error(`Error in initializeCounter for ${counterType}:`, error);
@@ -73,7 +79,7 @@ const initializeCounter = async (counterType: string): Promise<void> => {
 // Increment menu scans counter in database
 export const incrementMenuScans = async (): Promise<void> => {
   try {
-    // First ensure the counter exists
+    // First ensure the counter exists (will not reset existing ones now)
     await initializeCounter('menus_scanned');
 
     // Increment the counter using an RPC call (atomic increment)
@@ -98,7 +104,7 @@ export const incrementMenuScans = async (): Promise<void> => {
 // Increment dish explanations counter in database
 export const incrementDishExplanations = async (): Promise<void> => {
   try {
-    // First ensure the counter exists
+    // First ensure the counter exists (will not reset existing ones now)
     await initializeCounter('dish_explanations');
 
     // Increment the counter using an RPC call (atomic increment)
