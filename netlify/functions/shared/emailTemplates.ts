@@ -8,7 +8,7 @@ export interface EmailTemplate {
 
 export const emailTemplates = {
   welcome: (userName: string, verificationLink?: string): EmailTemplate => ({
-    subject: "Welcome to WhatTheMenu! 🍽️",
+    subject: "Welcome to WhatTheMenu!",
     html: `
       <!DOCTYPE html>
       <html>
@@ -19,78 +19,68 @@ export const emailTemplates = {
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #ff6b6b, #ffa500); padding: 40px 20px; text-align: center; border-radius: 12px; margin-bottom: 30px;">
-          <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Welcome to WhatTheMenu! 🍽️</h1>
+          <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Welcome to WhatTheMenu!</h1>
           <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Your AI-powered menu scanning companion</p>
         </div>
         
         <div style="background: white; padding: 30px; border-radius: 12px; border: 4px solid #292524; box-shadow: 8px 8px 0px #292524;">
-          <h2 style="color: #292524; margin-top: 0;">Hi ${userName}! 👋</h2>
+          <h2 style="color: #292524; margin-top: 0;">Hi ${userName}!</h2>
           
-          <p>Welcome to WhatTheMenu! We're thrilled to have you join our community of food explorers who never want to be confused by a menu again.</p>
+          <p>Welcome to WhatTheMenu! We're thrilled to have you try us out. Food is about culture and appreciation that starts with understanding what you're about to eat!</p>
           
-          <h3 style="color: #ff6b6b; margin-top: 30px;">🚀 What you can do now:</h3>
+          <h3 style="color: #ff6b6b; margin-top: 30px;">Here's what you can do:</h3>
           <ul style="padding-left: 20px;">
-            <li><strong>Scan any menu</strong> - Take a photo and get instant explanations</li>
-            <li><strong>Discover new dishes</strong> - Learn about cuisines from around the world</li>
-            <li><strong>Find allergen info</strong> - Stay safe with detailed ingredient breakdowns</li>
-            <li><strong>Explore restaurants</strong> - Build your dining history</li>
+            <li><strong>Upload an image or take a picture of a menu</strong></li>
+            <li><strong>Select the language you're comfortable with</strong></li>
+            <li><strong>Tap on a dish to get an explanation</strong></li>
+            <li><strong>Find allergen info</strong></li>
+            <li><strong>Eat Confidently, no matter where you are in the world!</strong></li>
           </ul>
           
           ${verificationLink ? `
           <div style="background: #fef3f3; border: 2px solid #ff6b6b; border-radius: 8px; padding: 20px; margin: 30px 0; text-align: center;">
-            <h3 style="color: #ff6b6b; margin-top: 0;">📧 Verify Your Email</h3>
+            <h3 style="color: #ff6b6b; margin-top: 0;">Verify Your Email</h3>
             <p style="margin-bottom: 20px;">Click the button below to verify your email and unlock all features:</p>
             <a href="${verificationLink}" style="display: inline-block; background: #ff6b6b; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; border: 3px solid #292524; box-shadow: 4px 4px 0px #292524;">Verify Email Address</a>
           </div>
           ` : ''}
           
-          <h3 style="color: #ff6b6b; margin-top: 30px;">💡 Pro Tips:</h3>
-          <ul style="padding-left: 20px;">
-            <li>Make sure your menu photos are clear and well-lit</li>
-            <li>Try menus in different languages - we support many!</li>
-            <li>Save your favorite restaurants for quick access</li>
-          </ul>
-          
           <div style="border-top: 2px solid #f0f0f0; padding-top: 20px; margin-top: 30px; text-align: center;">
-            <p>Ready to start exploring? <a href="https://whatthemenu.com" style="color: #ff6b6b; text-decoration: none; font-weight: bold;">Open WhatTheMenu</a></p>
+            <p>Ready to start? <a href="https://whatthemenu.com" style="display: inline-block; background: #ff6b6b; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; border: 3px solid #292524; box-shadow: 4px 4px 0px #292524; margin: 10px 0;">Try it Now</a></p>
             <p style="color: #666; font-size: 14px; margin-top: 20px;">
-              Need help? Reply to this email or visit our <a href="https://whatthemenu.com/contact" style="color: #ff6b6b;">support page</a>.
+              Want to know more? Check out our <a href="https://whatthemenu.com/faq" style="color: #ff6b6b;">FAQs</a>.
             </p>
           </div>
         </div>
         
         <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
-          <p>© 2025 WhatTheMenu. Made with ❤️ for food lovers everywhere.</p>
+          <p>© 2025 WhatTheMenu. Made with ❤️ in Adelaide, Australia.</p>
         </div>
       </body>
       </html>
     `,
     text: `
-Welcome to WhatTheMenu! 🍽️
+Welcome to WhatTheMenu!
 
 Hi ${userName}!
 
-Welcome to WhatTheMenu! We're thrilled to have you join our community of food explorers who never want to be confused by a menu again.
+Welcome to WhatTheMenu! We're thrilled to have you try us out. Food is about culture and appreciation that starts with understanding what you're about to eat!
 
-🚀 What you can do now:
-• Scan any menu - Take a photo and get instant explanations
-• Discover new dishes - Learn about cuisines from around the world  
-• Find allergen info - Stay safe with detailed ingredient breakdowns
-• Explore restaurants - Build your dining history
+Here's what you can do:
+• Upload an image or take a picture of a menu
+• Select the language you're comfortable with
+• Tap on a dish to get an explanation
+• Find allergen info
+• Eat Confidently, no matter where you are in the world!
 
-${verificationLink ? `📧 Verify Your Email
+${verificationLink ? `Verify Your Email
 Click this link to verify your email and unlock all features: ${verificationLink}` : ''}
 
-💡 Pro Tips:
-• Make sure your menu photos are clear and well-lit
-• Try menus in different languages - we support many!
-• Save your favorite restaurants for quick access
+Ready to start? Visit: https://whatthemenu.com
 
-Ready to start exploring? Visit: https://whatthemenu.com
+Want to know more? Check out our FAQs: https://whatthemenu.com/faq
 
-Need help? Reply to this email or visit our support page: https://whatthemenu.com/contact
-
-© 2025 WhatTheMenu. Made with ❤️ for food lovers everywhere.
+© 2025 WhatTheMenu. Made with ❤️ in Adelaide, Australia.
     `
   }),
 

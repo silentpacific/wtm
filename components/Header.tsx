@@ -114,22 +114,23 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
                 </div>
               ) : usage.scansUsed >= (usage.scansLimit as number) ? (
                 // Limit reached - upgrade pill
-		 <button 
-		  onClick={scrollToPricing}
-		  className="px-4 py-2 rounded-full border-2 text-sm font-medium bg-green-50 text-green-700 border-green-300 hover:bg-green-100 		transition-colors cursor-pointer"
-		>
-		  Purchase one of our plans to continue scanning
-		</button>
+                <button 
+                  onClick={scrollToPricing}
+                  className="px-4 py-2 rounded-full border-2 text-sm font-medium bg-green-50 text-green-700 border-green-300 hover:bg-green-100 transition-colors cursor-pointer"
+                >
+                  Purchase one of our plans to continue scanning
+                </button>
               ) : (
-                // Normal usage - two grey pills
-                <>
+                // Normal usage - two grey pills with "Free User Limits" label
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-bold text-charcoal/70">Free User Limits</span>
                   <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-gray-50 text-gray-700 border-gray-300">
                     Menus Scanned: {usage.scansUsed}/{usage.scansLimit}
                   </div>
                   <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-gray-50 text-gray-700 border-gray-300">
                     Dish Explanations: {usage.explanationsUsed}/{usage.explanationsLimit}
                   </div>
-                </>
+                </div>
               )}
             </div>
 
@@ -168,7 +169,7 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
 
           {/* Second Line: Mobile Counters (only visible on mobile) */}
           <div className="lg:hidden border-t border-charcoal/20 py-2">
-            <div className="flex items-center justify-center gap-4 text-xs">
+            <div className="flex flex-col items-center gap-2 text-xs">
               {usage.hasUnlimited ? (
                 // Unlimited users - single green pill
                 <div className="px-3 py-1 rounded-full bg-green-50 text-green-700 font-medium">
@@ -176,20 +177,23 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
                 </div>
               ) : usage.scansUsed >= (usage.scansLimit as number) ? (
                 // Limit reached - upgrade pill
-<button 
-  onClick={scrollToPricing}
-  className="px-3 py-1 rounded-full bg-green-50 text-green-700 font-medium text-center hover:bg-green-100 transition-colors cursor-pointer"
->
-  Purchase one of our plans to continue scanning
-</button>
+                <button 
+                  onClick={scrollToPricing}
+                  className="px-3 py-1 rounded-full bg-green-50 text-green-700 font-medium text-center hover:bg-green-100 transition-colors cursor-pointer"
+                >
+                  Purchase one of our plans to continue scanning
+                </button>
               ) : (
-                // Normal usage - two grey pills
+                // Normal usage - label + two grey pills
                 <>
-                  <div className="px-3 py-1 rounded-full bg-gray-50 text-gray-700 font-medium">
-                    Menus: {usage.scansUsed}/{usage.scansLimit}
-                  </div>
-                  <div className="px-3 py-1 rounded-full bg-gray-50 text-gray-700 font-medium">
-                    Dishes: {usage.explanationsUsed}/{usage.explanationsLimit}
+                  <span className="text-xs font-bold text-charcoal/70">Free User Limits</span>
+                  <div className="flex items-center gap-4">
+                    <div className="px-3 py-1 rounded-full bg-gray-50 text-gray-700 font-medium">
+                      Menus: {usage.scansUsed}/{usage.scansLimit}
+                    </div>
+                    <div className="px-3 py-1 rounded-full bg-gray-50 text-gray-700 font-medium">
+                      Dishes: {usage.explanationsUsed}/{usage.explanationsLimit}
+                    </div>
                   </div>
                 </>
               )}
