@@ -70,8 +70,7 @@ Here's what you can do:
 • Upload an image or take a picture of a menu
 • Select the language you're comfortable with
 • Tap on a dish to get an explanation
-• Find allergen info
-• Eat Confidently, no matter where you are in the world!
+• Order confidently
 
 ${verificationLink ? `Verify Your Email
 Click this link to verify your email and unlock all features: ${verificationLink}` : ''}
@@ -136,7 +135,7 @@ Want to know more? Check out our FAQs: https://whatthemenu.com/faq
         </div>
         
         <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
-          <p>© 2025 WhatTheMenu. Made with ❤️ for food lovers everywhere.</p>
+          <p>© 2025 WhatTheMenu. Made with ❤️ in Adelaide, Australia.</p>
         </div>
       </body>
       </html>
@@ -156,14 +155,12 @@ Thank you for upgrading to ${planName}! Your payment has been processed successf
 🚀 What's Unlocked:
 • Unlimited menu scans - No more daily limits!
 • Priority support - Get help faster when you need it
-• Advanced features - Enhanced explanations and more details
-• Export capabilities - Save and share your discoveries
 
 Ready to explore? Start using your premium features: https://whatthemenu.com
 
 Questions about your purchase? Reply to this email or visit our support page: https://whatthemenu.com/contact
 
-© 2025 WhatTheMenu. Made with ❤️ for food lovers everywhere.
+© 2025 WhatTheMenu. Made with ❤️  in Adelaide, Australia.
     `
   }),
 
@@ -191,8 +188,7 @@ Questions about your purchase? Reply to this email or visit our support page: ht
           <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 30px 0;">
             <h3 style="color: #d97706; margin-top: 0;">⚠️ What happens when it expires:</h3>
             <ul style="padding-left: 20px; margin: 10px 0;">
-              <li>You'll be limited to <strong>5 menu scans per day</strong></li>
-              <li>Access to premium features will be restricted</li>
+              <li>You won't be able to scan any more menus if you've exhausted your free limits</strong></li>
               <li>Priority support will no longer be available</li>
             </ul>
           </div>
@@ -219,7 +215,7 @@ Questions about your purchase? Reply to this email or visit our support page: ht
         </div>
         
         <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
-          <p>© 2025 WhatTheMenu. Made with ❤️ for food lovers everywhere.</p>
+          <p>© 2025 WhatTheMenu. Made with ❤️ in Adelaide, Australia.</p>
         </div>
       </body>
       </html>
@@ -233,20 +229,17 @@ This is a friendly reminder that your ${planName} subscription expires in just 1
 
 ⚠️ What happens when it expires:
 • You'll be limited to 5 menu scans per day
-• Access to premium features will be restricted  
 • Priority support will no longer be available
 
 ✨ Keep enjoying unlimited access:
 • Unlimited menu scans - Never hit limits again
-• Advanced explanations - Get detailed dish information
 • Priority support - Fast help when you need it
-• Restaurant history - Track all your discoveries
 
 🔄 Renew now to continue your premium experience: ${renewalLink}
 
 Questions about renewal? Reply to this email or visit our support page: https://whatthemenu.com/contact
 
-© 2025 WhatTheMenu. Made with ❤️ for food lovers everywhere.
+© 2025 WhatTheMenu. Made with ❤️  in Adelaide, Australia.
     `
   }),
 
@@ -285,7 +278,7 @@ Questions about renewal? Reply to this email or visit our support page: https://
           <ul style="padding-left: 20px;">
             <li>Check out our <a href="https://whatthemenu.com/faq" style="color: #ff6b6b;">FAQ page</a> for common questions</li>
             <li>Try scanning a new menu to explore more dishes</li>
-            <li>Follow us on social media for tips and updates</li>
+            <li>Know someone who will find this app useful? Send them the link</li>
           </ul>
           
           <div style="background: #fef3f3; border: 2px solid #ff6b6b; border-radius: 8px; padding: 20px; margin: 30px 0; text-align: center;">
@@ -302,7 +295,7 @@ Questions about renewal? Reply to this email or visit our support page: https://
         </div>
         
         <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
-          <p>© 2025 WhatTheMenu. Made with ❤️ for food lovers everywhere.</p>
+          <p>© 2025 WhatTheMenu. Made with ❤️ in Adelaide, Australia</p>
         </div>
       </body>
       </html>
@@ -322,13 +315,13 @@ Reference ID: #${submissionId} | From: ${userEmail}
 🚀 While you wait:
 • Check out our FAQ page for common questions: https://whatthemenu.com/faq
 • Try scanning a new menu to explore more dishes
-• Follow us on social media for tips and updates
+• Know someone who will find this app useful? Send them the link
 
 Keep exploring: https://whatthemenu.com
 
 This is an automated confirmation. Please don't reply to this email - we'll respond to your original message soon!
 
-© 2025 WhatTheMenu. Made with ❤️ for food lovers everywhere.
+© 2025 WhatTheMenu. Made with ❤️ in Adelaide, Australia.
     `
   })
 };
