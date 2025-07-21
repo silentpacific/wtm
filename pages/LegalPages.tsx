@@ -368,3 +368,5 @@ export const FaqPage: React.FC = () => {
   );
 };
 
+export { PrivacyPolicyPage, TermsOfUsePage };
+
