@@ -1,4 +1,4 @@
-// services/counterService.ts - Updated with Supabase integration
+// services/counterService.ts - Updated with Supabase real-time integration
 
 import { supabase } from './supabaseClient';
 
@@ -17,8 +17,8 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
     const { data, error } = await supabase
       .from('global_counters')
       .select('counter_type, count')
-      .in('counter_type', ['menus_scanned', 'dish_explanations'])
-      .order('updated_at', { ascending: false }); // Force fresh data
+      .in('counter_type', ['menus_scanned', 'dish_explanations']);
+      // Removed .order('updated_at', { ascending: false }) as real-time will handle freshness
 
     if (error) {
       console.error('Error fetching global counters:', error);
@@ -32,7 +32,7 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
       dish_explanations: 0
     };
 
-    console.log('🔍 Raw counter data from database:', data);
+    console.log('📊 Raw counter data from database:', data);
 
     data?.forEach(row => {
       if (row.counter_type === 'menus_scanned') {
@@ -42,7 +42,7 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
       }
     });
 
-    console.log('🔍 Parsed counters:', counters);
+    console.log('📊 Parsed counters:', counters);
     return counters;
   } catch (error) {
     console.error('Error in getGlobalCounters:', error);
@@ -76,7 +76,7 @@ export const incrementMenuScans = async (): Promise<void> => {
     // First ensure the counter exists
     await initializeCounter('menus_scanned');
 
-    // Increment the counter
+    // Increment the counter using an RPC call (atomic increment)
     const { data, error } = await supabase.rpc('increment_global_counter', {
       counter_name: 'menus_scanned'
     });
@@ -86,14 +86,9 @@ export const incrementMenuScans = async (): Promise<void> => {
       throw error;
     }
 
-    console.log('Menu scan counter incremented successfully');
+    console.log('Menu scan counter incremented successfully via RPC');
 
-    // Manual refresh since real-time isn't available
-    setTimeout(async () => {
-      const updatedCounters = await getGlobalCounters();
-      console.log('📊 Manually refreshed counters:', updatedCounters);
-      notifySubscribers(updatedCounters);
-    }, 300);
+    // Real-time subscription will now handle the UI update, no manual refresh needed.
   } catch (error) {
     console.error('Error in incrementMenuScans:', error);
     throw error;
@@ -106,7 +101,7 @@ export const incrementDishExplanations = async (): Promise<void> => {
     // First ensure the counter exists
     await initializeCounter('dish_explanations');
 
-    // Increment the counter
+    // Increment the counter using an RPC call (atomic increment)
     const { data, error } = await supabase.rpc('increment_global_counter', {
       counter_name: 'dish_explanations'
     });
@@ -116,21 +111,16 @@ export const incrementDishExplanations = async (): Promise<void> => {
       throw error;
     }
 
-    console.log('Dish explanation counter incremented successfully');
+    console.log('Dish explanation counter incremented successfully via RPC');
 
-    // Manual refresh since real-time isn't available
-    setTimeout(async () => {
-      const updatedCounters = await getGlobalCounters();
-      console.log('📊 Manually refreshed counters:', updatedCounters);
-      notifySubscribers(updatedCounters);
-    }, 300);
+    // Real-time subscription will now handle the UI update, no manual refresh needed.
   } catch (error) {
     console.error('Error in incrementDishExplanations:', error);
     throw error;
   }
 };
 
-// Subscribe to counter updates
+// Subscribe to counter updates (used by React components)
 export const subscribeToCounters = (callback: CounterSubscriber) => {
   subscribers.push(callback);
   
@@ -148,15 +138,37 @@ const notifySubscribers = (counters: GlobalCounters) => {
   });
 };
 
-// Set up real-time subscriptions for counter changes (simplified - real-time not available)
+// Set up real-time subscriptions for counter changes
 export const setupRealtimeCounters = () => {
-  console.log('⚠️ Real-time replication not available, using manual refresh approach');
-  
-  // Return a proper mock subscription object that matches Supabase's interface
-  return {
-    on: () => ({ unsubscribe: () => {} }),
-    unsubscribe: () => {
-      console.log('Mock subscription unsubscribed');
-    }
-  };
+  console.log('📡 Setting up real-time subscription for global_counters table...');
+
+  // Subscribe to changes in the 'global_counters' table
+  const subscription = supabase
+    .channel('global_counters_changes') // You can name your channel
+    .on(
+      'postgres_changes',
+      { 
+        event: '*', // Listen to INSERT, UPDATE, DELETE
+        schema: 'public',
+        table: 'global_counters' 
+      },
+      async (payload) => {
+        console.log('📡 Real-time change received:', payload);
+        // Fetch the latest counters after any change to ensure consistency
+        const updatedCounters = await getGlobalCounters();
+        notifySubscribers(updatedCounters);
+      }
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('📡 Subscribed to global_counters real-time updates!');
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('📡 Real-time channel error:', status);
+      } else if (status === 'TIMED_OUT') {
+        console.warn('📡 Real-time subscription timed out.');
+      }
+    });
+
+  // Return the subscription object so it can be unsubscribed from
+  return subscription;
 };
