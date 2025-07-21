@@ -20,41 +20,81 @@ import PaymentCancelledPage from './pages/PaymentCancelledPage';
 
 
 
-// In App.tsx, replace your Footer component with this:
-
 const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => (
   <footer className="bg-yellow border-t-4 border-charcoal">
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-charcoal/80">
       <p className="font-bold">
-        Powered by Google Gemini. Descriptions are AI-generated. Always double-check with the restaurant regarding possible allergens.
+        <span className="font-black">ALWAYS</span> double-check with the restaurant regarding possible allergens.
       </p>
-      <div className="flex justify-center space-x-6 my-4 font-bold">
-        <Link to="/privacy" className="hover:text-charcoal">Privacy Policy</Link>
-        <Link to="/terms" className="hover:text-charcoal">Terms of Use</Link>
-        <Link to="/faq" className="hover:text-charcoal">FAQ</Link>
-        <Link to="/refunds" className="hover:text-charcoal">Refunds</Link>
-        <Link to="/contact" className="hover:text-charcoal">Contact Us</Link>
+      
+      {/* Improved mobile layout for navigation links */}
+      <div className="flex flex-wrap justify-center gap-3 sm:gap-6 my-6 font-bold">
+        <Link 
+          to="/privacy" 
+          onClick={() => window.scrollTo(0, 0)}
+          className="hover:text-charcoal px-2 py-1"
+        >
+          Privacy Policy
+        </Link>
+        <Link 
+          to="/terms" 
+          onClick={() => window.scrollTo(0, 0)}
+          className="hover:text-charcoal px-2 py-1"
+        >
+          Terms of Use
+        </Link>
+        <Link 
+          to="/faq" 
+          onClick={() => window.scrollTo(0, 0)}
+          className="hover:text-charcoal px-2 py-1"
+        >
+          FAQ
+        </Link>
+        <Link 
+          to="/refunds" 
+          onClick={() => window.scrollTo(0, 0)}
+          className="hover:text-charcoal px-2 py-1"
+        >
+          Refunds
+        </Link>
+        <Link 
+          to="/contact" 
+          onClick={() => window.scrollTo(0, 0)}
+          className="hover:text-charcoal px-2 py-1"
+        >
+          Contact Us
+        </Link>
       </div>
       
-      {/* Keep your existing global counters section unchanged */}
-      <div className="my-4 space-y-2">
+      {/* Improved mobile layout for counters */}
+      <div className="my-6">
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-8">
-          <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
-            <span className="text-sm font-bold">Menus Scanned: </span>
+          <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal min-w-0">
+            <span className="text-sm font-bold block sm:inline">Menus Scanned: </span>
             <span className="font-black text-lg">{globalCounters.menus_scanned.toLocaleString()}</span>
           </div>
-          <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
-            <span className="text-sm font-bold">Dishes Explained: </span>
+          <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal min-w-0">
+            <span className="text-sm font-bold block sm:inline">Dishes Explained: </span>
             <span className="font-black text-lg">{globalCounters.dish_explanations.toLocaleString()}</span>
           </div>
         </div>
       </div>
       
-      <p className="font-bold">&copy; {new Date().getFullYear()} What The Menu? Built by <a href="https://www.lofisimplify.com.au/" target="_blank" rel="noopener noreferrer" className="underline hover:text-coral transition-colors">LoFi Simplify</a> with ❤️ in Adelaide. All rights reserved.</p>
+      <p className="font-bold text-sm sm:text-base leading-relaxed">
+        &copy; {new Date().getFullYear()} What The Menu? Built by{' '}
+        <a 
+          href="https://www.lofisimplify.com.au/" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="underline hover:text-coral transition-colors"
+        >
+          LoFi Simplify
+        </a>{' '}
+        with ❤️ in Adelaide, Australia. All rights reserved.
+      </p>
     </div>
   </footer>
 );
-
 const AppContent: React.FC = () => {
   const location = useLocation();
   const [globalCounters, setGlobalCounters] = useState<GlobalCounters>({
