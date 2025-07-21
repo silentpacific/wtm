@@ -4,7 +4,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
-import { PrivacyPolicyPage, TermsOfUsePage, FaqPage, RefundsPolicyPage } from './pages/LegalPages';
+import { PrivacyPolicyPage, TermsOfUsePage } from './pages/LegalPages';
+import { FaqPage, RefundsPolicyPage } from './pages/RefundsandFaq';
 import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
 import { 
