@@ -1,6 +1,6 @@
 // Updated App.tsx - Background global counters, user limits only
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, type FC } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
@@ -13,13 +13,14 @@ import {
   setupRealtimeCounters,
   GlobalCounters, 
   incrementMenuScans, 
-  incrementDishExplanations 
+  incrementDishExplanations,
+  subscribeToCounters
 } from './services/counterService';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
 
 // Updated Footer component with new URLs
-const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => (
+const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => (
   <footer className="bg-yellow border-t-4 border-charcoal">
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-charcoal/80">
       <p className="font-bold">
@@ -100,7 +101,7 @@ const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }
   </footer>
 );
 
-const AppContent: React.FC = () => {
+const AppContent: FC = () => {
   const location = useLocation();
   const [globalCounters, setGlobalCounters] = useState<GlobalCounters>({
     menus_scanned: 0,
@@ -117,7 +118,7 @@ const AppContent: React.FC = () => {
     });
   }, [location]);
 
-  // Load initial global counters and set up real-time subscriptions (for analytics/footer)
+  // Load initial global counters and set up subscriptions
   useEffect(() => {
     const loadCounters = async () => {
       try {
@@ -131,18 +132,15 @@ const AppContent: React.FC = () => {
 
     loadCounters();
 
-    // Set up real-time subscriptions for global counters
-    const subscription = setupRealtimeCounters();
-    
-    // Subscribe to updates
-    subscription.on('postgres_changes', async () => {
-      const updatedCounters = await getGlobalCounters();
+    // Subscribe to the manual updates from the counter service
+    const { unsubscribe } = subscribeToCounters((updatedCounters) => {
+      console.log('✅ Global counters updated via subscription:', updatedCounters);
       setGlobalCounters(updatedCounters);
-      console.log('Background global counters updated:', updatedCounters);
     });
 
+    // Unsubscribe when the component unmounts to prevent memory leaks
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
@@ -203,7 +201,7 @@ const AppContent: React.FC = () => {
   );
 };
 
-const App: React.FC = () => {
+const App: FC = () => {
   return (
     <AuthProvider>
       <AppContent />
