@@ -664,6 +664,10 @@ const MenuResults: React.FC<{
         return null;
     };
 
+
+
+
+
     return (
         <div className="py-12 sm:py-16">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -972,8 +976,6 @@ const handlePurchase = async (planType: 'daily' | 'weekly') => {
   }
 };
 
-
-
   return (
      <div id="pricing-section" className="py-12 sm:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1061,6 +1063,26 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         location: any;
         id?: number;
     } | null>(null);
+
+    // Check if user has active paid subscription - moved inside component
+    const hasActivePaidSubscription = useCallback(() => {
+        if (!user || !userProfile) return false;
+        
+        // Check if user has a paid subscription type
+        if (userProfile.subscription_type === 'free') return false;
+        
+        // Check if subscription is active
+        if (userProfile.subscription_status !== 'active') return false;
+        
+        // Check if subscription hasn't expired
+        if (userProfile.subscription_expires_at) {
+            const now = new Date();
+            const expiresAt = new Date(userProfile.subscription_expires_at);
+            return now < expiresAt;
+        }
+        
+        return false;
+    }, [user, userProfile]);
 
     // Fetch user profile when user logs in
     useEffect(() => {
@@ -1246,6 +1268,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
       handleScan(base64);
     }, [handleScan]);
 
+
     const handleBase64Select = useCallback((base64: string) => {
       handleScan(base64);
     }, [handleScan]);
@@ -1303,7 +1326,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
 
             <ReviewsSection />
             {/* Only show pricing for non-paid users */}
-		{!hasActivePaidSubscription() && <PricingSection user={user} />}
+            {!hasActivePaidSubscription() && <PricingSection user={user} />}
             
             <ScanLimitModal 
                 isOpen={showLimitModal}
@@ -1314,24 +1337,5 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         </div>
     );
 };
-
-const hasActivePaidSubscription = useCallback(() => {
-  if (!user || !userProfile) return false;
-  
-  // Check if user has a paid subscription type
-  if (userProfile.subscription_type === 'free') return false;
-  
-  // Check if subscription is active
-  if (userProfile.subscription_status !== 'active') return false;
-  
-  // Check if subscription hasn't expired
-  if (userProfile.subscription_expires_at) {
-    const now = new Date();
-    const expiresAt = new Date(userProfile.subscription_expires_at);
-    return now < expiresAt;
-  }
-  
-  return false;
-}, [user, userProfile]);
 
 export default HomePage;

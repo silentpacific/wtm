@@ -64,24 +64,29 @@
     </script>
 
 
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Nunito', 'sans-serif'],
-            },
-            colors: {
-              'cream': '#FFFCF5',
-              'charcoal': '#292524',
-              'coral': '#FF6B6B',
-              'teal': '#1DD1A1',
-              'yellow': '#FFC700',
-            }
-          },
+<!-- Add Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Nunito', 'sans-serif'],
         },
-      }
-    </script>
+        colors: {
+          'cream': '#FFFCF5',
+          'charcoal': '#292524',
+          'coral': '#FF6B6B',
+          'teal': '#1DD1A1',
+          'yellow': '#FFC700',
+        }
+      },
+    },
+  }
+</script>
+
+
+
     <style>
       /* For custom scrollbar aesthetics */
       ::-webkit-scrollbar {

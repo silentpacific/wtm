@@ -54,6 +54,21 @@ export interface MenuAnalysisResult {
 
 // SAFE - Only adds new types, doesn't change existing ones
 
+// Base user profile interface
+export interface UserProfile {
+  id?: string;
+  email?: string;
+  scans_used: number;
+  scans_limit: number;
+  subscription_type: 'free' | 'daily' | 'weekly';
+  subscription_status?: string;
+  subscription_expires_at?: string;
+  current_menu_dish_explanations?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+
 // Enhanced user profile with historical tracking
 export interface EnhancedUserProfile extends UserProfile {
   lifetime_menus_scanned?: number;
