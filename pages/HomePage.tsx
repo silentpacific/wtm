@@ -112,7 +112,9 @@ const ScanLimitModal: React.FC<{
     onClose: () => void;
     userProfile: EnhancedUserProfile | null;
     isLoggedIn: boolean;
-}> = ({ isOpen, onClose, userProfile, isLoggedIn }) => {
+    onPurchase: (planType: 'daily' | 'weekly') => void;
+    loadingPlan: string | null;
+}> = ({ isOpen, onClose, userProfile, isLoggedIn, onPurchase, loadingPlan }) => {
     if (!isOpen) return null;
 
     return (
@@ -140,11 +142,33 @@ const ScanLimitModal: React.FC<{
                             You've used all {userProfile?.scans_limit || 5} free scans. Upgrade to continue scanning menus!
                         </p>
                         <div className="space-y-2">
-                            <button className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal">
-                                Get Daily Pass ($1)
+                            <button 
+                                onClick={() => onPurchase('daily')}
+                                disabled={loadingPlan === 'daily'}
+                                className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {loadingPlan === 'daily' ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                                        Processing...
+                                    </div>
+                                ) : (
+                                    'Get Daily Pass ($1)'
+                                )}
                             </button>
-                            <button className="w-full py-3 bg-yellow text-charcoal font-bold rounded-lg border-2 border-charcoal">
-                                Get Weekly Pass ($5)
+                            <button 
+                                onClick={() => onPurchase('weekly')}
+                                disabled={loadingPlan === 'weekly'}
+                                className="w-full py-3 bg-yellow text-charcoal font-bold rounded-lg border-2 border-charcoal hover:bg-yellow/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {loadingPlan === 'weekly' ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-charcoal mr-2"></div>
+                                        Processing...
+                                    </div>
+                                ) : (
+                                    'Get Weekly Pass ($5)'
+                                )}
                             </button>
                         </div>
                     </div>
@@ -160,6 +184,7 @@ const ScanLimitModal: React.FC<{
         </div>
     );
 };
+
 
 const HeroSection: React.FC<{ 
     onImageSelect: (file: File) => void; 
