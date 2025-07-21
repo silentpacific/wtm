@@ -83,6 +83,13 @@ export const incrementMenuScans = async (): Promise<void> => {
     }
 
     console.log('Menu scan counter incremented successfully');
+
+    // Manual refresh since real-time isn't available
+    setTimeout(async () => {
+      const updatedCounters = await getGlobalCounters();
+      console.log('📊 Manually refreshed counters:', updatedCounters);
+      notifySubscribers(updatedCounters);
+    }, 300);
   } catch (error) {
     console.error('Error in incrementMenuScans:', error);
     throw error;
@@ -106,6 +113,13 @@ export const incrementDishExplanations = async (): Promise<void> => {
     }
 
     console.log('Dish explanation counter incremented successfully');
+
+    // Manual refresh since real-time isn't available
+    setTimeout(async () => {
+      const updatedCounters = await getGlobalCounters();
+      console.log('📊 Manually refreshed counters:', updatedCounters);
+      notifySubscribers(updatedCounters);
+    }, 300);
   } catch (error) {
     console.error('Error in incrementDishExplanations:', error);
     throw error;
@@ -130,20 +144,14 @@ const notifySubscribers = (counters: GlobalCounters) => {
   });
 };
 
-// Set up real-time subscriptions for counter changes
+// Set up real-time subscriptions for counter changes (simplified - real-time not available)
 export const setupRealtimeCounters = () => {
-  const subscription = supabase
-    .channel('global_counters')
-    .on('postgres_changes', 
-      { event: 'UPDATE', schema: 'public', table: 'global_counters' },
-      async (payload) => {
-        console.log('Real-time counter update received:', payload);
-        // Fetch fresh counters and notify subscribers
-        const updatedCounters = await getGlobalCounters();
-        notifySubscribers(updatedCounters);
-      }
-    )
-    .subscribe();
-
-  return subscription;
+  console.log('⚠️ Real-time replication not available, using manual refresh approach');
+  
+  // Return a dummy subscription object
+  return {
+    unsubscribe: () => {
+      console.log('Dummy subscription unsubscribed');
+    }
+  };
 };
