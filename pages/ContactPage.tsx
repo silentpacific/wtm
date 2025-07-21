@@ -1,7 +1,28 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 const ContactPage: React.FC = () => {
+  useEffect(() => {
+    document.title = "Contact Us | WhatTheMenu - AI Menu Scanner";
+    
+    let metaDesc = document.querySelector('meta[name="description"]') as HTMLMetaElement;
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.name = 'description';
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.content = "Get in touch with WhatTheMenu support team. Contact us for help with AI menu scanning, technical issues, or general questions.";
+
+    let metaKeywords = document.querySelector('meta[name="keywords"]') as HTMLMetaElement;
+    if (!metaKeywords) {
+      metaKeywords = document.createElement('meta');
+      metaKeywords.name = 'keywords';
+      document.head.appendChild(metaKeywords);
+    }
+    metaKeywords.content = "WhatTheMenu contact, customer support, technical help, menu scanner support";
+  }, []);
+
   const inputStyle = "mt-1 block w-full bg-white border-4 border-charcoal rounded-xl shadow-inner py-3 px-4 text-charcoal focus:outline-none focus:ring-2 focus:ring-coral focus:border-coral sm:text-lg font-medium";
+  
   return (
     <div className="py-12 sm:py-16">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">

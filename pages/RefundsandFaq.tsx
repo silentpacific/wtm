@@ -163,6 +163,22 @@ export const FaqPage: React.FC = () => {
             "@type": "Answer",
             "text": "Our AI is usually very accurate, but always double-check with restaurant staff about allergens or dietary restrictions."
           }
+        },
+        {
+          "@type": "Question",
+          "name": "Can it identify allergens and dietary restrictions?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! The system mentions common allergens in dishes, but please always confirm with your waiter before ordering."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What's included in each plan?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Free: 5 menu scans and 5 dish explanations per menu. Daily Pass ($1): Unlimited scans for 24 hours. Weekly Pass ($5): Unlimited scans for 7 days."
+          }
         }
       ]
     });
@@ -367,5 +383,3 @@ export const FaqPage: React.FC = () => {
     </LegalPageLayout>
   );
 };
-
-export { FaqPage, RefundsPolicyPage };

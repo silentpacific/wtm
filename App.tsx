@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
-import { PrivacyPolicyPage, TermsOfUsePage, FaqPage } from './pages/LegalPages';
+import { PrivacyPolicyPage, TermsOfUsePage, FaqPage, RefundsPolicyPage } from './pages/LegalPages';
 import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
 import { 
@@ -19,6 +19,8 @@ import PaymentCancelledPage from './pages/PaymentCancelledPage';
 
 
 
+// In App.tsx, replace your Footer component with this:
+
 const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => (
   <footer className="bg-yellow border-t-4 border-charcoal">
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-charcoal/80">
@@ -28,10 +30,12 @@ const Footer: React.FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }
       <div className="flex justify-center space-x-6 my-4 font-bold">
         <Link to="/privacy" className="hover:text-charcoal">Privacy Policy</Link>
         <Link to="/terms" className="hover:text-charcoal">Terms of Use</Link>
+        <Link to="/faq" className="hover:text-charcoal">FAQ</Link>
+        <Link to="/refunds" className="hover:text-charcoal">Refunds</Link>
         <Link to="/contact" className="hover:text-charcoal">Contact Us</Link>
       </div>
       
-      {/* Keep global counters in footer for analytics/marketing */}
+      {/* Keep your existing global counters section unchanged */}
       <div className="my-4 space-y-2">
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-8">
           <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
@@ -143,6 +147,8 @@ return (
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsOfUsePage />} />
         <Route path="/faq" element={<FaqPage />} />
+	<Route path="/refunds" element={<RefundsPolicyPage />} />
+
         
         {/* ADD THESE TWO NEW ROUTES */}
         <Route path="/payment-success" element={<PaymentSuccessPage />} />
