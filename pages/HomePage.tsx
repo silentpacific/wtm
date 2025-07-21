@@ -186,6 +186,7 @@ const ScanLimitModal: React.FC<{
 };
 
 
+
 const HeroSection: React.FC<{ 
     onImageSelect: (file: File) => void; 
     onBase64Select: (base64: string) => void;
