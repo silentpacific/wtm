@@ -1,4 +1,4 @@
-// Fixed Header component - Remove duplicate updateUsageData function
+// Fixed Header component with timezone-aware expiry display
 
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
@@ -94,6 +94,50 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
     return `${minutes}m`;
   };
 
+  // Format expiry date in user's current timezone (for travelers)
+  const formatExpiryInCurrentTimezone = (expiryDateString: string) => {
+    try {
+      const expiryDate = new Date(expiryDateString);
+      const now = new Date();
+      
+      // If expired, return expired message
+      if (expiryDate <= now) {
+        return 'expired';
+      }
+      
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      // Calculate time difference
+      const msRemaining = expiryDate.getTime() - now.getTime();
+      const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
+      const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+      
+      // Format the expiry time in user's current timezone
+      const formattedTime = expiryDate.toLocaleString('en-US', {
+        timeZone: userTimezone,
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      // Return time remaining + formatted expiry time
+      if (hoursRemaining > 24) {
+        const days = Math.floor(hoursRemaining / 24);
+        return `${days}d ${hoursRemaining % 24}h - expires ${formattedTime}`;
+      } else if (hoursRemaining > 0) {
+        return `${hoursRemaining}h ${minutesRemaining}m - expires ${formattedTime}`;
+      } else {
+        return `${minutesRemaining}m - expires ${formattedTime}`;
+      }
+    } catch (error) {
+      console.error('Error formatting expiry date:', error);
+      // Fallback to simple time remaining
+      return usage.timeRemaining ? formatTimeRemaining(usage.timeRemaining) : 'active';
+    }
+  };
+
   // Handle mobile menu functions
   const handlePricingClick = () => {
     setShowMobileMenu(false); // Close menu
@@ -150,12 +194,12 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
             {/* Desktop Counters - Centered between logo and auth */}
             <div className="hidden lg:flex items-center gap-4">
               {usage.hasUnlimited ? (
-                // Unlimited users - single green pill
+                // Unlimited users - single green pill with timezone-aware expiry
                 <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-green-50 text-green-700 border-green-300">
                   Unlimited scans. Enjoy your meal
-                  {usage.timeRemaining && (
+                  {userProfile?.subscription_expires_at && (
                     <span className="ml-2 text-xs opacity-75">
-                      (expires in {formatTimeRemaining(usage.timeRemaining)})
+                      ({formatExpiryInCurrentTimezone(userProfile.subscription_expires_at)})
                     </span>
                   )}
                 </div>
@@ -218,9 +262,14 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
           <div className="lg:hidden border-t border-charcoal/20 py-2">
             <div className="flex flex-col items-center gap-2 text-xs">
               {usage.hasUnlimited ? (
-                // Unlimited users - single green pill
-                <div className="px-3 py-1 rounded-full bg-green-50 text-green-700 font-medium">
-                  Unlimited scans. Enjoy your meal
+                // Unlimited users - mobile version with timezone-aware expiry
+                <div className="px-3 py-1 rounded-full bg-green-50 text-green-700 font-medium text-center">
+                  <div>Unlimited scans. Enjoy your meal</div>
+                  {userProfile?.subscription_expires_at && (
+                    <div className="text-xs opacity-75 mt-1">
+                      {formatExpiryInCurrentTimezone(userProfile.subscription_expires_at)}
+                    </div>
+                  )}
                 </div>
               ) : usage.scansUsed >= (usage.scansLimit as number) ? (
                 // Limit reached - upgrade pill

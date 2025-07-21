@@ -1302,7 +1302,8 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
             )}
 
             <ReviewsSection />
-            <PricingSection user={user} />
+            {/* Only show pricing for non-paid users */}
+		{!hasActivePaidSubscription() && <PricingSection user={user} />}
             
             <ScanLimitModal 
                 isOpen={showLimitModal}
@@ -1313,5 +1314,24 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         </div>
     );
 };
+
+const hasActivePaidSubscription = useCallback(() => {
+  if (!user || !userProfile) return false;
+  
+  // Check if user has a paid subscription type
+  if (userProfile.subscription_type === 'free') return false;
+  
+  // Check if subscription is active
+  if (userProfile.subscription_status !== 'active') return false;
+  
+  // Check if subscription hasn't expired
+  if (userProfile.subscription_expires_at) {
+    const now = new Date();
+    const expiresAt = new Date(userProfile.subscription_expires_at);
+    return now < expiresAt;
+  }
+  
+  return false;
+}, [user, userProfile]);
 
 export default HomePage;

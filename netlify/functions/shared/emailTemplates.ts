@@ -48,7 +48,7 @@ export const emailTemplates = {
           <div style="border-top: 2px solid #f0f0f0; padding-top: 20px; margin-top: 30px; text-align: center;">
             <p>Ready to start? <a href="https://whatthemenu.com" style="display: inline-block; background: #ff6b6b; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; border: 3px solid #292524; box-shadow: 4px 4px 0px #292524; margin: 10px 0;">Try it Now</a></p>
             <p style="color: #666; font-size: 14px; margin-top: 20px;">
-              Want to know more? Check out our <a href="https://whatthemenu.com/faq" style="color: #ff6b6b;">FAQs</a>.
+              Want to know more? Check out our <a href="https://whatthemenu.com/#/faq" style="color: #ff6b6b;">FAQs</a>.
             </p>
           </div>
         </div>
@@ -115,9 +115,8 @@ Want to know more? Check out our FAQs: https://whatthemenu.com/faq
           
           <h3 style="color: #ff6b6b; margin-top: 30px;">🚀 What's Unlocked:</h3>
           <ul style="padding-left: 20px;">
-            <li><strong>Unlimited menu scans</strong> - No more daily limits!</li>
+            <li><strong>Unlimited menu scans</strong> - No more limits!</li>
             <li><strong>Priority support</strong> - Get help faster when you need it</li>
-            <li><strong>Advanced features</strong> - Enhanced explanations and more details</li>
             <li><strong>Export capabilities</strong> - Save and share your discoveries</li>
           </ul>
           
@@ -129,7 +128,7 @@ Want to know more? Check out our FAQs: https://whatthemenu.com/faq
           
           <div style="border-top: 2px solid #f0f0f0; padding-top: 20px; margin-top: 30px; text-align: center;">
             <p style="color: #666; font-size: 14px;">
-              Questions about your purchase? Reply to this email or visit our <a href="https://whatthemenu.com/contact" style="color: #ff6b6b;">support page</a>.
+              Questions about your purchase? Reply to this email or visit our <a href="https://whatthemenu.com/#/contact" style="color: #ff6b6b;">support page</a>.
             </p>
           </div>
         </div>
@@ -209,7 +208,7 @@ Questions about your purchase? Reply to this email or visit our support page: ht
           
           <div style="border-top: 2px solid #f0f0f0; padding-top: 20px; margin-top: 30px; text-align: center;">
             <p style="color: #666; font-size: 14px;">
-              Questions about renewal? Reply to this email or visit our <a href="https://whatthemenu.com/contact" style="color: #ff6b6b;">support page</a>.
+              Questions about renewal? Reply to this email or visit our <a href="https://whatthemenu.com/#/contact" style="color: #ff6b6b;">support page</a>.
             </p>
           </div>
         </div>
@@ -276,7 +275,7 @@ Questions about renewal? Reply to this email or visit our support page: https://
           
           <h3 style="color: #ff6b6b; margin-top: 30px;">🚀 While you wait:</h3>
           <ul style="padding-left: 20px;">
-            <li>Check out our <a href="https://whatthemenu.com/faq" style="color: #ff6b6b;">FAQ page</a> for common questions</li>
+            <li>Check out our <a href="https://whatthemenu.com/#/faq" style="color: #ff6b6b;">FAQ page</a> for common questions</li>
             <li>Try scanning a new menu to explore more dishes</li>
             <li>Know someone who will find this app useful? Send them the link</li>
           </ul>
