@@ -7,6 +7,13 @@ export interface GlobalCounters {
   dish_explanations: number;
 }
 
+export interface UserCounters {
+  scans_used: number;
+  scans_limit: number;
+  current_menu_dish_explanations: number;
+  subscription_type: string;
+}
+
 // Subscribers for real-time updates
 type CounterSubscriber = (counters: GlobalCounters) => void;
 let subscribers: CounterSubscriber[] = [];
@@ -47,6 +54,44 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
   } catch (error) {
     console.error('Error in getGlobalCounters:', error);
     return { menus_scanned: 0, dish_explanations: 0 };
+  }
+};
+
+// Get user-specific counters from database
+export const getUserCounters = async (userId: string): Promise<UserCounters> => {
+  try {
+    // Try to get user data from enhanced_user_profiles table first
+    const { data, error } = await supabase
+      .from('enhanced_user_profiles')
+      .select('scans_used, scans_limit, current_menu_dish_explanations, subscription_type')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching user counters:', error);
+      // Return safe defaults on error
+      return {
+        scans_used: 0,
+        scans_limit: 5,
+        current_menu_dish_explanations: 0,
+        subscription_type: 'free'
+      };
+    }
+
+    return {
+      scans_used: data.scans_used || 0,
+      scans_limit: data.scans_limit || 5,
+      current_menu_dish_explanations: data.current_menu_dish_explanations || 0,
+      subscription_type: data.subscription_type || 'free'
+    };
+  } catch (error) {
+    console.error('Error in getUserCounters:', error);
+    return {
+      scans_used: 0,
+      scans_limit: 5,
+      current_menu_dish_explanations: 0,
+      subscription_type: 'free'
+    };
   }
 };
 
