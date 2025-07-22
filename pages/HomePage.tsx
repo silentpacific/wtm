@@ -1046,63 +1046,63 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
     } | null>(null);
     // Moved from PricingSection
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-    const handlePurchase = async (planType: 'daily' | 'weekly') => {
-      console.log('🔍 Starting purchase process...');
-      console.log('🔍 User object:', user);
-      console.log('🔍 User ID:', user?.id);
-      console.log('🔍 Plan type:', planType);
-      
-      if (!user) {
-        console.log('❌ No user found');
-        alert('Please sign up or log in to purchase a plan.');
-        return;
-      }
-    
-      setLoadingPlan(planType);
-    
-      try {
-        const priceId = planType === 'daily' 
-             ? import.meta.env.VITE_STRIPE_DAILY_PRICE_ID
-             : import.meta.env.VITE_STRIPE_WEEKLY_PRICE_ID;
-    
-        const requestBody = {
-          priceId,
-          userId: user.id,
-          planType,
-        };
-    
-        console.log('🔍 Sending request with:', requestBody);
-    
-        const response = await fetch('/.netlify/functions/create-checkout-session', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
-    
-        console.log('🔍 Response status:', response.status);
-        console.log('🔍 Response ok:', response.ok);
-    
-        const data = await response.json();
-        console.log('🔍 Response data:', data);
-    
-        if (!response.ok) {
-          console.log('❌ Response not ok, throwing error:', data.error);
-          throw new Error(data.error || 'Failed to create checkout session');
-        }
-    
-        console.log('✅ Success! Redirecting to:', data.url);
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
-      } catch (error) {
-        console.error('❌ Error creating checkout session:', error);
-        console.error('❌ Error message:', error.message);
-        alert(`Failed to start checkout: ${error.message}`);
-      } finally {
-        setLoadingPlan(null);
-      }
-    }, [user]);
+    const handlePurchase = useCallback(async (planType: 'daily' | 'weekly') => {
+  console.log('🔍 Starting purchase process...');
+  console.log('🔍 User object:', user);
+  console.log('🔍 User ID:', user?.id);
+  console.log('🔍 Plan type:', planType);
+  
+  if (!user) {
+    console.log('❌ No user found');
+    alert('Please sign up or log in to purchase a plan.');
+    return;
+  }
+
+  setLoadingPlan(planType);
+
+  try {
+    const priceId = planType === 'daily' 
+         ? import.meta.env.VITE_STRIPE_DAILY_PRICE_ID
+         : import.meta.env.VITE_STRIPE_WEEKLY_PRICE_ID;
+
+    const requestBody = {
+      priceId,
+      userId: user.id,
+      planType,
+    };
+
+    console.log('🔍 Sending request with:', requestBody);
+
+    const response = await fetch('/.netlify/functions/create-checkout-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    console.log('🔍 Response status:', response.status);
+    console.log('🔍 Response ok:', response.ok);
+
+    const data = await response.json();
+    console.log('🔍 Response data:', data);
+
+    if (!response.ok) {
+      console.log('❌ Response not ok, throwing error:', data.error);
+      throw new Error(data.error || 'Failed to create checkout session');
+    }
+
+    console.log('✅ Success! Redirecting to:', data.url);
+    // Redirect to Stripe Checkout
+    window.location.href = data.url;
+  } catch (error) {
+    console.error('❌ Error creating checkout session:', error);
+    console.error('❌ Error message:', error.message);
+    alert(`Failed to start checkout: ${error.message}`);
+  } finally {
+    setLoadingPlan(null);
+  }
+}, [user]);
 
     // Check if user has active paid subscription - moved inside component
     const hasActivePaidSubscription = useCallback(() => {
