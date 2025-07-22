@@ -1,4 +1,5 @@
 // netlify/functions/stripe-webhook.js
+// Updated to handle new scan limits for paid users
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { createClient } = require('@supabase/supabase-js');
@@ -65,8 +66,13 @@ const logEmailSend = async (emailType, recipient, success, emailId, error) => {
   }
 };
 
-const generatePurchaseConfirmationEmail = (userName, planName, amount, expiryDate) => {
+const generatePurchaseConfirmationEmail = (userName, planName, amount, expiryDate, scanLimit) => {
   const subject = "Thank you for your WhatTheMenu purchase!";
+  
+  // Determine what's unlocked based on plan
+  const planFeatures = planName === 'Daily Plan' ? 
+    ['10 menu scans in 24 hours', 'Unlimited dish explanations per scan'] :
+    ['70 menu scans in 7 days', 'Unlimited dish explanations per scan'];
   
   const html = `
     <!DOCTYPE html>
@@ -98,13 +104,14 @@ const generatePurchaseConfirmationEmail = (userName, planName, amount, expiryDat
         
         <h3 style="color: #ff6b6b; margin-top: 30px;">What's Unlocked:</h3>
         <ul style="padding-left: 20px;">
-          <li><strong>More menu scans</strong> - Increased limits!</li>
+          ${planFeatures.map(feature => `<li><strong>${feature}</strong></li>`).join('')}
+          <li><strong>All major languages</strong> - Instant dish explanations</li>
           <li><strong>Priority support</strong> - Get help faster when you need it</li>
         </ul>
         
         <div style="background: #fef3f3; border: 2px solid #ff6b6b; border-radius: 8px; padding: 20px; margin: 30px 0; text-align: center;">
           <h3 style="color: #ff6b6b; margin-top: 0;">Ready to Explore?</h3>
-          <p style="margin-bottom: 20px;">Start using WhatTheMenu right away:</p>
+          <p style="margin-bottom: 20px;">Start using your ${scanLimit} scans right away:</p>
           <a href="https://whatthemenu.com" style="display: inline-block; background: #ff6b6b; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; border: 3px solid #292524; box-shadow: 4px 4px 0px #292524;">Start Scanning Menus</a>
         </div>
         
@@ -135,10 +142,11 @@ Purchase Details:
 • Valid Until: ${expiryDate}
 
 What's Unlocked:
-• Increased menu scans - More food adventures
+${planFeatures.map(feature => `• ${feature}`).join('\n')}
+• All major languages - Instant dish explanations
 • Priority support - Get help faster when you need it
 
-Ready to explore? Start using your premium features: https://whatthemenu.com
+Ready to explore? Start using your ${scanLimit} scans: https://whatthemenu.com
 
 Questions about your purchase? Reply to this email or visit our support page: https://whatthemenu.com/contact
 
@@ -217,6 +225,8 @@ async function handleCheckoutSessionCompleted(session) {
   }
 
   // Update user profile with SERVICE_ROLE_KEY
+  // NOTE: We don't update scans_limit here since it's now calculated dynamically
+  // We also reset scans_used to 0 when user purchases a new plan
   const { error: updateError } = await supabase
     .from('user_profiles')
     .update({
@@ -224,6 +234,8 @@ async function handleCheckoutSessionCompleted(session) {
       subscription_expires_at: expirationDate.toISOString(),
       subscription_status: 'active',
       stripe_payment_intent_id: session.payment_intent,
+      scans_used: 0, // Reset scan count when user purchases new plan
+      current_menu_dish_explanations: 0, // Reset dish explanations too
       updated_at: new Date().toISOString()
     })
     .eq('id', userId);
@@ -261,9 +273,10 @@ async function handleCheckoutSessionCompleted(session) {
   if (profileError || !userProfile?.email) {
     console.error('Could not find user email for purchase confirmation:', profileError);
   } else {
-    // Send purchase confirmation email
+    // Send purchase confirmation email with new scan limits
     const userName = userProfile.email.split('@')[0];
     const planName = planType === 'weekly' ? 'Weekly Plan' : 'Daily Plan';
+    const scanLimit = planType === 'weekly' ? '70 scans' : '10 scans';
     const expiryDate = expirationDate.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -276,7 +289,8 @@ async function handleCheckoutSessionCompleted(session) {
       userName,
       planName,
       session.amount_total,
-      expiryDate
+      expiryDate,
+      scanLimit
     );
 
     const emailData = {
@@ -304,7 +318,7 @@ async function handleCheckoutSessionCompleted(session) {
     }
   }
 
-  console.log(`Successfully activated ${planType} subscription for user ${userId}`);
+  console.log(`Successfully activated ${planType} subscription for user ${userId} with reset scan count`);
 }
 
 async function handlePaymentIntentSucceeded(paymentIntent) {

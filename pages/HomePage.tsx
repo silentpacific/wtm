@@ -13,8 +13,14 @@ import {
   incrementUserDishExplanation, 
   resetUserDishCounter,
   getOrCreateEnhancedUserProfile,
-  EnhancedUserProfile 
+  EnhancedUserProfile,
+  getEnhancedUsageSummary 
 } from '../services/enhancedUsageTracking';
+import { 
+  getUserCounters,
+  canUserScan,
+  canUserExplainDish
+} from '../services/counterService';
 import { 
   incrementAnonymousScan, 
   incrementAnonymousExplanation, 
@@ -479,11 +485,44 @@ const MenuResults: React.FC<{
         }
         
         // Check if user can explain more dishes before making API call
-        const canExplain = user ? 
-            (userProfile?.current_menu_dish_explanations || 0) < 5 : 
-            canAnonymousUserExplainDish();
+        let canExplain;
+        if (user) {
+            try {
+                const counters = await getUserCounters(user.id);
+                canExplain = canUserExplainDish(counters);
+            } catch (error) {
+                console.error('Error checking user dish explanation capability:', error);
+                canExplain = false;
+            }
+        } else {
+            canExplain = canAnonymousUserExplainDish();
+        }
         
         if (!canExplain) {
+            // Get appropriate error message based on user type
+            let errorMessage;
+            if (user) {
+                try {
+                    const counters = await getUserCounters(user.id);
+                    const hasUnlimited = counters.subscription_type !== 'free' && 
+                        counters.subscription_status === 'active' &&
+                        counters.subscription_expires_at &&
+                        new Date() < new Date(counters.subscription_expires_at) &&
+                        ['daily', 'weekly'].includes(counters.subscription_type.toLowerCase());
+                    
+                    if (hasUnlimited) {
+                        // This shouldn't happen for unlimited users, but just in case
+                        errorMessage = "Error checking explanation limit. Please try again.";
+                    } else {
+                        errorMessage = t.dishLimitReached;
+                    }
+                } catch (error) {
+                    errorMessage = "Error checking explanation limit. Please try again.";
+                }
+            } else {
+                errorMessage = t.dishLimitReached;
+            }
+            
             setExplanations(prev => ({
                 ...prev,
                 [dishName]: {
@@ -491,7 +530,7 @@ const MenuResults: React.FC<{
                     [selectedLanguage]: { 
                         data: null, 
                         isLoading: false, 
-                        error: t.dishLimitReached 
+                        error: errorMessage
                     }
                 }
             }));
@@ -1209,27 +1248,36 @@ const handleSignUpFromModal = () => {
     }, [user]);
 
     // Check if user can scan
-    const canScan = useCallback(() => {
+        const canScan = useCallback(async () => {
         if (!user) {
             // Non-logged in users: use anonymous tracking
             return canAnonymousUserScan();
         }
 
-        if (!userProfile) return false;
-
-        // Check if subscription is active (for paid users)
-        if (userProfile.subscription_type !== 'free') {
-            const now = new Date();
-            const expiresAt = userProfile.subscription_expires_at ? new Date(userProfile.subscription_expires_at) : null;
-            
-            if (expiresAt && now < expiresAt) {
-                return true; // Active subscription
-            }
+        try {
+            const counters = await getUserCounters(user.id);
+            return canUserScan(counters);
+        } catch (error) {
+            console.error('Error checking scan capability:', error);
+            return false;
+        }
+    }, [user]);
+	
+	    // Updated: Check if user can explain dishes using new logic
+    const canExplainDish = useCallback(async () => {
+        if (!user) {
+            // Non-logged in users: use anonymous tracking
+            return canAnonymousUserExplainDish();
         }
 
-        // Free users (logged in or subscription expired): check scan limit
-        return userProfile.scans_used < userProfile.scans_limit;
-    }, [user, userProfile]);
+        try {
+            const counters = await getUserCounters(user.id);
+            return canUserExplainDish(counters);
+        } catch (error) {
+            console.error('Error checking dish explanation capability:', error);
+            return false;
+        }
+    }, [user]);
 
     const handleScanAttempt = () => {
         setShowLimitModal(true);

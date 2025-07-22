@@ -50,6 +50,25 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
     subscription_type: 'free'
   };
 
+  // Helper function to check if user has unlimited dish explanations
+  const hasUnlimitedDishExplanations = useCallback(() => {
+    if (!user || !userCounters.subscription_expires_at || !userCounters.subscription_status) {
+      return false;
+    }
+    
+    // Check if subscription is active and not expired
+    if (userCounters.subscription_status === 'active') {
+      const now = new Date();
+      const expiresAt = new Date(userCounters.subscription_expires_at);
+      
+      if (now < expiresAt) {
+        return ['daily', 'weekly'].includes(userCounters.subscription_type.toLowerCase());
+      }
+    }
+    
+    return false;
+  }, [user, userCounters]);
+
   // Load user counters when user changes or when triggered
   useEffect(() => {
     if (user) {
@@ -124,6 +143,19 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
     }
   };
 
+  // Function to format dish explanations display
+  const formatDishExplanationsDisplay = () => {
+    const count = effectiveCounters.current_menu_dish_explanations;
+    
+    if (user && hasUnlimitedDishExplanations()) {
+      // Paid users: just show the count (no limit)
+      return count.toString();
+    } else {
+      // Free users: show count/5
+      return `${count}/5`;
+    }
+  };
+
   return (
     <>
       <header className="bg-cream/80 backdrop-blur-sm border-b-4 border-charcoal fixed top-0 left-0 right-0 z-40">
@@ -168,7 +200,7 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
                 {isLoadingCounters && user ? (
                   <span className="animate-pulse">...</span>
                 ) : (
-                  <span className="font-black">{effectiveCounters.current_menu_dish_explanations}/5</span>
+                  <span className="font-black">{formatDishExplanationsDisplay()}</span>
                 )}
               </div>
               
@@ -248,7 +280,7 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
                 {isLoadingCounters && user ? (
                   <span className="animate-pulse">...</span>
                 ) : (
-                  <span className="font-black">{effectiveCounters.current_menu_dish_explanations}/5</span>
+                  <span className="font-black">{formatDishExplanationsDisplay()}</span>
                 )}
               </div>
               

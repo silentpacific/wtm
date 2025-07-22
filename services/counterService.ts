@@ -1,4 +1,4 @@
-// services/counterService.ts - Fixed version
+// services/counterService.ts - Updated with new scan limits for paid users
 
 import { supabase } from './supabaseClient';
 
@@ -12,11 +12,51 @@ export interface UserCounters {
   scans_limit: number;
   current_menu_dish_explanations: number;
   subscription_type: string;
+  subscription_expires_at?: string;
+  subscription_status?: string;
 }
 
 // Subscribers for real-time updates
 type CounterSubscriber = (counters: GlobalCounters) => void;
 let subscribers: CounterSubscriber[] = [];
+
+// Helper function to determine scan limit based on subscription
+const getScansLimit = (subscriptionType: string, subscriptionExpiresAt?: string, subscriptionStatus?: string): number => {
+  // Check if subscription is active and not expired
+  if (subscriptionStatus === 'active' && subscriptionExpiresAt) {
+    const now = new Date();
+    const expiresAt = new Date(subscriptionExpiresAt);
+    
+    if (now < expiresAt) {
+      switch (subscriptionType.toLowerCase()) {
+        case 'daily':
+          return 10;
+        case 'weekly':
+          return 70;
+        case 'free':
+        default:
+          return 5;
+      }
+    }
+  }
+  
+  // Default to free tier limits if subscription is expired or inactive
+  return 5;
+};
+
+// Helper function to check if user has unlimited dish explanations
+const hasUnlimitedDishExplanations = (subscriptionType: string, subscriptionExpiresAt?: string, subscriptionStatus?: string): boolean => {
+  if (subscriptionStatus === 'active' && subscriptionExpiresAt) {
+    const now = new Date();
+    const expiresAt = new Date(subscriptionExpiresAt);
+    
+    if (now < expiresAt) {
+      return ['daily', 'weekly'].includes(subscriptionType.toLowerCase());
+    }
+  }
+  
+  return false;
+};
 
 // Get current global counters from database
 export const getGlobalCounters = async (): Promise<GlobalCounters> => {
@@ -61,10 +101,10 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
   try {
     console.log('🔍 Fetching user counters for userId:', userId);
     
-    // Check if user profile exists first
+    // Check if user profile exists first - now fetch subscription info too
     const { data: existingProfile, error: fetchError } = await supabase
       .from('user_profiles')
-      .select('scans_used, scans_limit, current_menu_dish_explanations, subscription_type')
+      .select('scans_used, scans_limit, current_menu_dish_explanations, subscription_type, subscription_expires_at, subscription_status')
       .eq('id', userId)
       .maybeSingle();
 
@@ -109,7 +149,7 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
-        .select('scans_used, scans_limit, current_menu_dish_explanations, subscription_type')
+        .select('scans_used, scans_limit, current_menu_dish_explanations, subscription_type, subscription_expires_at, subscription_status')
         .single();
 
       if (createError) {
@@ -127,19 +167,30 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
       
       return {
         scans_used: newProfile?.scans_used || 0,
-        scans_limit: newProfile?.scans_limit || 5,
+        scans_limit: getScansLimit(newProfile?.subscription_type || 'free', newProfile?.subscription_expires_at, newProfile?.subscription_status),
         current_menu_dish_explanations: newProfile?.current_menu_dish_explanations || 0,
-        subscription_type: newProfile?.subscription_type || 'free'
+        subscription_type: newProfile?.subscription_type || 'free',
+        subscription_expires_at: newProfile?.subscription_expires_at,
+        subscription_status: newProfile?.subscription_status
       };
     }
 
     console.log('✅ Found existing user profile:', existingProfile);
 
+    // Calculate dynamic scan limit based on subscription
+    const dynamicScansLimit = getScansLimit(
+      existingProfile.subscription_type || 'free',
+      existingProfile.subscription_expires_at,
+      existingProfile.subscription_status
+    );
+
     return {
       scans_used: existingProfile.scans_used || 0,
-      scans_limit: existingProfile.scans_limit || 5,
+      scans_limit: dynamicScansLimit,
       current_menu_dish_explanations: existingProfile.current_menu_dish_explanations || 0,
-      subscription_type: existingProfile.subscription_type || 'free'
+      subscription_type: existingProfile.subscription_type || 'free',
+      subscription_expires_at: existingProfile.subscription_expires_at,
+      subscription_status: existingProfile.subscription_status
     };
 
   } catch (error) {
@@ -151,6 +202,26 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
       subscription_type: 'free'
     };
   }
+};
+
+// Check if user can scan (considering dynamic limits)
+export const canUserScan = (userCounters: UserCounters): boolean => {
+  return userCounters.scans_used < userCounters.scans_limit;
+};
+
+// Check if user can explain more dishes (unlimited for paid users)
+export const canUserExplainDish = (userCounters: UserCounters): boolean => {
+  // Paid users have unlimited dish explanations
+  if (hasUnlimitedDishExplanations(
+    userCounters.subscription_type,
+    userCounters.subscription_expires_at,
+    userCounters.subscription_status
+  )) {
+    return true;
+  }
+  
+  // Free users have limit of 5 dishes per menu
+  return userCounters.current_menu_dish_explanations < 5;
 };
 
 // Update user counters (for incrementing scans or dish explanations)
@@ -187,6 +258,11 @@ export const incrementUserScans = async (userId: string): Promise<void> => {
     // First get current count
     const userCounters = await getUserCounters(userId);
     
+    // Check if user can scan
+    if (!canUserScan(userCounters)) {
+      throw new Error('Scan limit reached');
+    }
+    
     // Increment scan count
     await updateUserCounters(userId, {
       scans_used: userCounters.scans_used + 1
@@ -205,6 +281,11 @@ export const incrementUserDishExplanations = async (userId: string): Promise<voi
     // First get current count
     const userCounters = await getUserCounters(userId);
     
+    // Check if user can explain dishes
+    if (!canUserExplainDish(userCounters)) {
+      throw new Error('Dish explanation limit reached');
+    }
+    
     // Increment dish explanation count
     await updateUserCounters(userId, {
       current_menu_dish_explanations: userCounters.current_menu_dish_explanations + 1
@@ -213,6 +294,20 @@ export const incrementUserDishExplanations = async (userId: string): Promise<voi
     console.log('✅ User dish explanation count incremented');
   } catch (error) {
     console.error('Error incrementing user dish explanations:', error);
+    throw error;
+  }
+};
+
+// Reset user's dish explanations for new menu
+export const resetUserDishExplanations = async (userId: string): Promise<void> => {
+  try {
+    await updateUserCounters(userId, {
+      current_menu_dish_explanations: 0
+    });
+
+    console.log('✅ User dish explanations reset for new menu');
+  } catch (error) {
+    console.error('Error resetting user dish explanations:', error);
     throw error;
   }
 };

@@ -1,4 +1,5 @@
 // netlify/functions/create-checkout-session.js
+// Updated to handle new scan limits for paid users
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { createClient } = require('@supabase/supabase-js');
@@ -40,10 +41,24 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Validate planType
+    if (!['daily', 'weekly'].includes(planType)) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+        body: JSON.stringify({ 
+          error: 'Invalid planType. Must be daily or weekly.' 
+        }),
+      };
+    }
+
     // First, try to get user profile from your custom table
     let { data: userProfile, error: userError } = await supabase
       .from('user_profiles')
-      .select('email, stripe_customer_id')
+      .select('email, stripe_customer_id, scans_used')
       .eq('id', userId)
       .single();
 
@@ -65,6 +80,7 @@ exports.handler = async (event, context) => {
       }
 
       // Create user profile using email from frontend
+      // NOTE: We don't set scans_limit here since it's now calculated dynamically
       const { data: newProfile, error: createError } = await supabase
         .from('user_profiles')
         .insert({
@@ -72,12 +88,22 @@ exports.handler = async (event, context) => {
           email: userEmail,
           subscription_type: 'free',
           scans_used: 0,
-          scans_limit: 5,
+          scans_limit: 5, // Default free tier limit
           current_menu_dish_explanations: 0,
+          lifetime_menus_scanned: 0,
+          lifetime_dishes_explained: 0,
+          lifetime_restaurants_visited: 0,
+          lifetime_countries_explored: 0,
+          current_month_menus: 0,
+          current_month_dishes: 0,
+          current_month_restaurants: 0,
+          current_month_countries: 0,
+          usage_month: new Date().toISOString().slice(0, 7), // YYYY-MM format
+          subscription_status: 'inactive',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
-        .select('email, stripe_customer_id')
+        .select('email, stripe_customer_id, scans_used')
         .single();
 
       console.log('User profile creation result:', { newProfile, createError });
@@ -142,7 +168,7 @@ exports.handler = async (event, context) => {
         .eq('id', userId);
     }
 
-    // Create checkout session
+    // Create checkout session with enhanced metadata
     console.log('Creating Stripe checkout session...');
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -159,6 +185,7 @@ exports.handler = async (event, context) => {
       metadata: {
         userId: userId,
         planType: planType, // 'daily' or 'weekly'
+        currentScansUsed: userProfile.scans_used?.toString() || '0', // Track current usage for potential reset
       },
     });
 
