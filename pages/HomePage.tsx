@@ -181,17 +181,18 @@ const ScanLimitModal: React.FC<ScanLimitModalProps> = ({
                         </div>
 
                         {/* Signup option for anonymous users */}
-                        <div className="border-t-2 border-charcoal/20 pt-4 mt-4">
-                            <p className="text-sm text-charcoal/70 text-center mb-3">
-                                Or sign up for a free account to get more scans
-                            </p>
-                            <button
-                                onClick={onSignUp}
-                                className="w-full py-2 bg-gray-200 text-charcoal font-bold rounded-lg border-2 border-charcoal hover:bg-gray-300 transition-colors"
-                            >
-                                Sign Up for Free Account
-                            </button>
-                        </div>
+						{/* Signup option for anonymous users */}
+						<div className="border-t-2 border-charcoal/20 pt-4 mt-4">
+							<p className="text-sm text-charcoal/70 text-center mb-3">
+								Or sign up to purchase a plan
+							</p>
+							<button
+								onClick={onSignUp}
+								className="w-full py-2 bg-gray-200 text-charcoal font-bold rounded-lg border-2 border-charcoal hover:bg-gray-300 transition-colors"
+							>
+								Purchase Plan
+							</button>
+						</div>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -239,8 +240,7 @@ const ScanLimitModal: React.FC<ScanLimitModalProps> = ({
                     <ul className="text-sm text-charcoal/80 space-y-1">
                         <li>• Unlimited menu scans</li>
                         <li>• Unlimited dish explanations</li>
-                        <li>• All languages supported</li>
-                        <li>• Instant results</li>
+                        <li>• Priority Support</li>
                     </ul>
                 </div>
             </div>
