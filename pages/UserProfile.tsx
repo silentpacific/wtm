@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
+import { getUserCounters, UserCounters } from '../services/counterService';
 
 interface UserProfile {
   id: string;
@@ -12,6 +13,8 @@ interface UserProfile {
   current_menu_dish_explanations: number;
   created_at: string;
   updated_at: string;
+  subscription_expires_at?: string;
+  subscription_status?: string;
 }
 
 interface Order {
@@ -26,11 +29,31 @@ interface Order {
 const UserProfile: React.FC = () => {
   const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [userCounters, setUserCounters] = useState<UserCounters | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState('');
   const [message, setMessage] = useState('');
+
+  // Helper function to check if user has unlimited dish explanations
+  const hasUnlimitedDishExplanations = () => {
+    if (!userCounters?.subscription_expires_at || !userCounters?.subscription_status) {
+      return false;
+    }
+    
+    // Check if subscription is active and not expired
+    if (userCounters.subscription_status === 'active') {
+      const now = new Date();
+      const expiresAt = new Date(userCounters.subscription_expires_at);
+      
+      if (now < expiresAt) {
+        return ['daily', 'weekly'].includes(userCounters.subscription_type.toLowerCase());
+      }
+    }
+    
+    return false;
+  };
 
   useEffect(() => {
     if (user) {
@@ -56,6 +79,13 @@ const UserProfile: React.FC = () => {
       if (profileData) {
         setProfile(profileData);
         setFullName(profileData.full_name || '');
+      }
+
+      // Load dynamic user counters (this will show correct scan limits)
+      if (user) {
+        const counters = await getUserCounters(user.id);
+        setUserCounters(counters);
+        console.log('📊 UserProfile loaded dynamic counters:', counters);
       }
 
       // Load user orders
@@ -149,6 +179,19 @@ const UserProfile: React.FC = () => {
       style: 'currency',
       currency: currency.toUpperCase()
     }).format(amount / 100); // Stripe amounts are in cents
+  };
+
+  // Function to get display text for subscription type
+  const getSubscriptionDisplayText = (subType: string) => {
+    switch (subType.toLowerCase()) {
+      case 'daily':
+        return 'Daily';
+      case 'weekly':
+        return 'Weekly';
+      case 'free':
+      default:
+        return 'Free';
+    }
   };
 
   if (!user) {
@@ -245,30 +288,41 @@ const UserProfile: React.FC = () => {
             )}
           </div>
 
-          {/* Account Stats */}
+          {/* Account Stats - FIXED to use dynamic counters */}
           <div className="bg-white rounded-2xl p-6 border-4 border-charcoal shadow-[8px_8px_0px_#292524]">
             <h2 className="text-2xl font-black text-charcoal mb-6">Account Stats</h2>
             
-            {profile && (
+            {profile && userCounters && (
               <div className="space-y-4">
                 <div className="p-4 bg-yellow/20 rounded-lg border border-yellow/40">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-charcoal">Subscription</span>
-                    <span className="font-black text-lg capitalize">{profile.subscription_type}</span>
+                    <span className="font-black text-lg capitalize">
+                      {getSubscriptionDisplayText(userCounters.subscription_type)}
+                    </span>
                   </div>
                 </div>
 
+                {/* FIXED: Now shows dynamic scan limits (10 for daily, 70 for weekly, 5 for free) */}
                 <div className="p-4 bg-coral/20 rounded-lg border border-coral/40">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-charcoal">Scans Used</span>
-                    <span className="font-black text-lg">{profile.scans_used} / {profile.scans_limit}</span>
+                    <span className="font-black text-lg">
+                      {userCounters.scans_used} / {userCounters.scans_limit}
+                    </span>
                   </div>
                 </div>
 
+                {/* FIXED: Shows unlimited for paid users, with limit for free users */}
                 <div className="p-4 bg-green-100 rounded-lg border border-green-300">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-charcoal">Dish Explanations</span>
-                    <span className="font-black text-lg">{profile.current_menu_dish_explanations}</span>
+                    <span className="font-black text-lg">
+                      {hasUnlimitedDishExplanations() ? 
+                        userCounters.current_menu_dish_explanations : 
+                        `${userCounters.current_menu_dish_explanations} / 5`
+                      }
+                    </span>
                   </div>
                 </div>
 
@@ -278,6 +332,18 @@ const UserProfile: React.FC = () => {
                     <span className="font-medium text-sm">{formatDate(profile.created_at)}</span>
                   </div>
                 </div>
+
+                {/* NEW: Show subscription expiry for paid users */}
+                {userCounters.subscription_expires_at && userCounters.subscription_type !== 'free' && (
+                  <div className="p-4 bg-purple/20 rounded-lg border border-purple-400">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-charcoal">Plan Expires</span>
+                      <span className="font-medium text-sm">
+                        {formatDate(userCounters.subscription_expires_at)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
