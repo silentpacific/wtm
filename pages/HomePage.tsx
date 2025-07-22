@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { getUserLocation, findOrCreateRestaurant } from '../services/restaurantService';
+import { LoginModal } from '../components/LoginModal';
 import { 
   incrementUserMenuScan, 
   incrementUserDishExplanation, 
@@ -113,37 +114,41 @@ interface ScanLimitModalProps {
     userProfile: EnhancedUserProfile | null;
     isLoggedIn: boolean;
     onPurchase: (planType: 'daily' | 'weekly') => void;
+    onSignUp: () => void; // Add this prop for signup functionality
     loadingPlan: string | null;
 }
 
-const ScanLimitModal: React.FC<ScanLimitModalProps> = ({ isOpen, onClose, userProfile, isLoggedIn, onPurchase, loadingPlan }) => {
+const ScanLimitModal: React.FC<ScanLimitModalProps> = ({ 
+    isOpen, 
+    onClose, 
+    userProfile, 
+    isLoggedIn, 
+    onPurchase, 
+    onSignUp,
+    loadingPlan 
+}) => {
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-charcoal/80 flex items-center justify-center z-50 p-4">
-            <div className="bg-cream rounded-2xl p-6 border-4 border-charcoal w-full max-w-md">
+            <div className="bg-cream rounded-2xl p-6 border-4 border-charcoal w-full max-w-md relative">
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-charcoal hover:text-coral text-xl font-bold"
+                >
+                    ✕
+                </button>
+
                 <h2 className="text-2xl font-black text-charcoal mb-4">Scan Limit Reached!</h2>
                 
                 {!isLoggedIn ? (
                     <div className="space-y-4">
                         <p className="text-charcoal/80">
-                            You've used all 5 free scans. Sign up for an account to get more scans!
+                            You've used all 5 free scans. Choose a plan to continue scanning menus!
                         </p>
-                        <div className="space-y-2">
-                            <button className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal">
-                                Sign Up for Free Account
-                            </button>
-                            <button className="w-full py-2 text-charcoal/70 underline">
-                                Already have an account? Login
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        <p className="text-charcoal/80">
-                            You've used all {userProfile?.scans_limit || 5} free scans. Upgrade to continue scanning menus!
-                        </p>
-                        <div className="space-y-2">
+                        
+                        {/* Payment options for anonymous users */}
+                        <div className="space-y-3">
                             <button 
                                 onClick={() => onPurchase('daily')}
                                 disabled={loadingPlan === 'daily'}
@@ -155,9 +160,10 @@ const ScanLimitModal: React.FC<ScanLimitModalProps> = ({ isOpen, onClose, userPr
                                         Processing...
                                     </div>
                                 ) : (
-                                    'Get Daily Pass ($1)'
+                                    '🚀 Get Daily Pass - $1'
                                 )}
                             </button>
+                            
                             <button 
                                 onClick={() => onPurchase('weekly')}
                                 disabled={loadingPlan === 'weekly'}
@@ -169,19 +175,74 @@ const ScanLimitModal: React.FC<ScanLimitModalProps> = ({ isOpen, onClose, userPr
                                         Processing...
                                     </div>
                                 ) : (
-                                    'Get Weekly Pass ($5)'
+                                    '⭐ Get Weekly Pass - $5 (Best Value!)'
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Signup option for anonymous users */}
+                        <div className="border-t-2 border-charcoal/20 pt-4 mt-4">
+                            <p className="text-sm text-charcoal/70 text-center mb-3">
+                                Or sign up for a free account to get more scans
+                            </p>
+                            <button
+                                onClick={onSignUp}
+                                className="w-full py-2 bg-gray-200 text-charcoal font-bold rounded-lg border-2 border-charcoal hover:bg-gray-300 transition-colors"
+                            >
+                                Sign Up for Free Account
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <p className="text-charcoal/80">
+                            You've used all {userProfile?.scans_limit || 5} free scans. Upgrade to continue scanning menus!
+                        </p>
+                        
+                        <div className="space-y-3">
+                            <button 
+                                onClick={() => onPurchase('daily')}
+                                disabled={loadingPlan === 'daily'}
+                                className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {loadingPlan === 'daily' ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                                        Processing...
+                                    </div>
+                                ) : (
+                                    '🚀 Get Daily Pass - $1'
+                                )}
+                            </button>
+                            
+                            <button 
+                                onClick={() => onPurchase('weekly')}
+                                disabled={loadingPlan === 'weekly'}
+                                className="w-full py-3 bg-yellow text-charcoal font-bold rounded-lg border-2 border-charcoal hover:bg-yellow/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {loadingPlan === 'weekly' ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-charcoal mr-2"></div>
+                                        Processing...
+                                    </div>
+                                ) : (
+                                    '⭐ Get Weekly Pass - $5 (Best Value!)'
                                 )}
                             </button>
                         </div>
                     </div>
                 )}
 
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-charcoal hover:text-coral text-xl"
-                >
-                    ✕
-                </button>
+                {/* Benefits section */}
+                <div className="mt-6 p-4 bg-white/50 rounded-lg border-2 border-charcoal/20">
+                    <h3 className="font-bold text-charcoal mb-2">✨ What you get:</h3>
+                    <ul className="text-sm text-charcoal/80 space-y-1">
+                        <li>• Unlimited menu scans</li>
+                        <li>• Unlimited dish explanations</li>
+                        <li>• All languages supported</li>
+                        <li>• Instant results</li>
+                    </ul>
+                </div>
             </div>
         </div>
     );
@@ -1037,7 +1098,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
     const [scanError, setScanError] = useState<string | null>(null);
     const [scanResult, setScanResult] = useState<MenuSection[] | null>(null);
     const [userProfile, setUserProfile] = useState<EnhancedUserProfile | null>(null);
-    const [showLimitModal, setShowLimitModal] = useState(false);
+    const [showLoginModal, setShowLoginModal] = useState(false);
     const [restaurantInfo, setRestaurantInfo] = useState<{
         name: string; 
         cuisine: string; 
@@ -1103,6 +1164,11 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
     setLoadingPlan(null);
   }
 }, [user]);
+
+const handleSignUpFromModal = () => {
+    setShowLimitModal(false);
+    setShowLoginModal(true);
+};
 
     // Check if user has active paid subscription - moved inside component
     const hasActivePaidSubscription = useCallback(() => {
@@ -1375,14 +1441,20 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
                 />
             )}
             
-            <ScanLimitModal 
-                isOpen={showLimitModal}
-                onClose={() => setShowLimitModal(false)}
-                userProfile={userProfile}
-                isLoggedIn={!!user}
-                onPurchase={handlePurchase}
-                loadingPlan={loadingPlan}
-            />
+            ScanLimitModal 
+    isOpen={showLimitModal}
+    onClose={() => setShowLimitModal(false)}
+    userProfile={userProfile}
+    isLoggedIn={!!user}
+    onPurchase={handlePurchase}
+    onSignUp={handleSignUpFromModal}
+    loadingPlan={loadingPlan}
+/>
+
+<LoginModal 
+    isOpen={showLoginModal} 
+    onClose={() => setShowLoginModal(false)} 
+/>
         </div>
     );
 };
