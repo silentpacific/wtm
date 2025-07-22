@@ -948,9 +948,18 @@ interface PricingSectionProps {
   loadingPlan: string | null;
   handlePurchase: (planType: 'daily' | 'weekly') => void;
 }
+
+
+
+// Update the PricingSection component in HomePage.tsx to have better anchor positioning
+
 const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, handlePurchase }) => {
   return (
-     <div id="pricing-section" className="py-12 sm:py-24">
+    // Add some top padding and position the ID anchor slightly above the heading
+    <div className="py-12 sm:py-24 relative">
+      {/* Invisible anchor positioned above the heading */}
+      <div id="pricing-section" className="absolute -top-20"></div>
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="font-black text-5xl text-charcoal sm:text-6xl tracking-tighter">Choose Your Plan</h2>
@@ -1022,7 +1031,6 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
     </div>
   );
 };
-
 const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess }) => {
     const { user } = useAuth();
     const [isScanning, setIsScanning] = useState(false);

@@ -11,7 +11,19 @@ import { UsageSummary } from '../types';
 const scrollToPricing = () => {
   const pricingSection = document.querySelector('#pricing-section');
   if (pricingSection) {
-    pricingSection.scrollIntoView({ behavior: 'smooth' });
+    // Get the position of the pricing section
+    const rect = pricingSection.getBoundingClientRect();
+    const absoluteTop = window.pageYOffset + rect.top;
+    
+    // Scroll to a few pixels above the heading (accounting for sticky header)
+    const headerHeight = 80; // Approximate header height
+    const extraPadding = 20; // Extra pixels above the heading
+    const targetPosition = absoluteTop - headerHeight - extraPadding;
+    
+    window.scrollTo({ 
+      top: Math.max(0, targetPosition), // Ensure we don't scroll to negative position
+      behavior: 'smooth' 
+    });
   } else {
     // Fallback: scroll to bottom where pricing usually is
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
