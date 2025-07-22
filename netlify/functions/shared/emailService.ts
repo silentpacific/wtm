@@ -77,8 +77,8 @@ export class EmailService {
       // Don't throw - logging failure shouldn't break email sending
     }
   }
-}
 
+  // NEW METHOD: Send magic link emails
   async sendMagicLinkEmail(
     email: string, 
     magicLink: string, 
