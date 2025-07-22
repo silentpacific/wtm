@@ -1098,6 +1098,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
     const [scanError, setScanError] = useState<string | null>(null);
     const [scanResult, setScanResult] = useState<MenuSection[] | null>(null);
     const [userProfile, setUserProfile] = useState<EnhancedUserProfile | null>(null);
+    const [showLimitModal, setShowLimitModal] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [restaurantInfo, setRestaurantInfo] = useState<{
         name: string; 
@@ -1105,7 +1106,6 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         location: any;
         id?: number;
     } | null>(null);
-    // Moved from PricingSection
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
     const handlePurchase = useCallback(async (planType: 'daily' | 'weekly') => {
   console.log('🔍 Starting purchase process...');
