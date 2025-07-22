@@ -169,7 +169,7 @@ export const emailTemplates = {
             </div>
             
             <p class="text">
-              Need more scans? Check out our affordable daily and weekly plans for unlimited menu scanning.
+              Need more scans? Check out our affordable daily and weekly plans for increased limits.
             </p>
             
             <p class="text">
@@ -208,7 +208,7 @@ Ready to decode your first menu? Head over to whatthemenu.com and start explorin
 
 ⚠️ Important: Always double-check with the restaurant regarding possible allergens. Our AI is helpful but not infallible!
 
-Need more scans? Check out our affordable daily and weekly plans for unlimited menu scanning.
+Need more scans? Check out our affordable daily and weekly plans for increased limits.
 
 Happy dining! 🥘
 The What The Menu? Team

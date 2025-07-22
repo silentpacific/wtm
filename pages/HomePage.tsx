@@ -1050,10 +1050,10 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
             description="Perfect for a day of exploring restaurants and trying new dishes."
             price="$1"
             period="for 1 day"
-            subtext="Unlimited scans for 24 hours."
+            subtext="10 scans in 24 hours, unlimited dishes."
             features={[
-              "Unlimited menu scans for 24 hours", 
-              "All dishes explained on every menu", 
+              "10 menu scans in 24 hours", 
+              "Unlimited dish explanations per scan", 
               "All major languages", 
               "Instant dish explanations", 
               "No commitments"
@@ -1070,11 +1070,11 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
             period="for 7 days"
             subtext="Unlimited scans for a week."
             features={[
-              "Unlimited menu scans for 7 days", 
-              "All dishes explained on every menu", 
+              "70 menu scans in 7 days", 
+              "Unlimited dish explanations per scan", 
               "All major languages", 
-              "Priority processing", 
-              "Perfect for trips"
+              "Perfect for that vacation", 
+              "No commitments"
             ]}
             buttonText="Get Weekly Pass"
             onPurchase={() => handlePurchase('weekly')}

@@ -85,7 +85,7 @@ const generatePurchaseConfirmationEmail = (userName, planName, amount, expiryDat
       <div style="background: white; padding: 30px; border-radius: 12px; border: 4px solid #292524; box-shadow: 8px 8px 0px #292524;">
         <h2 style="color: #292524; margin-top: 0;">Hi ${userName}!</h2>
         
-        <p>Thank you for upgrading to <strong>${planName}</strong>! Your payment has been processed successfully and you now have access to all premium features.</p>
+        <p>Thank you for upgrading to <strong>${planName}</strong>! Your payment has been processed successfully and you now have access to increased limits.</p>
         
         <div style="background: #f0fdf4; border: 2px solid #10b981; border-radius: 8px; padding: 20px; margin: 30px 0;">
           <h3 style="color: #059669; margin-top: 0;">Purchase Details</h3>
@@ -98,15 +98,13 @@ const generatePurchaseConfirmationEmail = (userName, planName, amount, expiryDat
         
         <h3 style="color: #ff6b6b; margin-top: 30px;">What's Unlocked:</h3>
         <ul style="padding-left: 20px;">
-          <li><strong>Unlimited menu scans</strong> - No more daily limits!</li>
+          <li><strong>More menu scans</strong> - Increased limits!</li>
           <li><strong>Priority support</strong> - Get help faster when you need it</li>
-          <li><strong>Advanced features</strong> - Enhanced explanations and more details</li>
-          <li><strong>Export capabilities</strong> - Save and share your discoveries</li>
         </ul>
         
         <div style="background: #fef3f3; border: 2px solid #ff6b6b; border-radius: 8px; padding: 20px; margin: 30px 0; text-align: center;">
           <h3 style="color: #ff6b6b; margin-top: 0;">Ready to Explore?</h3>
-          <p style="margin-bottom: 20px;">Start using your premium features right away:</p>
+          <p style="margin-bottom: 20px;">Start using WhatTheMenu right away:</p>
           <a href="https://whatthemenu.com" style="display: inline-block; background: #ff6b6b; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; border: 3px solid #292524; box-shadow: 4px 4px 0px #292524;">Start Scanning Menus</a>
         </div>
         
@@ -129,7 +127,7 @@ Thank You for Your Purchase!
 
 Hi ${userName}!
 
-Thank you for upgrading to ${planName}! Your payment has been processed successfully and you now have access to all premium features.
+Thank you for upgrading to ${planName}! Your payment has been processed successfully and you now have access to increased scan limits.
 
 Purchase Details:
 • Plan: ${planName}
@@ -137,10 +135,8 @@ Purchase Details:
 • Valid Until: ${expiryDate}
 
 What's Unlocked:
-• Unlimited menu scans - No more daily limits!
+• Increased menu scans - More food adventures
 • Priority support - Get help faster when you need it
-• Advanced features - Enhanced explanations and more details
-• Export capabilities - Save and share your discoveries
 
 Ready to explore? Start using your premium features: https://whatthemenu.com
 

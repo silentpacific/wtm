@@ -63,17 +63,17 @@ const PaymentSuccessPage: React.FC = () => {
           {/* Success Message */}
           <h1 className="text-3xl font-black text-charcoal mb-4">Payment Successful!</h1>
           <p className="text-charcoal/80 mb-6 text-lg">
-            🎉 Welcome to unlimited scanning! Your subscription is now active and ready to use.
+            🎉 Increased Scanning Limits! Your subscription is now active and ready to use.
           </p>
 
           {/* Benefits */}
           <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-6">
             <h3 className="font-bold text-green-800 mb-2">What you get:</h3>
             <ul className="text-sm text-green-700 space-y-1">
-              <li>✨ Unlimited menu scans</li>
+              <li>✨ More menu scans</li>
               <li>🍽️ Unlimited dish explanations</li>
               <li>🌍 All languages supported</li>
-              <li>⚡ Priority processing</li>
+              <li>⚡ Priority support</li>
             </ul>
           </div>
 

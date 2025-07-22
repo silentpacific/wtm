@@ -283,14 +283,14 @@ export const FaqPage: React.FC = () => {
                     
                     <p className="mt-3"><strong>Daily Pass ($1):</strong></p>
                     <ul className="list-disc list-inside ml-4 space-y-1">
-                        <li>Unlimited scans for 24 hours</li>
+                        <li>10 Menu Scans for 24 hours</li>
                         <li>All dishes explained on every menu</li>
                         <li>Perfect for a day of food exploring</li>
                     </ul>
                     
                     <p className="mt-3"><strong>Weekly Pass ($5):</strong></p>
                     <ul className="list-disc list-inside ml-4 space-y-1">
-                        <li>Unlimited scans for 7 days</li>
+                        <li>70 Menu Scans for 7 days</li>
                         <li>All dishes explained on every menu</li>
                         <li>Great for travelers or food adventurers</li>
                     </ul>
