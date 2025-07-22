@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginModal } from './LoginModal';
-import { getUserCounters, UserCounters } from '../services/counterService';
+import { getUserCounters, UserCounters, subscribeToCounters } from '../services/counterService';
 
 interface HeaderProps {
   onCounterUpdate?: number; // Trigger to refresh counters
@@ -18,24 +18,60 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
     current_menu_dish_explanations: 0,
     subscription_type: 'free'
   });
+  const [isLoadingCounters, setIsLoadingCounters] = useState(false);
+
+  // Memoized function to load user counters
+  const loadUserCounters = useCallback(async () => {
+    if (!user) return;
+    
+    setIsLoadingCounters(true);
+    try {
+      const counters = await getUserCounters(user.id);
+      setUserCounters(counters);
+      console.log('📊 Header counters updated:', counters);
+    } catch (error) {
+      console.error('Error loading user counters in header:', error);
+      // Keep existing counters on error instead of resetting
+    } finally {
+      setIsLoadingCounters(false);
+    }
+  }, [user]);
 
   // Load user counters when user changes or when triggered
   useEffect(() => {
-    const loadUserCounters = async () => {
-      if (user) {
-        try {
-          const counters = await getUserCounters(user.id);
-          setUserCounters(counters);
-        } catch (error) {
-          console.error('Error loading user counters:', error);
-        }
-      }
-    };
-
     if (user) {
       loadUserCounters();
+    } else {
+      // Reset counters when user logs out
+      setUserCounters({
+        scans_used: 0,
+        scans_limit: 5,
+        current_menu_dish_explanations: 0,
+        subscription_type: 'free'
+      });
     }
-  }, [user, onCounterUpdate]);
+  }, [user, loadUserCounters]);
+
+  // Refresh counters when onCounterUpdate prop changes
+  useEffect(() => {
+    if (user && onCounterUpdate !== undefined) {
+      loadUserCounters();
+    }
+  }, [onCounterUpdate, user, loadUserCounters]);
+
+  // Set up real-time subscription for counter updates
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = subscribeToCounters(() => {
+      // When global counters change, refresh user counters too
+      loadUserCounters();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user, loadUserCounters]);
 
   const handleLoginClick = () => {
     setIsLoginModalOpen(true);
@@ -107,13 +143,21 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
                 {/* Menus Scanned Pill */}
                 <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
                   <span className="font-bold">Menus scanned: </span>
-                  <span className="font-black">{userCounters.scans_used}/{userCounters.scans_limit}</span>
+                  {isLoadingCounters ? (
+                    <span className="animate-pulse">...</span>
+                  ) : (
+                    <span className="font-black">{userCounters.scans_used}/{userCounters.scans_limit}</span>
+                  )}
                 </div>
                 
                 {/* Dish Explanations Pill */}
                 <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
                   <span className="font-bold">Dish Explanations: </span>
-                  <span className="font-black">{userCounters.current_menu_dish_explanations}/5</span>
+                  {isLoadingCounters ? (
+                    <span className="animate-pulse">...</span>
+                  ) : (
+                    <span className="font-black">{userCounters.current_menu_dish_explanations}/5</span>
+                  )}
                 </div>
                 
                 {/* Plan Pill - Only show for logged in users */}
@@ -182,12 +226,20 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
               <div className="flex flex-wrap justify-center gap-2 text-xs">
                 <div className="bg-white/50 rounded-full px-3 py-1 border border-charcoal">
                   <span className="font-bold">Menus: </span>
-                  <span className="font-black">{userCounters.scans_used}/{userCounters.scans_limit}</span>
+                  {isLoadingCounters ? (
+                    <span className="animate-pulse">...</span>
+                  ) : (
+                    <span className="font-black">{userCounters.scans_used}/{userCounters.scans_limit}</span>
+                  )}
                 </div>
                 
                 <div className="bg-white/50 rounded-full px-3 py-1 border border-charcoal">
                   <span className="font-bold">Explanations: </span>
-                  <span className="font-black">{userCounters.current_menu_dish_explanations}/5</span>
+                  {isLoadingCounters ? (
+                    <span className="animate-pulse">...</span>
+                  ) : (
+                    <span className="font-black">{userCounters.current_menu_dish_explanations}/5</span>
+                  )}
                 </div>
                 
                 {user && (

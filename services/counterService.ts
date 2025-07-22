@@ -1,4 +1,4 @@
-// services/counterService.ts - Updated with correct table schema
+// services/counterService.ts - Fixed version
 
 import { supabase } from './supabaseClient';
 
@@ -64,22 +64,29 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
     // Check if user profile exists first
     const { data: existingProfile, error: fetchError } = await supabase
       .from('user_profiles')
-      .select('*')
+      .select('scans_used, scans_limit, current_menu_dish_explanations, subscription_type')
       .eq('id', userId)
-      .maybeSingle(); // Use maybeSingle to avoid error if no rows found
+      .maybeSingle();
 
     if (fetchError) {
       console.error('Error fetching user profile:', fetchError);
+      // Return defaults if fetch fails
+      return {
+        scans_used: 0,
+        scans_limit: 5,
+        current_menu_dish_explanations: 0,
+        subscription_type: 'free'
+      };
     }
 
     if (!existingProfile) {
       console.log('👤 User profile not found, creating new profile for:', userId);
       
-      // Get user email from auth.users
-      const { data: authUser } = await supabase.auth.getUser();
-      const userEmail = authUser?.user?.email || '';
+      // Get current user to get email
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const userEmail = authUser?.email || '';
 
-      // Create new user profile with default values
+      // Create new user profile with only the columns that exist
       const { data: newProfile, error: createError } = await supabase
         .from('user_profiles')
         .insert({
@@ -96,9 +103,13 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
           current_month_menus: 0,
           current_month_dishes: 0,
           current_month_restaurants: 0,
-          current_month_countries: 0
+          current_month_countries: 0,
+          usage_month: new Date().toISOString().slice(0, 7), // YYYY-MM format
+          subscription_status: 'inactive',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
-        .select()
+        .select('scans_used, scans_limit, current_menu_dish_explanations, subscription_type')
         .single();
 
       if (createError) {
@@ -115,10 +126,10 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
       console.log('✅ Created new user profile:', newProfile);
       
       return {
-        scans_used: newProfile.scans_used || 0,
-        scans_limit: newProfile.scans_limit || 5,
-        current_menu_dish_explanations: newProfile.current_menu_dish_explanations || 0,
-        subscription_type: newProfile.subscription_type || 'free'
+        scans_used: newProfile?.scans_used || 0,
+        scans_limit: newProfile?.scans_limit || 5,
+        current_menu_dish_explanations: newProfile?.current_menu_dish_explanations || 0,
+        subscription_type: newProfile?.subscription_type || 'free'
       };
     }
 
@@ -148,9 +159,14 @@ export const updateUserCounters = async (
   updates: Partial<Pick<UserCounters, 'scans_used' | 'current_menu_dish_explanations'>>
 ): Promise<void> => {
   try {
+    const updateData = {
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+
     const { error } = await supabase
       .from('user_profiles')
-      .update(updates)
+      .update(updateData)
       .eq('id', userId);
 
     if (error) {
@@ -303,11 +319,11 @@ export const setupRealtimeCounters = () => {
 
   // Subscribe to changes in the 'global_counters' table
   const subscription = supabase
-    .channel('global_counters_changes') // You can name your channel
+    .channel('global_counters_changes')
     .on(
       'postgres_changes',
       { 
-        event: '*', // Listen to INSERT, UPDATE, DELETE
+        event: '*',
         schema: 'public',
         table: 'global_counters' 
       },
@@ -328,6 +344,5 @@ export const setupRealtimeCounters = () => {
       }
     });
 
-  // Return the subscription object so it can be unsubscribed from
   return subscription;
 };
