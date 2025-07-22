@@ -220,6 +220,159 @@ Built with ❤️ by LoFi Simplify in Adelaide, Australia
     return { subject, html, text };
   },
 
+  // ADD THIS MISSING FUNCTION:
+  contactConfirmation: (name: string, email: string, message: string, submissionId: string) => {
+    const subject = "✅ We received your message - What The Menu?";
+    
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Message Received</title>
+        <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fef3c7;
+            color: #292524;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fef3c7;
+            padding: 20px;
+          }
+          .header {
+            text-align: center;
+            padding: 30px 0;
+            background-color: #fbbf24;
+            border: 4px solid #292524;
+            border-radius: 16px;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+          }
+          .title {
+            font-size: 28px;
+            font-weight: 900;
+            color: #292524;
+            margin: 0;
+          }
+          .subtitle {
+            font-size: 16px;
+            font-weight: bold;
+            color: #57534e;
+            margin: 5px 0 0 0;
+          }
+          .content {
+            background-color: white;
+            padding: 30px;
+            border: 4px solid #292524;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 8px 8px 0px #292524;
+          }
+          .greeting {
+            font-size: 24px;
+            font-weight: 900;
+            color: #292524;
+            margin-bottom: 20px;
+          }
+          .text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #292524;
+            margin-bottom: 20px;
+          }
+          .message-summary {
+            background-color: #f3f4f6;
+            padding: 20px;
+            border: 2px solid #d1d5db;
+            border-radius: 12px;
+            margin: 20px 0;
+          }
+          .footer {
+            text-align: center;
+            padding: 20px;
+            color: #57534e;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">🍽️</div>
+            <h1 class="title">What The Menu?</h1>
+            <p class="subtitle">AI-powered menu translator</p>
+          </div>
+          
+          <div class="content">
+            <h2 class="greeting">Thanks for reaching out, ${name}! ✅</h2>
+            
+            <p class="text">
+              We've received your message and our team will get back to you as soon as possible, usually within 24 hours.
+            </p>
+            
+            <div class="message-summary">
+              <h3 style="margin-top: 0; color: #292524;">Your Message Summary:</h3>
+              <p style="margin-bottom: 0; white-space: pre-wrap;">${message}</p>
+            </div>
+            
+            <p class="text">
+              In the meantime, feel free to continue using What The Menu? to scan and understand menus from around the world!
+            </p>
+            
+            <p class="text">
+              Best regards,<br>
+              The What The Menu? Team 🍽️
+            </p>
+            
+            <p style="font-size: 12px; color: #666; margin-top: 30px;">
+              Reference ID: ${submissionId}
+            </p>
+          </div>
+          
+          <div class="footer">
+            <p>
+              Built with ❤️ by <a href="https://www.lofisimplify.com.au/" style="color: #f87171;">LoFi Simplify</a> in Adelaide, Australia
+            </p>
+            <p>
+              © ${new Date().getFullYear()} What The Menu? All rights reserved.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+Thanks for reaching out, ${name}! ✅
+
+We've received your message and our team will get back to you as soon as possible, usually within 24 hours.
+
+Your Message Summary:
+${message}
+
+In the meantime, feel free to continue using What The Menu? to scan and understand menus from around the world!
+
+Best regards,
+The What The Menu? Team 🍽️
+
+Reference ID: ${submissionId}
+
+Built with ❤️ by LoFi Simplify in Adelaide, Australia
+© ${new Date().getFullYear()} What The Menu? All rights reserved.
+    `;
+
+    return { subject, html, text };
+  },
+
   // You can add more email templates here for other purposes
   passwordReset: (userName: string, resetLink: string) => {
     // This won't be used in magic link flow, but keeping for completeness
