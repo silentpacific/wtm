@@ -193,81 +193,84 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUpWithMagicLink = async (email: string) => {
-    // Check rate limiting
-    const rateLimitCheck = isRequestAllowed(email);
-    if (!rateLimitCheck.allowed) {
-      const waitTime = rateLimitCheck.waitTime || 60;
-      throw new Error(`Too many requests. Please wait ${waitTime} seconds before trying again.`);
+const signUpWithMagicLink = async (email: string) => {
+  try {
+    // Call your custom Netlify function instead of Supabase directly
+    const response = await fetch('/.netlify/functions/custom-auth-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        isSignUp: true
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to send magic link');
     }
 
-    try {
-      // Update rate limit info before making request
-      updateRateLimitInfo(email);
-      
-      const result = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}`,
-          shouldCreateUser: true, // This allows new user creation
-        }
-      });
+    const result = await response.json();
+    
+    // Return in the same format as Supabase for compatibility
+    return { 
+      data: { user: null, session: null }, 
+      error: null 
+    };
 
-      // Handle Supabase rate limiting response
-      if (result.error) {
-        if (result.error.message.includes('rate') || result.error.message.includes('limit') || result.error.status === 429) {
-          throw new Error('Email sending rate limit reached. Please wait a few minutes before requesting another magic link.');
-        }
-        throw result.error;
-      }
-
-      return result;
-    } catch (error: any) {
-      // Handle different types of rate limiting errors
-      if (error.message.includes('rate') || error.message.includes('limit') || error.status === 429) {
-        throw new Error('Email sending rate limit reached. Please wait a few minutes before requesting another magic link.');
-      }
-      throw error;
+  } catch (error: any) {
+    console.error('Signup error:', error);
+    
+    // Handle specific error types
+    if (error.message.includes('Invalid email')) {
+      throw new Error('Please enter a valid email address.');
     }
-  };
+    
+    throw error;
+  }
+};
 
-  const signInWithMagicLink = async (email: string) => {
-    // Check rate limiting
-    const rateLimitCheck = isRequestAllowed(email);
-    if (!rateLimitCheck.allowed) {
-      const waitTime = rateLimitCheck.waitTime || 60;
-      throw new Error(`Too many requests. Please wait ${waitTime} seconds before trying again.`);
+
+const signInWithMagicLink = async (email: string) => {
+  try {
+    // Call your custom Netlify function instead of Supabase directly
+    const response = await fetch('/.netlify/functions/custom-auth-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        isSignUp: false
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to send magic link');
     }
 
-    try {
-      // Update rate limit info before making request
-      updateRateLimitInfo(email);
-      
-      const result = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}`,
-          shouldCreateUser: false, // This prevents new user creation for sign-in
-        }
-      });
+    const result = await response.json();
+    
+    // Return in the same format as Supabase for compatibility
+    return { 
+      data: { user: null, session: null }, 
+      error: null 
+    };
 
-      // Handle Supabase rate limiting response
-      if (result.error) {
-        if (result.error.message.includes('rate') || result.error.message.includes('limit') || result.error.status === 429) {
-          throw new Error('Email sending rate limit reached. Please wait a few minutes before requesting another magic link.');
-        }
-        throw result.error;
-      }
-
-      return result;
-    } catch (error: any) {
-      // Handle different types of rate limiting errors
-      if (error.message.includes('rate') || error.message.includes('limit') || error.status === 429) {
-        throw new Error('Email sending rate limit reached. Please wait a few minutes before requesting another magic link.');
-      }
-      throw error;
+  } catch (error: any) {
+    console.error('Signin error:', error);
+    
+    // Handle specific error types
+    if (error.message.includes('Invalid email')) {
+      throw new Error('Please enter a valid email address.');
     }
-  };
+    
+    throw error;
+  }
+};
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -285,4 +288,92 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
+};
+
+// Add this to your AuthContext.tsx for better error recovery
+
+// Enhanced error message mapping
+const getErrorMessage = (error: any): string => {
+  const message = error?.message?.toLowerCase() || '';
+  const status = error?.status || error?.code;
+
+  // Rate limiting errors
+  if (status === 429 || message.includes('rate') || message.includes('limit')) {
+    return 'Too many email requests. Please wait 2-3 minutes before trying again.';
+  }
+
+  // Email validation errors
+  if (message.includes('invalid') && message.includes('email')) {
+    return 'Please enter a valid email address.';
+  }
+
+  // Network/connectivity errors
+  if (message.includes('network') || message.includes('fetch') || message.includes('connection')) {
+    return 'Connection error. Please check your internet and try again.';
+  }
+
+  // Timeout errors
+  if (message.includes('timeout') || message.includes('timed out')) {
+    return 'Request timed out. Please try again.';
+  }
+
+  // Email not found (for sign-in)
+  if (message.includes('not found') || message.includes('no user')) {
+    return 'No account found with this email. Try signing up instead.';
+  }
+
+  // Generic fallback
+  return 'Unable to send email. Please try again in a few minutes.';
+};
+
+// Enhanced magic link functions with better error handling
+const signUpWithMagicLink = async (email: string) => {
+  // Validate email format first
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error('Please enter a valid email address.');
+  }
+
+  // Check rate limiting
+  const rateLimitCheck = isRequestAllowed(email);
+  if (!rateLimitCheck.allowed) {
+    const waitTime = rateLimitCheck.waitTime || 120;
+    throw new Error(`Please wait ${waitTime} seconds before requesting another magic link.`);
+  }
+
+  try {
+    // Update rate limit info before making request
+    updateRateLimitInfo(email);
+    
+    const result = await supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(), // Normalize email
+      options: {
+        emailRedirectTo: `${window.location.origin}`,
+        shouldCreateUser: true,
+        // Add data to help with debugging
+        data: {
+          source: 'whatthemenu_signup',
+          timestamp: new Date().toISOString()
+        }
+      }
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    return result;
+  } catch (error: any) {
+    const friendlyMessage = getErrorMessage(error);
+    
+    // Log the actual error for debugging (but show friendly message to user)
+    console.error('Auth error details:', {
+      originalError: error,
+      email: email,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent
+    });
+    
+    throw new Error(friendlyMessage);
+  }
 };
