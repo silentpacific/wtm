@@ -1,5 +1,5 @@
-// netlify/functions/auth-welcome-email.ts
-// Final version with correct template call
+// netlify/functions/welcome-email.ts
+// Simplified welcome email function for email/password auth
 
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
@@ -20,49 +20,16 @@ const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Log incoming webhook for debugging
-    console.log('Auth webhook received!');
-    console.log('Headers:', JSON.stringify(event.headers, null, 2));
-    console.log('Body:', event.body);
-
-    // Parse the webhook payload from Supabase Auth
-    const payload = JSON.parse(event.body || '{}');
-    console.log('Parsed payload:', JSON.stringify(payload, null, 2));
+    console.log('Welcome email function called');
     
-    // Validate webhook signature
-    const authHeader = event.headers['authorization'];
-    const expectedSecret = process.env.SUPABASE_AUTH_WEBHOOK_SECRET;
+    // Parse the request body
+    const { userId, email, name } = JSON.parse(event.body || '{}');
     
-    // Check if auth header matches our secret
-    const expectedAuthHeader = `Bearer ${expectedSecret}`;
-    if (expectedSecret && authHeader?.toLowerCase() !== expectedAuthHeader.toLowerCase()) {
-      console.error('Invalid webhook signature. Expected:', expectedAuthHeader, 'Got:', authHeader);
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ error: 'Unauthorized' }),
-      };
-    }
-
-    // Extract event data from Supabase Auth webhook
-    const { type, user } = payload;
-    
-    console.log('Webhook type:', type);
-    console.log('User data:', user);
-    
-    // Only process user signup events (when user confirms their email via magic link)
-    if (type !== 'user.created') {
-      console.log('Event ignored - not a user creation event');
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: 'Event ignored - not a user creation event' }),
-      };
-    }
-
-    if (!user || !user.email) {
-      console.error('No user email found in payload');
+    if (!userId || !email) {
+      console.error('Missing required fields: userId or email');
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'No user email found' }),
+        body: JSON.stringify({ error: 'Missing required fields: userId and email' }),
       };
     }
 
@@ -74,21 +41,21 @@ const handler: Handler = async (event, context) => {
     
     const emailService = new EmailService(process.env.RESEND_API_KEY!);
 
-    // Extract user name from email or user metadata
-    let userName = user.user_metadata?.full_name || user.email.split('@')[0];
-    console.log('User name:', userName);
+    // Extract user name from email or use provided name
+    let userName = name || email.split('@')[0];
+    console.log('Sending welcome email to:', email, 'for user:', userName);
 
     // Check if welcome email already sent (prevent duplicates)
     const { data: existingLog } = await supabase
       .from('email_logs')
       .select('id')
       .eq('email_type', 'welcome')
-      .eq('recipient', user.email)
+      .eq('recipient', email)
       .eq('success', true)
       .single();
 
     if (existingLog) {
-      console.log('Welcome email already sent to', user.email);
+      console.log('Welcome email already sent to', email);
       return {
         statusCode: 200,
         body: JSON.stringify({ message: 'Welcome email already sent' }),
@@ -100,9 +67,9 @@ const handler: Handler = async (event, context) => {
       const { error: profileError } = await supabase
         .from('user_profiles')
         .upsert({
-          id: user.id,
-          email: user.email,
-          full_name: user.user_metadata?.full_name || null,
+          id: userId,
+          email: email,
+          full_name: name || null,
           subscription_type: 'free',
           scans_used: 0,
           scans_limit: 5,
@@ -133,27 +100,27 @@ const handler: Handler = async (event, context) => {
       console.error('Error creating user profile:', profileErr);
     }
 
-    // Generate welcome email using new template (note: only needs userName parameter)
+    // Generate welcome email using shared template
     const welcomeTemplate = emailTemplates.welcome(userName);
     
     const emailData = {
-      to: [user.email],
+      to: [email],
       subject: welcomeTemplate.subject,
       html: welcomeTemplate.html,
       text: welcomeTemplate.text
     };
 
-    console.log('Sending welcome email to:', user.email);
+    console.log('Sending welcome email to:', email);
 
     // Send welcome email
     const emailResult = await emailService.sendEmail(emailData);
     console.log('Email result:', emailResult);
 
-    // Log the email send (changed from 'welcome_email' to 'welcome' to match other templates)
+    // Log the email send
     await emailService.logEmailSend(
       supabase,
       'welcome',
-      user.email,
+      email,
       emailResult.success,
       emailResult.id,
       emailResult.error
@@ -178,12 +145,12 @@ const handler: Handler = async (event, context) => {
         success: true, 
         message: 'Welcome email sent successfully',
         emailId: emailResult.id,
-        recipient: user.email
+        recipient: email
       }),
     };
 
   } catch (error) {
-    console.error('Welcome email webhook error:', error);
+    console.error('Welcome email function error:', error);
     
     return {
       statusCode: 500,

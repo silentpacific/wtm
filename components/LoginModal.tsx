@@ -8,64 +8,72 @@ interface LoginModalProps {
 
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isResetPassword, setIsResetPassword] = useState(false);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [emailSent, setEmailSent] = useState(false);
-  const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
+  const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
   
-  const { signInWithMagicLink, signUpWithMagicLink } = useAuth();
-
-  // Debounce function to prevent rapid submissions
-  const isSubmissionAllowed = () => {
-    const now = Date.now();
-    const timeSinceLastAttempt = now - lastAttemptTime;
-    return timeSinceLastAttempt > 5000; // 5 second minimum between attempts
-  };
+  const { signIn, signUp, resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Prevent rapid submissions
-    if (!isSubmissionAllowed()) {
-      setMessage('Please wait a moment before trying again.');
-      return;
-    }
-    
     setLoading(true);
     setMessage('');
-    setLastAttemptTime(Date.now());
     
     try {
-      if (isLogin) {
-        const { error } = await signInWithMagicLink(email);
+      if (isResetPassword) {
+        // Password Reset
+        const { error } = await resetPassword(email);
         if (error) throw error;
-        setEmailSent(true);
-        setMessage('Check your email for a magic link to sign in!');
+        
+        setMessage('Password reset email sent! Check your inbox for instructions.');
+        setMessageType('success');
+        setIsResetPassword(false);
+        
+      } else if (isLogin) {
+        // Sign In
+        const { error } = await signIn(email, password);
+        if (error) throw error;
+        
+        handleClose();
+        
       } else {
-        const { error } = await signUpWithMagicLink(email);
+        // Sign Up
+        if (password !== confirmPassword) {
+          throw new Error('Passwords do not match');
+        }
+        
+        if (password.length < 6) {
+          throw new Error('Password must be at least 6 characters long');
+        }
+        
+        const { error } = await signUp(email, password);
         if (error) throw error;
-        setEmailSent(true);
-        setMessage('Check your email for a magic link to complete your registration!');
+        
+        setMessage('Account created! Please check your email to verify your account before signing in.');
+        setMessageType('success');
       }
     } catch (error: any) {
       let errorMessage = error.message;
       
-      // Handle different types of errors with user-friendly messages
-      if (errorMessage.includes('rate') || errorMessage.includes('limit')) {
-        errorMessage = '🚫 Too many email requests. Please wait a few minutes before trying again.';
-      } else if (errorMessage.includes('invalid') || errorMessage.includes('email')) {
-        errorMessage = '📧 Please enter a valid email address.';
-      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        errorMessage = '🌐 Network error. Please check your connection and try again.';
-      } else if (errorMessage.includes('timeout')) {
-        errorMessage = '⏰ Request timed out. Please try again.';
-      } else {
-        // Generic error message for unknown errors
-        errorMessage = `❌ ${errorMessage}`;
+      // Handle specific error types with user-friendly messages
+      if (errorMessage.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please try again.';
+      } else if (errorMessage.includes('Email not confirmed')) {
+        errorMessage = 'Please check your email and click the confirmation link before signing in.';
+      } else if (errorMessage.includes('User already registered')) {
+        errorMessage = 'An account with this email already exists. Try signing in instead.';
+      } else if (errorMessage.includes('Password should be at least')) {
+        errorMessage = 'Password must be at least 6 characters long.';
+      } else if (errorMessage.includes('Unable to validate email address')) {
+        errorMessage = 'Please enter a valid email address.';
       }
       
       setMessage(errorMessage);
+      setMessageType('error');
     } finally {
       setLoading(false);
     }
@@ -73,29 +81,39 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
-      onClose();
+      handleClose();
     }
   };
 
   const handleClose = () => {
     setEmail('');
+    setPassword('');
+    setConfirmPassword('');
     setMessage('');
-    setEmailSent(false);
     setIsLogin(true);
-    setLastAttemptTime(0);
+    setIsResetPassword(false);
     onClose();
-  };
-
-  const handleRetryDifferentEmail = () => {
-    setEmailSent(false);
-    setMessage('');
-    setEmail('');
   };
 
   const handleToggleMode = () => {
     setIsLogin(!isLogin);
+    setIsResetPassword(false);
     setMessage('');
-    setEmailSent(false);
+    setPassword('');
+    setConfirmPassword('');
+  };
+
+  const handleResetPassword = () => {
+    setIsResetPassword(true);
+    setIsLogin(true);
+    setMessage('');
+    setPassword('');
+    setConfirmPassword('');
+  };
+
+  const handleBackToLogin = () => {
+    setIsResetPassword(false);
+    setMessage('');
   };
 
   if (!isOpen) return null;
@@ -117,114 +135,142 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
         {/* Modal Header */}
         <h2 className="text-2xl font-black text-charcoal mb-4 pr-8">
-          {isLogin ? 'Sign In' : 'Sign Up'}
+          {isResetPassword ? 'Reset Password' : isLogin ? 'Sign In' : 'Sign Up'}
         </h2>
         
-        {emailSent ? (
-          /* Email Sent Success State */
-          <div className="text-center py-4">
-            <div className="text-6xl mb-4">📧</div>
-            <h3 className="text-lg font-bold text-charcoal mb-2">Email Sent!</h3>
-            <p className="text-charcoal/80 mb-4">
-              {isLogin 
-                ? "We've sent a magic link to your email. Click it to sign in instantly!"
-                : "We've sent a magic link to your email. Click it to complete your registration!"
-              }
-            </p>
-            <p className="text-sm text-charcoal/60 mb-4">
-              Don't see the email? Check your spam folder.
-            </p>
-            <button
-              onClick={handleRetryDifferentEmail}
-              className="mt-2 text-coral underline hover:text-coral/80 transition-colors font-medium"
-            >
-              Try a different email
-            </button>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Email Field */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-bold text-charcoal mb-2">
+              Email Address
+            </label>
+            <input
+              id="email"
+              type="email"
+              placeholder="Enter your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 border-2 border-charcoal rounded-lg font-medium focus:outline-none focus:border-coral transition-colors"
+              required
+              disabled={loading}
+            />
           </div>
-        ) : (
-          /* Email Input Form */
-          <>
-            <p className="text-charcoal/80 mb-4 text-sm">
-              {isLogin 
-                ? "Enter your email address and we'll send you a magic link to sign in."
-                : "Enter your email address to create your account. We'll send you a magic link to get started."
-              }
-            </p>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
+
+          {/* Password Field - Hide for reset password */}
+          {!isResetPassword && (
+            <div>
+              <label htmlFor="password" className="block text-sm font-bold text-charcoal mb-2">
+                Password
+              </label>
               <input
-                type="email"
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full p-3 border-2 border-charcoal rounded-lg font-medium focus:outline-none focus:border-coral transition-colors"
                 required
                 disabled={loading}
+                minLength={6}
               />
-              
-              <button
-                type="submit"
-                disabled={loading || !isSubmissionAllowed()}
-                className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1"
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                    Sending magic link...
-                  </div>
-                ) : !isSubmissionAllowed() ? (
-                  'Please wait...'
-                ) : (
-                  `Send Magic Link`
-                )}
-              </button>
-            </form>
+            </div>
+          )}
 
-            {/* Message Display */}
-            {message && (
-              <div className={`mt-4 p-3 rounded-lg text-sm ${
-                message.includes('Check your email') 
-                  ? 'bg-green-50 text-green-700 border border-green-200' 
-                  : message.includes('🚫') || message.includes('❌')
-                  ? 'bg-red-50 text-red-700 border border-red-200'
-                  : message.includes('📧') 
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                  : message.includes('🌐') || message.includes('⏰')
-                  ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                  : 'bg-red-50 text-red-700 border border-red-200'
-              }`}>
-                <div className="text-center">
-                  {message}
-                </div>
-                
-                {/* Show retry suggestion for rate limit errors */}
-                {message.includes('rate') || message.includes('limit') ? (
-                  <div className="mt-2 text-xs text-center">
-                    💡 Tip: Check your spam folder or try again in a few minutes.
-                  </div>
-                ) : null}
+          {/* Confirm Password Field - Only for sign up */}
+          {!isLogin && !isResetPassword && (
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-bold text-charcoal mb-2">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full p-3 border-2 border-charcoal rounded-lg font-medium focus:outline-none focus:border-coral transition-colors"
+                required
+                disabled={loading}
+                minLength={6}
+              />
+            </div>
+          )}
+          
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1"
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                {isResetPassword ? 'Sending reset email...' : isLogin ? 'Signing in...' : 'Creating account...'}
               </div>
+            ) : (
+              isResetPassword ? 'Send Reset Email' : isLogin ? 'Sign In' : 'Create Account'
             )}
+          </button>
+        </form>
 
-            {/* Toggle between Sign In and Sign Up */}
-            <div className="mt-4 text-center">
+        {/* Message Display */}
+        {message && (
+          <div className={`mt-4 p-3 rounded-lg text-sm ${
+            messageType === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : messageType === 'error'
+              ? 'bg-red-50 text-red-700 border border-red-200'
+              : 'bg-blue-50 text-blue-700 border border-blue-200'
+          }`}>
+            <div className="text-center">
+              {message}
+            </div>
+          </div>
+        )}
+
+        {/* Action Links */}
+        <div className="mt-4 text-center space-y-2">
+          {isResetPassword ? (
+            <button
+              onClick={handleBackToLogin}
+              className="text-coral underline hover:text-coral/80 transition-colors font-medium"
+              disabled={loading}
+            >
+              Back to Sign In
+            </button>
+          ) : (
+            <>
+              {/* Toggle between Sign In and Sign Up */}
               <button
                 onClick={handleToggleMode}
-                className="text-coral underline hover:text-coral/80 transition-colors font-medium"
+                className="block text-coral underline hover:text-coral/80 transition-colors font-medium"
                 disabled={loading}
               >
                 {isLogin ? 'Need an account? Sign up instead' : 'Already have an account? Sign in instead'}
               </button>
-            </div>
 
-            {/* Additional Info */}
-            <div className="mt-4 p-3 bg-yellow/20 rounded-lg border border-yellow/40">
-              <p className="text-xs text-charcoal/70 text-center">
-                🔒 No passwords needed! We'll send you a secure magic link that expires in 10 minutes.
-              </p>
-            </div>
-          </>
-        )}
+              {/* Forgot Password Link - Only show on sign in */}
+              {isLogin && (
+                <button
+                  onClick={handleResetPassword}
+                  className="block text-charcoal/70 underline hover:text-charcoal transition-colors font-medium text-sm"
+                  disabled={loading}
+                >
+                  Forgot your password?
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Security Notice */}
+        <div className="mt-4 p-3 bg-yellow/20 rounded-lg border border-yellow/40">
+          <p className="text-xs text-charcoal/70 text-center">
+            🔒 Your account is secured with industry-standard encryption. 
+            {!isResetPassword && !isLogin && 'You\'ll need to verify your email before signing in.'}
+          </p>
+        </div>
       </div>
     </div>
   );
