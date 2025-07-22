@@ -12,13 +12,29 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+  const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
   
   const { signInWithMagicLink, signUpWithMagicLink } = useAuth();
 
+  // Debounce function to prevent rapid submissions
+  const isSubmissionAllowed = () => {
+    const now = Date.now();
+    const timeSinceLastAttempt = now - lastAttemptTime;
+    return timeSinceLastAttempt > 5000; // 5 second minimum between attempts
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent rapid submissions
+    if (!isSubmissionAllowed()) {
+      setMessage('Please wait a moment before trying again.');
+      return;
+    }
+    
     setLoading(true);
     setMessage('');
+    setLastAttemptTime(Date.now());
     
     try {
       if (isLogin) {
@@ -33,7 +49,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         setMessage('Check your email for a magic link to complete your registration!');
       }
     } catch (error: any) {
-      setMessage(error.message);
+      let errorMessage = error.message;
+      
+      // Handle different types of errors with user-friendly messages
+      if (errorMessage.includes('rate') || errorMessage.includes('limit')) {
+        errorMessage = '🚫 Too many email requests. Please wait a few minutes before trying again.';
+      } else if (errorMessage.includes('invalid') || errorMessage.includes('email')) {
+        errorMessage = '📧 Please enter a valid email address.';
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        errorMessage = '🌐 Network error. Please check your connection and try again.';
+      } else if (errorMessage.includes('timeout')) {
+        errorMessage = '⏰ Request timed out. Please try again.';
+      } else {
+        // Generic error message for unknown errors
+        errorMessage = `❌ ${errorMessage}`;
+      }
+      
+      setMessage(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -50,7 +82,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     setMessage('');
     setEmailSent(false);
     setIsLogin(true);
+    setLastAttemptTime(0);
     onClose();
+  };
+
+  const handleRetryDifferentEmail = () => {
+    setEmailSent(false);
+    setMessage('');
+    setEmail('');
+  };
+
+  const handleToggleMode = () => {
+    setIsLogin(!isLogin);
+    setMessage('');
+    setEmailSent(false);
   };
 
   if (!isOpen) return null;
@@ -86,15 +131,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                 : "We've sent a magic link to your email. Click it to complete your registration!"
               }
             </p>
-            <p className="text-sm text-charcoal/60">
-              Don't see the email? Check your spam folder or try again.
+            <p className="text-sm text-charcoal/60 mb-4">
+              Don't see the email? Check your spam folder.
             </p>
             <button
-              onClick={() => {
-                setEmailSent(false);
-                setMessage('');
-              }}
-              className="mt-4 text-coral underline hover:text-coral/80 transition-colors font-medium"
+              onClick={handleRetryDifferentEmail}
+              className="mt-2 text-coral underline hover:text-coral/80 transition-colors font-medium"
             >
               Try a different email
             </button>
@@ -117,11 +159,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-3 border-2 border-charcoal rounded-lg font-medium focus:outline-none focus:border-coral transition-colors"
                 required
+                disabled={loading}
               />
               
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !isSubmissionAllowed()}
                 className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1"
               >
                 {loading ? (
@@ -129,6 +172,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
                     Sending magic link...
                   </div>
+                ) : !isSubmissionAllowed() ? (
+                  'Please wait...'
                 ) : (
                   `Send Magic Link`
                 )}
@@ -137,23 +182,36 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
             {/* Message Display */}
             {message && (
-              <div className={`mt-4 p-3 rounded-lg text-sm text-center ${
+              <div className={`mt-4 p-3 rounded-lg text-sm ${
                 message.includes('Check your email') 
                   ? 'bg-green-50 text-green-700 border border-green-200' 
+                  : message.includes('🚫') || message.includes('❌')
+                  ? 'bg-red-50 text-red-700 border border-red-200'
+                  : message.includes('📧') 
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                  : message.includes('🌐') || message.includes('⏰')
+                  ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
                   : 'bg-red-50 text-red-700 border border-red-200'
               }`}>
-                {message}
+                <div className="text-center">
+                  {message}
+                </div>
+                
+                {/* Show retry suggestion for rate limit errors */}
+                {message.includes('rate') || message.includes('limit') ? (
+                  <div className="mt-2 text-xs text-center">
+                    💡 Tip: Check your spam folder or try again in a few minutes.
+                  </div>
+                ) : null}
               </div>
             )}
 
             {/* Toggle between Sign In and Sign Up */}
             <div className="mt-4 text-center">
               <button
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setMessage('');
-                }}
+                onClick={handleToggleMode}
                 className="text-coral underline hover:text-coral/80 transition-colors font-medium"
+                disabled={loading}
               >
                 {isLogin ? 'Need an account? Sign up instead' : 'Already have an account? Sign in instead'}
               </button>
