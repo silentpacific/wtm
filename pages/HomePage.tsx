@@ -1165,6 +1165,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         setScanResult(null);
         setScanError(null);
         setRestaurantInfo(null); // Reset restaurant info
+	window.scrollTo(0, 0);
     }, []);
 
     const handleScan = useCallback(async (base64Image: string) => {

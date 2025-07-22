@@ -1,4 +1,4 @@
-// Fixed Header component with timezone-aware expiry display
+// Fixed Header component with logo link and scroll fixes
 
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
@@ -158,6 +158,11 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
     window.scrollTo(0, 0); // Scroll to top
   };
 
+  // FIXED: Logo click handler
+  const handleLogoClick = () => {
+    window.scrollTo(0, 0);
+  };
+
   return (
     <>
       <header className="bg-cream/80 backdrop-blur-sm sticky top-0 z-40 w-full border-b-4 border-charcoal">
@@ -179,15 +184,31 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
                 <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${showMobileMenu ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
               </button>
               
-              {/* Logo */}
-              <Link to="/" className="text-2xl lg:text-3xl font-black text-charcoal tracking-tighter">
+              {/* FIXED: Logo with proper navigation */}
+              <Link 
+                to="/" 
+                onClick={handleLogoClick}
+                className="text-2xl lg:text-3xl font-black text-charcoal tracking-tighter hover:text-coral transition-colors"
+              >
                 WhatTheMenu?
               </Link>
               
               {/* Desktop Navigation */}
               <nav className="hidden md:flex space-x-6 ml-8">
-                <NavLink to="/faq" className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}>FAQ</NavLink>
-                <NavLink to="/contact" className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}>Contact</NavLink>
+                <NavLink 
+                  to="/faq" 
+                  onClick={() => window.scrollTo(0, 0)}
+                  className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}
+                >
+                  FAQ
+                </NavLink>
+                <NavLink 
+                  to="/contact" 
+                  onClick={() => window.scrollTo(0, 0)}
+                  className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}
+                >
+                  Contact
+                </NavLink>
               </nav>
             </div>
 

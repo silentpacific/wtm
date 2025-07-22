@@ -1,4 +1,4 @@
-// Updated App.tsx - Background global counters, user limits only
+// Updated App.tsx - Added scroll to top on route changes
 
 import React, { useState, useCallback, useEffect, type FC } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
@@ -110,6 +110,11 @@ const AppContent: FC = () => {
   
   // Counter update trigger for header refresh
   const [counterUpdateTrigger, setCounterUpdateTrigger] = useState(0);
+
+  // Scroll to top on route changes - THIS IS THE FIX FOR ISSUE #3
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   // Track page views
   useEffect(() => {

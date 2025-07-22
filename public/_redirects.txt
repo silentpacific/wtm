@@ -1,0 +1,14 @@
+# Netlify _redirects file
+# This file should be placed in your public folder
+
+# Handle client-side routing - redirect all routes to index.html
+/*    /index.html   200
+
+# Optional: Redirect old hash URLs to clean URLs (if you want to preserve SEO)
+/#/faq                  /faq                301
+/#/contact              /contact            301
+/#/terms                /terms              301
+/#/refund-policy        /refund-policy      301
+/#/privacy-policy       /privacy-policy     301
+/#/payment-success      /payment-success    301
+/#/payment-cancelled    /payment-cancelled  301
