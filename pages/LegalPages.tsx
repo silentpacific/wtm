@@ -244,7 +244,7 @@ export const TermsOfUsePage: React.FC = () => (
     <p>The Services rely on hosting (Netlify), backend storage (Supabase), and AI APIs (Google Gemini) operated by third parties. We are not responsible for the content, policies or availability of those providers or of any external links we share.</p>
 
     <h2 className="text-2xl font-black text-coral">12. Fees & Payments</h2>
-    <p>The core WTM service is currently free. We reserve the right to introduce paid plans, credits or usage caps in the future. If we do, we will update these Terms and provide advance notice.</p>
+    <p>The core WTM service is currently free. We currently have 2 paid plans. We reserve the right to modify these plans anytime. We also reserve the right to introduce more paid plans, credits or usage caps in the future. If we do, we will update these Terms and provide advance notice.</p>
 
     <h2 className="text-2xl font-black text-coral">13. International Use & Export Compliance</h2>
     <p>You must comply with all local laws when using WTM. The Services may not be used by or for the benefit of individuals or entities subject to Australian, U.S. or other applicable sanctions.</p>
