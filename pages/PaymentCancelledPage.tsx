@@ -1,8 +1,38 @@
 // src/pages/PaymentCancelledPage.tsx
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const PaymentCancelledPage: React.FC = () => {
+  const navigate = useNavigate();
+
+  // Function to navigate to pricing section with proper scroll positioning
+  const handleViewPlansClick = () => {
+    navigate('/');
+    
+    // Wait for navigation to complete, then scroll to pricing section
+    setTimeout(() => {
+      const pricingSection = document.querySelector('#pricing-section');
+      if (pricingSection) {
+        // Get the position of the pricing section
+        const rect = pricingSection.getBoundingClientRect();
+        const absoluteTop = window.pageYOffset + rect.top;
+        
+        // Scroll to 20 pixels above the section (accounting for sticky header)
+        const headerHeight = 80; // Approximate header height
+        const extraPadding = 20; // 20 pixels above as requested
+        const targetPosition = absoluteTop - headerHeight - extraPadding;
+        
+        window.scrollTo({ 
+          top: Math.max(0, targetPosition), // Ensure we don't scroll to negative position
+          behavior: 'smooth' 
+        });
+      } else {
+        // Fallback: scroll to bottom where pricing usually is
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }
+    }, 100); // Small delay to ensure navigation is complete
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-cream px-4">
       <div className="max-w-md w-full">
@@ -32,24 +62,25 @@ const PaymentCancelledPage: React.FC = () => {
           <div className="space-y-3">
             <Link 
               to="/" 
+              onClick={() => window.scrollTo(0, 0)}
               className="block w-full py-3 bg-coral text-white font-bold rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
             >
               Try Free Scans
             </Link>
             
-            <Link 
-              to="/#pricing" 
+            <button 
+              onClick={handleViewPlansClick}
               className="block w-full py-3 bg-yellow text-charcoal font-bold rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
             >
               View Plans Again
-            </Link>
+            </button>
           </div>
         </div>
 
         {/* Additional Help */}
         <div className="mt-8 text-center">
           <p className="text-sm text-charcoal/60">
-            Need help deciding? <Link to="/contact" className="text-coral underline">Contact us</Link> or <Link to="/faq" className="text-coral underline">check our FAQ</Link>
+            Need help deciding? <Link to="/contact" onClick={() => window.scrollTo(0, 0)} className="text-coral underline">Contact us</Link> or <Link to="/faq" onClick={() => window.scrollTo(0, 0)} className="text-coral underline">check our FAQ</Link>
           </p>
         </div>
       </div>
