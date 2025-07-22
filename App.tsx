@@ -1,4 +1,4 @@
-// Updated App.tsx - Added Profile route and scroll to top on route changes
+// Updated App.tsx - Added anonymous counter tracking for Header
 
 import React, { useState, useCallback, useEffect, type FC } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
@@ -17,6 +17,7 @@ import {
   incrementDishExplanations,
   subscribeToCounters
 } from './services/counterService';
+import { getAnonymousUsage } from './services/anonymousUsageTracking';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
 
@@ -111,6 +112,48 @@ const AppContent: FC = () => {
   
   // Counter update trigger for header refresh
   const [counterUpdateTrigger, setCounterUpdateTrigger] = useState(0);
+  
+  // Anonymous counters state for header
+  const [anonymousCounters, setAnonymousCounters] = useState({
+    scans_used: 0,
+    scans_limit: 5,
+    current_menu_dish_explanations: 0
+  });
+
+  // Load anonymous counters on component mount and set up localStorage listener
+  useEffect(() => {
+    const loadAnonymousCounters = () => {
+      const usage = getAnonymousUsage();
+      setAnonymousCounters({
+        scans_used: usage.scansUsed,
+        scans_limit: 5,
+        current_menu_dish_explanations: usage.currentMenuDishExplanations
+      });
+    };
+
+    // Load initial counters
+    loadAnonymousCounters();
+
+    // Listen for localStorage changes (when anonymous counters update)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'anonymousUsage') {
+        loadAnonymousCounters();
+      }
+    };
+
+    // Listen for custom events (when localStorage is updated from same tab)
+    const handleAnonymousUpdate = () => {
+      loadAnonymousCounters();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('anonymousCountersUpdated', handleAnonymousUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('anonymousCountersUpdated', handleAnonymousUpdate);
+    };
+  }, []);
 
   // Scroll to top on route changes - THIS IS THE FIX FOR ISSUE #3
   useEffect(() => {
@@ -159,6 +202,17 @@ const AppContent: FC = () => {
       // Trigger header counter updates (for user limits)
       setCounterUpdateTrigger(prev => prev + 1);
       
+      // Update anonymous counters immediately for responsive UI
+      const usage = getAnonymousUsage();
+      setAnonymousCounters({
+        scans_used: usage.scansUsed,
+        scans_limit: 5,
+        current_menu_dish_explanations: usage.currentMenuDishExplanations
+      });
+      
+      // Dispatch custom event for other components
+      window.dispatchEvent(new CustomEvent('anonymousCountersUpdated'));
+      
       console.log('Scan success: global counter incremented, header updated');
     } catch (error) {
       console.error('Error updating scan counter:', error);
@@ -173,6 +227,17 @@ const AppContent: FC = () => {
       // Trigger header counter updates (for user limits)
       setCounterUpdateTrigger(prev => prev + 1);
       
+      // Update anonymous counters immediately for responsive UI
+      const usage = getAnonymousUsage();
+      setAnonymousCounters({
+        scans_used: usage.scansUsed,
+        scans_limit: 5,
+        current_menu_dish_explanations: usage.currentMenuDishExplanations
+      });
+      
+      // Dispatch custom event for other components
+      window.dispatchEvent(new CustomEvent('anonymousCountersUpdated'));
+      
       console.log('Explanation success: global counter incremented, header updated');
     } catch (error) {
       console.error('Error updating explanation counter:', error);
@@ -181,7 +246,10 @@ const AppContent: FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-cream text-charcoal font-sans">
-      <Header onCounterUpdate={counterUpdateTrigger} />
+      <Header 
+        onCounterUpdate={counterUpdateTrigger} 
+        anonymousCounters={anonymousCounters}
+      />
       <main className="flex-grow">
         <Routes>
           <Route 

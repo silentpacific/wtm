@@ -6,9 +6,14 @@ import { getUserCounters, UserCounters, subscribeToCounters } from '../services/
 
 interface HeaderProps {
   onCounterUpdate?: number; // Trigger to refresh counters
+  anonymousCounters?: {
+    scans_used: number;
+    scans_limit: number;
+    current_menu_dish_explanations: number;
+  }; // For anonymous users
 }
 
-const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
+const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) => {
   const { user, loading, signOut } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -36,6 +41,14 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
       setIsLoadingCounters(false);
     }
   }, [user]);
+
+  // Get effective counters (authenticated user counters or anonymous counters)
+  const effectiveCounters = user ? userCounters : {
+    scans_used: anonymousCounters?.scans_used || 0,
+    scans_limit: anonymousCounters?.scans_limit || 5,
+    current_menu_dish_explanations: anonymousCounters?.current_menu_dish_explanations || 0,
+    subscription_type: 'free'
+  };
 
   // Load user counters when user changes or when triggered
   useEffect(() => {
@@ -137,38 +150,36 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
               </h1>
             </Link>
 
-            {/* Desktop Pills - Only show on desktop */}
-            {!loading && (
-              <div className="hidden lg:flex items-center space-x-4">
-                {/* Menus Scanned Pill */}
-                <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
-                  <span className="font-bold">Menus scanned: </span>
-                  {isLoadingCounters ? (
-                    <span className="animate-pulse">...</span>
-                  ) : (
-                    <span className="font-black">{userCounters.scans_used}/{userCounters.scans_limit}</span>
-                  )}
-                </div>
-                
-                {/* Dish Explanations Pill */}
-                <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
-                  <span className="font-bold">Dish Explanations: </span>
-                  {isLoadingCounters ? (
-                    <span className="animate-pulse">...</span>
-                  ) : (
-                    <span className="font-black">{userCounters.current_menu_dish_explanations}/5</span>
-                  )}
-                </div>
-                
-                {/* Plan Pill - Only show for logged in users */}
-                {user && (
-                  <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
-                    <span className="font-bold">Plan: </span>
-                    <span className="font-black">{getSubscriptionDisplayText(userCounters.subscription_type)}</span>
-                  </div>
+            {/* Desktop Pills - Show for both authenticated and anonymous users */}
+            <div className="hidden lg:flex items-center space-x-4">
+              {/* Menus Scanned Pill */}
+              <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
+                <span className="font-bold">Menus scanned: </span>
+                {isLoadingCounters && user ? (
+                  <span className="animate-pulse">...</span>
+                ) : (
+                  <span className="font-black">{effectiveCounters.scans_used}/{effectiveCounters.scans_limit}</span>
                 )}
               </div>
-            )}
+              
+              {/* Dish Explanations Pill */}
+              <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
+                <span className="font-bold">Dish Explanations: </span>
+                {isLoadingCounters && user ? (
+                  <span className="animate-pulse">...</span>
+                ) : (
+                  <span className="font-black">{effectiveCounters.current_menu_dish_explanations}/5</span>
+                )}
+              </div>
+              
+              {/* Plan Pill - Only show for logged in users */}
+              {user && (
+                <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
+                  <span className="font-bold">Plan: </span>
+                  <span className="font-black">{getSubscriptionDisplayText(effectiveCounters.subscription_type)}</span>
+                </div>
+              )}
+            </div>
 
             {/* Right side - Desktop User Section */}
             <div className="flex items-center space-x-4">
@@ -220,37 +231,35 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
             </div>
           </div>
 
-          {/* Mobile Pills Row - Only show on mobile when not loading */}
-          {!loading && (
-            <div className="lg:hidden pb-3">
-              <div className="flex flex-wrap justify-center gap-2 text-xs">
-                <div className="bg-white/50 rounded-full px-3 py-1 border border-charcoal">
-                  <span className="font-bold">Menus: </span>
-                  {isLoadingCounters ? (
-                    <span className="animate-pulse">...</span>
-                  ) : (
-                    <span className="font-black">{userCounters.scans_used}/{userCounters.scans_limit}</span>
-                  )}
-                </div>
-                
-                <div className="bg-white/50 rounded-full px-3 py-1 border border-charcoal">
-                  <span className="font-bold">Explanations: </span>
-                  {isLoadingCounters ? (
-                    <span className="animate-pulse">...</span>
-                  ) : (
-                    <span className="font-black">{userCounters.current_menu_dish_explanations}/5</span>
-                  )}
-                </div>
-                
-                {user && (
-                  <div className="bg-white/50 rounded-full px-3 py-1 border border-charcoal">
-                    <span className="font-bold">Plan: </span>
-                    <span className="font-black">{getSubscriptionDisplayText(userCounters.subscription_type)}</span>
-                  </div>
+          {/* Mobile Pills Row - Show for both authenticated and anonymous users */}
+          <div className="lg:hidden pb-3">
+            <div className="flex flex-wrap justify-center gap-2 text-xs">
+              <div className="bg-white/50 rounded-full px-3 py-1 border border-charcoal">
+                <span className="font-bold">Menus: </span>
+                {isLoadingCounters && user ? (
+                  <span className="animate-pulse">...</span>
+                ) : (
+                  <span className="font-black">{effectiveCounters.scans_used}/{effectiveCounters.scans_limit}</span>
                 )}
               </div>
+              
+              <div className="bg-white/50 rounded-full px-3 py-1 border border-charcoal">
+                <span className="font-bold">Explanations: </span>
+                {isLoadingCounters && user ? (
+                  <span className="animate-pulse">...</span>
+                ) : (
+                  <span className="font-black">{effectiveCounters.current_menu_dish_explanations}/5</span>
+                )}
+              </div>
+              
+              {user && (
+                <div className="bg-white/50 rounded-full px-3 py-1 border border-charcoal">
+                  <span className="font-bold">Plan: </span>
+                  <span className="font-black">{getSubscriptionDisplayText(effectiveCounters.subscription_type)}</span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Mobile Menu Dropdown */}
           {isMobileMenuOpen && (

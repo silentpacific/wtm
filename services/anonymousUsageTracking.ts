@@ -1,5 +1,5 @@
 // src/services/anonymousUsageTracking.ts
-// Updated for per-menu dish limits
+// Updated for per-menu dish limits with event dispatching
 
 interface AnonymousUsage {
   scansUsed: number;
@@ -7,6 +7,12 @@ interface AnonymousUsage {
   lastResetMonth: string; // Format: "2025-07"
   fingerprint: string;
 }
+
+// Helper function to dispatch update event
+const dispatchUpdateEvent = () => {
+  // Dispatch custom event to notify other components
+  window.dispatchEvent(new CustomEvent('anonymousCountersUpdated'));
+};
 
 // Generate basic browser fingerprint for abuse prevention
 const generateFingerprint = (): string => {
@@ -120,6 +126,10 @@ export const incrementAnonymousScan = (): AnonymousUsage => {
   usage.currentMenuDishExplanations = 0; // Reset dish counter for new menu
   localStorage.setItem('anonymousUsage', JSON.stringify(usage));
   console.log(`📸 Anonymous scans: ${usage.scansUsed}/5, dishes reset to 0/5`);
+  
+  // Dispatch update event
+  dispatchUpdateEvent();
+  
   return usage;
 };
 
@@ -129,6 +139,10 @@ export const incrementAnonymousExplanation = (): AnonymousUsage => {
   usage.currentMenuDishExplanations += 1;
   localStorage.setItem('anonymousUsage', JSON.stringify(usage));
   console.log(`💡 Anonymous dish explanations: ${usage.currentMenuDishExplanations}/5 (current menu)`);
+  
+  // Dispatch update event
+  dispatchUpdateEvent();
+  
   return usage;
 };
 
@@ -150,6 +164,10 @@ export const resetAnonymousDishCounter = (): AnonymousUsage => {
   usage.currentMenuDishExplanations = 0;
   localStorage.setItem('anonymousUsage', JSON.stringify(usage));
   console.log('🔄 Anonymous dish counter reset to 0/5 for new menu');
+  
+  // Dispatch update event
+  dispatchUpdateEvent();
+  
   return usage;
 };
 
@@ -172,4 +190,7 @@ export const getAnonymousLimits = () => {
 export const resetAnonymousUsage = (): void => {
   localStorage.removeItem('anonymousUsage');
   console.log('🔄 Anonymous usage reset for new account signup');
+  
+  // Dispatch update event
+  dispatchUpdateEvent();
 };
