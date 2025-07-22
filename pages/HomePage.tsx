@@ -1381,82 +1381,98 @@ const handleSignUpFromModal = () => {
     }, [handleScan]);
 
     return (
-        <div>
-            {isScanning && (
-                <div className="text-center py-28 flex flex-col items-center">
-                    <div className="inline-block animate-spin rounded-full h-20 w-20 border-t-8 border-b-8 border-coral"></div>
-                    <p className="mt-6 text-2xl text-charcoal font-bold">Analyzing your menu...</p>
-                    <p className="text-lg text-charcoal/70">this might take a moment!</p>
-                </div>
-            )}
+  <div>
+    {isScanning && (
+      <div className="text-center py-28 flex flex-col items-center">
+        <div className="inline-block animate-spin rounded-full h-20 w-20 border-t-8 border-b-8 border-coral"></div>
+        <p className="mt-6 text-2xl text-charcoal font-bold">Analyzing your menu...</p>
+        <p className="text-lg text-charcoal/70">this might take a moment!</p>
+      </div>
+    )}
 
-            {scanError && (
-                 <div className="py-28 max-w-2xl mx-auto px-4">
-                    <div className="bg-red-100 border-4 border-charcoal text-charcoal p-6 rounded-2xl relative shadow-[8px_8px_0px_#292524]" role="alert">
-                      <strong className="font-black text-2xl block">Whoops! Scan Failed!</strong>
-                      <span className="block mt-2">{scanError}</span>
-                      <button onClick={() => setScanError(null)} className='absolute -top-3 -right-3 bg-coral rounded-full p-2 border-2 border-charcoal'>
-                        <svg className="fill-current h-6 w-6 text-white" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
-                      </button>
-                    </div>
-                 </div>
-            )}
-
-            {!isScanning && !scanError && (
-              scanResult 
-                ? (
-                    <>
-                        <MenuResults 
-                            menuSections={scanResult} 
-                            restaurantInfo={restaurantInfo || undefined}
-                            onExplanationSuccess={onExplanationSuccess}
-                            userProfile={userProfile}
-                            user={user}
-                        />
-                        <div className="text-center pb-12 sm:pb-16">
-                            <button
-                                onClick={handleResetScan}
-                                className="px-10 py-4 bg-coral text-white font-bold rounded-full border-4 border-charcoal shadow-[6px_6px_0px_#292524] hover:shadow-[8px_8px_0px_#292524] active:shadow-none active:translate-x-1.5 active:translate-y-1.5 transition-all text-xl"
-                            >
-                                Scan Another Menu!
-                            </button>
-                        </div>
-                    </>
-                  )
-                : <HeroSection 
-                    onImageSelect={handleFileSelect} 
-                    onBase64Select={handleBase64Select}
-                    canScan={canScan()}
-                    onScanAttempt={handleScanAttempt}
-                  />
-            )}
-
-            <ReviewsSection />
-            {/* Only show pricing for non-paid users */}
-            {!hasActivePaidSubscription() && (
-                <PricingSection 
-                    user={user} 
-                    loadingPlan={loadingPlan} 
-                    handlePurchase={handlePurchase} 
-                />
-            )}
-            
-            ScanLimitModal 
-    isOpen={showLimitModal}
-    onClose={() => setShowLimitModal(false)}
-    userProfile={userProfile}
-    isLoggedIn={!!user}
-    onPurchase={handlePurchase}
-    onSignUp={handleSignUpFromModal}
-    loadingPlan={loadingPlan}
-/>
-
-<LoginModal 
-    isOpen={showLoginModal} 
-    onClose={() => setShowLoginModal(false)} 
-/>
+    {scanError && (
+      <div className="py-28 max-w-2xl mx-auto px-4">
+        <div
+          className="bg-red-100 border-4 border-charcoal text-charcoal p-6 rounded-2xl relative shadow-[8px_8px_0px_#292524]"
+          role="alert"
+        >
+          <strong className="font-black text-2xl block">Whoops! Scan Failed!</strong>
+          <span className="block mt-2">{scanError}</span>
+          <button
+            onClick={() => setScanError(null)}
+            className="absolute -top-3 -right-3 bg-coral rounded-full p-2 border-2 border-charcoal"
+          >
+            <svg
+              className="fill-current h-6 w-6 text-white"
+              role="button"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+            >
+              <title>Close</title>
+              <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
+            </svg>
+          </button>
         </div>
-    );
+      </div>
+    )}
+
+    {!isScanning && !scanError && (
+      scanResult ? (
+        <>
+          <MenuResults
+            menuSections={scanResult}
+            restaurantInfo={restaurantInfo || undefined}
+            onExplanationSuccess={onExplanationSuccess}
+            userProfile={userProfile}
+            user={user}
+          />
+          <div className="text-center pb-12 sm:pb-16">
+            <button
+              onClick={handleResetScan}
+              className="px-10 py-4 bg-coral text-white font-bold rounded-full border-4 border-charcoal shadow-[6px_6px_0px_#292524] hover:shadow-[8px_8px_0px_#292524] active:shadow-none active:translate-x-1.5 active:translate-y-1.5 transition-all text-xl"
+            >
+              Scan Another Menu!
+            </button>
+          </div>
+        </>
+      ) : (
+        <HeroSection
+          onImageSelect={handleFileSelect}
+          onBase64Select={handleBase64Select}
+          canScan={canScan()}
+          onScanAttempt={handleScanAttempt}
+        />
+      )
+    )}
+
+    <ReviewsSection />
+
+    {/* Only show pricing for non-paid users */}
+    {!hasActivePaidSubscription() && (
+      <PricingSection
+        user={user}
+        loadingPlan={loadingPlan}
+        handlePurchase={handlePurchase}
+      />
+    )}
+
+    <ScanLimitModal
+      isOpen={showLimitModal}
+      onClose={() => setShowLimitModal(false)}
+      userProfile={userProfile}
+      isLoggedIn={!!user}
+      onPurchase={handlePurchase}
+      onSignUp={handleSignUpFromModal}
+      loadingPlan={loadingPlan}
+    />
+
+    <LoginModal
+      isOpen={showLoginModal}
+      onClose={() => setShowLoginModal(false)}
+    />
+  </div>
+);
 };
+
 
 export default HomePage;
