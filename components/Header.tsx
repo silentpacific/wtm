@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginModal } from './LoginModal';
 import { getUserCounters, UserCounters, subscribeToCounters } from '../services/counterService';
@@ -15,6 +15,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) => {
   const { user, loading, signOut } = useAuth();
+  const location = useLocation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userCounters, setUserCounters] = useState<UserCounters>({
@@ -24,6 +25,21 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
     subscription_type: 'free'
   });
   const [isLoadingCounters, setIsLoadingCounters] = useState(false);
+
+  // Function to handle pricing link click
+  const handlePricingClick = () => {
+    if (location.pathname === '/') {
+      // If already on home page, scroll to pricing section
+      const pricingElement = document.getElementById('pricing-section');
+      if (pricingElement) {
+        pricingElement.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      // If not on home page, navigate to home with hash
+      window.location.href = '/#pricing-section';
+    }
+    closeMobileMenu();
+  };
 
   // Memoized function to load user counters
   const loadUserCounters = useCallback(async () => {
@@ -182,6 +198,37 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
               </h1>
             </Link>
 
+            {/* Desktop Navigation Links - NEW */}
+            <div className="hidden lg:flex items-center space-x-6 flex-1 justify-center">
+              <Link 
+                to="/"
+                className="font-bold text-charcoal hover:text-coral transition-colors"
+              >
+                Home
+              </Link>
+              
+              <button
+                onClick={handlePricingClick}
+                className="font-bold text-charcoal hover:text-coral transition-colors"
+              >
+                Pricing
+              </button>
+              
+              <Link 
+                to="/faq"
+                className="font-bold text-charcoal hover:text-coral transition-colors"
+              >
+                FAQ
+              </Link>
+              
+              <Link 
+                to="/contact"
+                className="font-bold text-charcoal hover:text-coral transition-colors"
+              >
+                Contact
+              </Link>
+            </div>
+
             {/* Desktop Pills - Show for both authenticated and anonymous users */}
             <div className="hidden lg:flex items-center space-x-4">
               {/* Menus Scanned Pill */}
@@ -293,7 +340,7 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
             </div>
           </div>
 
-          {/* Mobile Menu Dropdown */}
+          {/* Mobile Menu Dropdown - UPDATED */}
           {isMobileMenuOpen && (
             <div className="lg:hidden border-t-2 border-charcoal bg-cream/90 backdrop-blur-sm">
               <div className="py-4 space-y-2">
@@ -305,6 +352,14 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
                 >
                   Home
                 </Link>
+                
+                {/* NEW: Pricing Link */}
+                <button
+                  onClick={handlePricingClick}
+                  className="block w-full text-left py-3 px-4 font-bold text-charcoal hover:text-coral transition-colors border-b border-charcoal/10"
+                >
+                  Pricing
+                </button>
                 
                 {user && (
                   <Link 
