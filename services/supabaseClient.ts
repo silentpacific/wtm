@@ -22,6 +22,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+	  storage: window.localStorage, // Explicitly use localStorage
     // Add retry logic for auth requests
     retryAttempts: 2, // Reduced from 3 to avoid excessive retries
     // Increase timeout for auth requests to handle slow responses

@@ -33,29 +33,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         setMessageType('success');
         setIsResetPassword(false);
         
-      } else if (isLogin) {
-        // Sign In
-        const { error } = await signIn(email, password);
-        if (error) throw error;
-        
-        handleClose();
-        
-      } else {
-        // Sign Up
-        if (password !== confirmPassword) {
-          throw new Error('Passwords do not match');
-        }
-        
-        if (password.length < 6) {
-          throw new Error('Password must be at least 6 characters long');
-        }
-        
-        const { error } = await signUp(email, password);
-        if (error) throw error;
-        
-        setMessage('Account created! Please check your email to verify your account before signing in.');
-        setMessageType('success');
-      }
+		} else {
+		  // Sign Up
+		  if (password !== confirmPassword) {
+			throw new Error('Passwords do not match');
+		  }
+		  
+		  if (password.length < 6) {
+			throw new Error('Password must be at least 6 characters long');
+		  }
+				
+		  const { error } = await signUp(email, password);
+		  if (error) throw error;
+		  
+		  // User is now automatically logged in, close modal
+		  handleClose();
+		}
     } catch (error: any) {
       let errorMessage = error.message;
       

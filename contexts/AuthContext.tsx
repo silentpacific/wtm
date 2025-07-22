@@ -82,46 +82,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Email/Password Sign Up
-  const signUp = async (email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            source: 'whatthemenu_signup',
-            timestamp: new Date().toISOString()
-          }
+// Email/Password Sign Up with Auto-Login
+const signUp = async (email: string, password: string) => {
+  try {
+    // First, create the account
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: {
+          source: 'whatthemenu_signup',
+          timestamp: new Date().toISOString()
         }
-      });
-
-      if (error) throw error;
-
-      // If user was created successfully, send welcome email
-      if (data.user && !data.user.email_confirmed_at) {
-        console.log('New user created, sending welcome email');
-        const userName = data.user.user_metadata?.full_name || 
-                        data.user.user_metadata?.name || 
-                        data.user.email?.split('@')[0];
-        
-        // Send welcome email (don't await to avoid blocking)
-        sendWelcomeEmail(data.user.id, data.user.email!, userName)
-          .then(success => {
-            if (success) {
-              console.log('✅ Welcome email sent to new user');
-            } else {
-              console.log('❌ Failed to send welcome email');
-            }
-          });
       }
+    });
 
-      return { data, error };
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      throw error;
+    if (signUpError) throw signUpError;
+
+    // Immediately sign them in (no email verification required)
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password
+    });
+
+    if (signInError) {
+      // If sign in fails, it might be because email confirmation is required
+      // In that case, just return the signup data and let them know
+      console.log('Auto sign-in failed, email confirmation may be required:', signInError);
+      return { data: signUpData, error: null };
     }
-  };
+
+    // If we get here, user is automatically signed in
+    console.log('User created and automatically signed in');
+
+    // Send welcome email (don't await to avoid blocking)
+    if (signUpData.user) {
+      const userName = signUpData.user.user_metadata?.full_name || 
+                      signUpData.user.user_metadata?.name || 
+                      signUpData.user.email?.split('@')[0];
+      
+      sendWelcomeEmail(signUpData.user.id, signUpData.user.email!, userName)
+        .then(success => {
+          if (success) {
+            console.log('✅ Welcome email sent to new user');
+          } else {
+            console.log('❌ Failed to send welcome email');
+          }
+        });
+    }
+
+    return { data: signInData, error: null };
+  } catch (error: any) {
+    console.error('Signup error:', error);
+    throw error;
+  }
+};
 
   // Email/Password Sign In
   const signIn = async (email: string, password: string) => {

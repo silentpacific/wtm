@@ -169,7 +169,7 @@ Questions? Reply to this email or visit: https://whatthemenu.com/contact
 
   // 2. WELCOME EMAIL
   welcome: (userName: string) => {
-    const subject = "🍽️ Welcome to WhatTheMenu - Your menu scanning adventure begins!";
+    const subject = "Thanks for joining WhatTheMenu? - Get easy descriptions of food";
     
     const html = `
       <!DOCTYPE html>
@@ -186,9 +186,8 @@ Questions? Reply to this email or visit: https://whatthemenu.com/contact
           
           <!-- Welcome Header -->
           <div style="background: linear-gradient(135deg, #FF6B6B, #ff5252); padding: 40px 24px; text-align: center;">
-            <div style="font-size: 64px; margin-bottom: 10px;">🍽️</div>
             <h1 style="margin: 0; color: white; font-size: 32px; font-weight: 900; letter-spacing: -0.025em;">WhatTheMenu?</h1>
-            <p style="color: white; margin: 8px 0 0 0; opacity: 0.9; font-size: 18px; font-weight: 600;">Your AI menu translator</p>
+            <p style="color: white; margin: 8px 0 0 0; opacity: 0.9; font-size: 18px; font-weight: 600;">No More Confusing Menus</p>
           </div>
           
           <!-- Content -->
@@ -196,7 +195,7 @@ Questions? Reply to this email or visit: https://whatthemenu.com/contact
             <h2 style="margin: 0 0 20px 0; color: #292524; font-size: 28px; font-weight: 900;">Welcome aboard, ${userName}! 🎉</h2>
             
             <p style="margin: 0 0 24px 0; color: #292524; font-size: 18px; line-height: 1.6; font-weight: 500;">
-              You've just joined thousands of food lovers who never have to wonder <em>"What is this dish?"</em> again! 
+              You are never going to have wonder <em>"What is this dish?"</em> again! 
             </p>
             
             <p style="margin: 0 0 32px 0; color: #292524; font-size: 16px; line-height: 1.6;">
@@ -205,7 +204,7 @@ Questions? Reply to this email or visit: https://whatthemenu.com/contact
             
             <!-- What You Can Do -->
             <div style="background: #f0fdf4; border: 3px solid #1DD1A1; border-radius: 12px; padding: 24px; margin: 32px 0;">
-              <h3 style="color: #1DD1A1; margin: 0 0 20px 0; font-size: 20px; font-weight: 900;">🚀 What You Can Do Right Now</h3>
+              <h3 style="color: #1DD1A1; margin: 0 0 20px 0; font-size: 20px; font-weight: 900;">What You Can Do Right Now</h3>
               
               <div style="space-y: 16px;">
                 <div style="display: flex; align-items: start; margin-bottom: 16px;">
@@ -219,7 +218,7 @@ Questions? Reply to this email or visit: https://whatthemenu.com/contact
                 <div style="display: flex; align-items: start; margin-bottom: 16px;">
                   <div style="background: #1DD1A1; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; margin-right: 16px; flex-shrink: 0;">🤖</div>
                   <div>
-                    <div style="font-weight: 700; color: #292524; font-size: 16px; margin-bottom: 4px;">Get AI dish explanations</div>
+                    <div style="font-weight: 700; color: #292524; font-size: 16px; margin-bottom: 4px;">Get dish explanations</div>
                     <div style="color: #57534e; font-size: 14px; line-height: 1.4;">Up to 5 dishes per menu, with ingredients and cooking methods</div>
                   </div>
                 </div>
@@ -227,16 +226,16 @@ Questions? Reply to this email or visit: https://whatthemenu.com/contact
                 <div style="display: flex; align-items: start; margin-bottom: 16px;">
                   <div style="background: #1DD1A1; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; margin-right: 16px; flex-shrink: 0;">🚨</div>
                   <div>
-                    <div style="font-weight: 700; color: #292524; font-size: 16px; margin-bottom: 4px;">Spot allergens instantly</div>
-                    <div style="color: #57534e; font-size: 14px; line-height: 1.4;">Never worry about hidden ingredients again</div>
+                    <div style="font-weight: 700; color: #292524; font-size: 16px; margin-bottom: 4px;">Spot probability of allergens instantly</div>
+                    <div style="color: #57534e; font-size: 14px; line-height: 1.4;">Always ask your waiter, though!</div>
                   </div>
                 </div>
                 
                 <div style="display: flex; align-items: start;">
                   <div style="background: #1DD1A1; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; margin-right: 16px; flex-shrink: 0;">🌍</div>
                   <div>
-                    <div style="font-weight: 700; color: #292524; font-size: 16px; margin-bottom: 4px;">Works in any language</div>
-                    <div style="color: #57534e; font-size: 14px; line-height: 1.4;">From Japanese ramen bars to French bistros</div>
+                    <div style="font-weight: 700; color: #292524; font-size: 16px; margin-bottom: 4px;">Scans menu of all major languages</div>
+                    <div style="color: #57534e; font-size: 14px; line-height: 1.4;">Get explanations in English, Chinese, Spanish, and French</div>
                   </div>
                 </div>
               </div>
@@ -248,17 +247,17 @@ Questions? Reply to this email or visit: https://whatthemenu.com/contact
               
               <div style="display: flex; align-items: center; margin-bottom: 16px;">
                 <div style="background: #FF6B6B; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; margin-right: 12px;">1</div>
-                <span style="font-weight: 600; color: #292524;">Snap a photo of any menu</span>
+                <span style="font-weight: 600; color: #292524;">Take a photo of any menu</span>
               </div>
               
               <div style="display: flex; align-items: center; margin-bottom: 16px;">
                 <div style="background: #FF6B6B; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; margin-right: 12px;">2</div>
-                <span style="font-weight: 600; color: #292524;">Click on any dish you're curious about</span>
+                <span style="font-weight: 600; color: #292524;">Tap on any dish you're curious about</span>
               </div>
               
               <div style="display: flex; align-items: center;">
                 <div style="background: #FF6B6B; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; margin-right: 12px;">3</div>
-                <span style="font-weight: 600; color: #292524;">Get instant explanations and allergen info!</span>
+                <span style="font-weight: 600; color: #292524;">Get explanations and allergen info in a few seconds!</span>
               </div>
             </div>
             
@@ -275,14 +274,14 @@ Questions? Reply to this email or visit: https://whatthemenu.com/contact
                         font-size: 18px;
                         border: 3px solid #292524;
                         box-shadow: 4px 4px 0px #292524;">
-                Scan Your First Menu! 🍽️
+                Scan Your First Menu!
               </a>
             </div>
             
             <!-- Important Safety Note -->
-            <div style="background: #FFC700; border: 2px solid #d97706; border-radius: 12px; padding: 20px; margin: 32px 0; text-align: center;">
+            <div style="background: #FFFCF5; border: 2px solid #ED1C24; border-radius: 12px; padding: 20px; margin: 32px 0; text-align: center;">
               <p style="margin: 0; color: #292524; font-weight: 900; font-size: 16px;">
-                ⚠️ <strong>Safety First!</strong> Always double-check with the restaurant about allergens. Our AI is smart, but your safety is paramount!
+                ⚠️ <strong>Safety First!</strong> ALWAYS DOUBLE CHECK WITH THE RESTAURANT about allergens. Our AI-generated data is great, but it can make mistakes! Your safety is paramount!
               </p>
             </div>
             
@@ -292,8 +291,8 @@ Questions? Reply to this email or visit: https://whatthemenu.com/contact
             </p>
             
             <p style="margin: 16px 0 0 0; color: #292524; font-size: 16px; font-weight: 600;">
-              Happy dining! 🥘<br>
-              The WhatTheMenu Team
+              Happy dining!<br>
+              WhatTheMenu?
             </p>
             
             <p style="margin: 24px 0 0 0; color: #78716c; font-size: 14px; font-style: italic;">
