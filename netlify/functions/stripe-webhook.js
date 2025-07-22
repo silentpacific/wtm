@@ -1,8 +1,10 @@
 // netlify/functions/stripe-webhook.js
-// Updated to handle new scan limits for paid users
+// Updated to use shared email templates
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { createClient } = require('@supabase/supabase-js');
+const { EmailService } = require('./shared/emailService');
+const { emailTemplates } = require('./shared/emailTemplates');
 
 // Use SERVICE_ROLE_KEY for database operations (bypasses RLS)
 const supabase = createClient(
@@ -11,150 +13,6 @@ const supabase = createClient(
 );
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-// Email service functions
-const sendEmail = async (emailData) => {
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: emailData.from || 'WhatTheMenu <hello@whatthemenu.com>',
-        to: emailData.to,
-        subject: emailData.subject,
-        html: emailData.html,
-        text: emailData.text,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Resend API error:', errorText);
-      return { success: false, error: `HTTP ${response.status}: ${errorText}` };
-    }
-
-    const result = await response.json();
-    return { success: true, id: result.id };
-
-  } catch (error) {
-    console.error('Email sending error:', error);
-    return { 
-      success: false, 
-      error: error.message || 'Unknown error' 
-    };
-  }
-};
-
-const logEmailSend = async (emailType, recipient, success, emailId, error) => {
-  try {
-    await supabase
-      .from('email_logs')
-      .insert({
-        email_type: emailType,
-        recipient: recipient,
-        success: success,
-        resend_id: emailId,
-        error_message: error,
-        sent_at: new Date().toISOString()
-      });
-  } catch (logError) {
-    console.error('Failed to log email send:', logError);
-    // Don't throw - logging failure shouldn't break email sending
-  }
-};
-
-const generatePurchaseConfirmationEmail = (userName, planName, amount, expiryDate, scanLimit) => {
-  const subject = "Thank you for your WhatTheMenu purchase!";
-  
-  // Determine what's unlocked based on plan
-  const planFeatures = planName === 'Daily Plan' ? 
-    ['10 menu scans in 24 hours', 'Unlimited dish explanations per scan'] :
-    ['70 menu scans in 7 days', 'Unlimited dish explanations per scan'];
-  
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Purchase Confirmation</title>
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 40px 20px; text-align: center; border-radius: 12px; margin-bottom: 30px;">
-        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Thank You!</h1>
-        <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Your purchase was successful</p>
-      </div>
-      
-      <div style="background: white; padding: 30px; border-radius: 12px; border: 4px solid #292524; box-shadow: 8px 8px 0px #292524;">
-        <h2 style="color: #292524; margin-top: 0;">Hi ${userName}!</h2>
-        
-        <p>Thank you for upgrading to <strong>${planName}</strong>! Your payment has been processed successfully and you now have access to increased limits.</p>
-        
-        <div style="background: #f0fdf4; border: 2px solid #10b981; border-radius: 8px; padding: 20px; margin: 30px 0;">
-          <h3 style="color: #059669; margin-top: 0;">Purchase Details</h3>
-          <ul style="list-style: none; padding: 0;">
-            <li style="padding: 8px 0; border-bottom: 1px solid #e5e5e5;"><strong>Plan:</strong> ${planName}</li>
-            <li style="padding: 8px 0; border-bottom: 1px solid #e5e5e5;"><strong>Amount:</strong> $${(amount / 100).toFixed(2)}</li>
-            <li style="padding: 8px 0;"><strong>Valid Until:</strong> ${expiryDate}</li>
-          </ul>
-        </div>
-        
-        <h3 style="color: #ff6b6b; margin-top: 30px;">What's Unlocked:</h3>
-        <ul style="padding-left: 20px;">
-          ${planFeatures.map(feature => `<li><strong>${feature}</strong></li>`).join('')}
-          <li><strong>All major languages</strong> - Instant dish explanations</li>
-          <li><strong>Priority support</strong> - Get help faster when you need it</li>
-        </ul>
-        
-        <div style="background: #fef3f3; border: 2px solid #ff6b6b; border-radius: 8px; padding: 20px; margin: 30px 0; text-align: center;">
-          <h3 style="color: #ff6b6b; margin-top: 0;">Ready to Explore?</h3>
-          <p style="margin-bottom: 20px;">Start using your ${scanLimit} scans right away:</p>
-          <a href="https://whatthemenu.com" style="display: inline-block; background: #ff6b6b; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; border: 3px solid #292524; box-shadow: 4px 4px 0px #292524;">Start Scanning Menus</a>
-        </div>
-        
-        <div style="border-top: 2px solid #f0f0f0; padding-top: 20px; margin-top: 30px; text-align: center;">
-          <p style="color: #666; font-size: 14px;">
-            Questions about your purchase? Reply to this email or visit our <a href="https://whatthemenu.com/contact" style="color: #ff6b6b;">support page</a>.
-          </p>
-        </div>
-      </div>
-      
-      <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
-        <p>© 2025 WhatTheMenu. Made with ❤️ in Adelaide, Australia.</p>
-      </div>
-    </body>
-    </html>
-  `;
-
-  const text = `
-Thank You for Your Purchase!
-
-Hi ${userName}!
-
-Thank you for upgrading to ${planName}! Your payment has been processed successfully and you now have access to increased scan limits.
-
-Purchase Details:
-• Plan: ${planName}
-• Amount: $${(amount / 100).toFixed(2)}
-• Valid Until: ${expiryDate}
-
-What's Unlocked:
-${planFeatures.map(feature => `• ${feature}`).join('\n')}
-• All major languages - Instant dish explanations
-• Priority support - Get help faster when you need it
-
-Ready to explore? Start using your ${scanLimit} scans: https://whatthemenu.com
-
-Questions about your purchase? Reply to this email or visit our support page: https://whatthemenu.com/contact
-
-© 2025 WhatTheMenu. Made with ❤️ in Adelaide, Australia.
-  `;
-
-  return { subject, html, text };
-};
 
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
@@ -225,8 +83,6 @@ async function handleCheckoutSessionCompleted(session) {
   }
 
   // Update user profile with SERVICE_ROLE_KEY
-  // NOTE: We don't update scans_limit here since it's now calculated dynamically
-  // We also reset scans_used to 0 when user purchases a new plan
   const { error: updateError } = await supabase
     .from('user_profiles')
     .update({
@@ -273,10 +129,12 @@ async function handleCheckoutSessionCompleted(session) {
   if (profileError || !userProfile?.email) {
     console.error('Could not find user email for purchase confirmation:', profileError);
   } else {
-    // Send purchase confirmation email with new scan limits
+    // Initialize email service
+    const emailService = new EmailService(process.env.RESEND_API_KEY);
+
+    // Send purchase confirmation email using SHARED template
     const userName = userProfile.email.split('@')[0];
     const planName = planType === 'weekly' ? 'Weekly Plan' : 'Daily Plan';
-    const scanLimit = planType === 'weekly' ? '70 scans' : '10 scans';
     const expiryDate = expirationDate.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -285,12 +143,12 @@ async function handleCheckoutSessionCompleted(session) {
       minute: '2-digit'
     });
 
-    const emailTemplate = generatePurchaseConfirmationEmail(
+    // Use the shared email template instead of inline function
+    const emailTemplate = emailTemplates.purchaseConfirmation(
       userName,
       planName,
       session.amount_total,
-      expiryDate,
-      scanLimit
+      expiryDate
     );
 
     const emailData = {
@@ -300,10 +158,11 @@ async function handleCheckoutSessionCompleted(session) {
       text: emailTemplate.text
     };
 
-    const emailResult = await sendEmail(emailData);
+    const emailResult = await emailService.sendEmail(emailData);
 
-    // Log the email send
-    await logEmailSend(
+    // Log the email send using shared service
+    await emailService.logEmailSend(
+      supabase,
       'purchase_confirmation',
       userProfile.email,
       emailResult.success,

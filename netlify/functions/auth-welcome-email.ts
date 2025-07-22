@@ -1,4 +1,6 @@
 // netlify/functions/auth-welcome-email.ts
+// Final version with correct template call
+
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { EmailService } from './shared/emailService';
@@ -76,11 +78,28 @@ const handler: Handler = async (event, context) => {
     let userName = user.user_metadata?.full_name || user.email.split('@')[0];
     console.log('User name:', userName);
 
+    // Check if welcome email already sent (prevent duplicates)
+    const { data: existingLog } = await supabase
+      .from('email_logs')
+      .select('id')
+      .eq('email_type', 'welcome')
+      .eq('recipient', user.email)
+      .eq('success', true)
+      .single();
+
+    if (existingLog) {
+      console.log('Welcome email already sent to', user.email);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Welcome email already sent' }),
+      };
+    }
+
     // Create user profile in our custom table
     try {
       const { error: profileError } = await supabase
         .from('user_profiles')
-        .insert({
+        .upsert({
           id: user.id,
           email: user.email,
           full_name: user.user_metadata?.full_name || null,
@@ -88,8 +107,20 @@ const handler: Handler = async (event, context) => {
           scans_used: 0,
           scans_limit: 5,
           current_menu_dish_explanations: 0,
+          lifetime_menus_scanned: 0,
+          lifetime_dishes_explained: 0,
+          lifetime_restaurants_visited: 0,
+          lifetime_countries_explored: 0,
+          current_month_menus: 0,
+          current_month_dishes: 0,
+          current_month_restaurants: 0,
+          current_month_countries: 0,
+          usage_month: new Date().toISOString().slice(0, 7), // YYYY-MM format
+          subscription_status: 'inactive',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id'
         });
 
       if (profileError) {
@@ -102,8 +133,8 @@ const handler: Handler = async (event, context) => {
       console.error('Error creating user profile:', profileErr);
     }
 
-    // Generate welcome email (no verification link needed for magic link flow)
-    const welcomeTemplate = emailTemplates.welcome(userName, null);
+    // Generate welcome email using new template (note: only needs userName parameter)
+    const welcomeTemplate = emailTemplates.welcome(userName);
     
     const emailData = {
       to: [user.email],
@@ -118,10 +149,10 @@ const handler: Handler = async (event, context) => {
     const emailResult = await emailService.sendEmail(emailData);
     console.log('Email result:', emailResult);
 
-    // Log the email send
+    // Log the email send (changed from 'welcome_email' to 'welcome' to match other templates)
     await emailService.logEmailSend(
       supabase,
-      'welcome_email',
+      'welcome',
       user.email,
       emailResult.success,
       emailResult.id,
