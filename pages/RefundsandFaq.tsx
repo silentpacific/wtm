@@ -364,7 +364,7 @@ export const FaqPage: React.FC = () => {
 
         <FaqSection title="Refunds" emoji="💸">
             <FaqQuestion question="Can I get a refund?">
-                <p>Check out our <a href="/refunds" className="text-coral hover:underline">Refunds Policy</a> for full details. Short version: we refund for technical issues on our end, but not for change of mind or if you've already used your pass successfully.</p>
+                <p>Check out our <a href="/refund-policy" className="text-coral hover:underline">Refunds Policy</a> for full details. Short version: we refund for technical issues on our end, but not for change of mind or if you've already used your pass successfully.</p>
             </FaqQuestion>
 
             <FaqQuestion question="How long do I have to request a refund?">

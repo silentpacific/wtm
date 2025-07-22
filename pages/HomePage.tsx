@@ -1102,7 +1102,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
       } finally {
         setLoadingPlan(null);
       }
-    };
+    }, [user]);
 
     // Check if user has active paid subscription - moved inside component
     const hasActivePaidSubscription = useCallback(() => {
@@ -1367,7 +1367,13 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
 
             <ReviewsSection />
             {/* Only show pricing for non-paid users */}
-            {!hasActivePaidSubscription() && <PricingSection user={user} loadingPlan={loadingPlan} onPurchase={handlePurchase} />}
+            {!hasActivePaidSubscription() && (
+                <PricingSection 
+                    user={user} 
+                    loadingPlan={loadingPlan} 
+                    handlePurchase={handlePurchase} 
+                />
+            )}
             
             <ScanLimitModal 
                 isOpen={showLimitModal}
