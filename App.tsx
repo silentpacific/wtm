@@ -1,9 +1,10 @@
-// Updated App.tsx - Added scroll to top on route changes
+// Updated App.tsx - Added Profile route and scroll to top on route changes
 
 import React, { useState, useCallback, useEffect, type FC } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
+import UserProfile from './pages/UserProfile';
 import { PrivacyPolicyPage, TermsOfUsePage } from './pages/LegalPages';
 import { FaqPage, RefundsPolicyPage } from './pages/RefundsandFaq';
 import { AuthProvider } from './contexts/AuthContext';
@@ -193,6 +194,7 @@ const AppContent: FC = () => {
             } 
           />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/profile" element={<UserProfile />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfUsePage />} />
           <Route path="/faq" element={<FaqPage />} />

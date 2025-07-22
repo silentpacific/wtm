@@ -1,426 +1,121 @@
-// Fixed Header component with logo link and scroll fixes
-
 import React, { useState, useEffect } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginModal } from './LoginModal';
-import { getOrCreateEnhancedUserProfile, getEnhancedUsageSummary, EnhancedUserProfile } from '../services/enhancedUsageTracking';
-import { getAnonymousLimits } from '../services/anonymousUsageTracking';
-import { UsageSummary } from '../types';
-
-const scrollToPricing = () => {
-  const pricingSection = document.querySelector('#pricing-section');
-  if (pricingSection) {
-    // Get the position of the pricing section
-    const rect = pricingSection.getBoundingClientRect();
-    const absoluteTop = window.pageYOffset + rect.top;
-    
-    // Scroll to a few pixels above the heading (accounting for sticky header)
-    const headerHeight = 80; // Approximate header height
-    const extraPadding = 20; // Extra pixels above the heading
-    const targetPosition = absoluteTop - headerHeight - extraPadding;
-    
-    window.scrollTo({ 
-      top: Math.max(0, targetPosition), // Ensure we don't scroll to negative position
-      behavior: 'smooth' 
-    });
-  } else {
-    // Fallback: scroll to bottom where pricing usually is
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-  }
-};
+import { getUserCounters, UserCounters } from '../services/counterService';
 
 interface HeaderProps {
-  // Optional props for triggering counter updates
-  onCounterUpdate?: number;
+  onCounterUpdate?: number; // Trigger to refresh counters
 }
 
 const Header: React.FC<HeaderProps> = ({ onCounterUpdate }) => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [userProfile, setUserProfile] = useState<EnhancedUserProfile | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [usage, setUsage] = useState<UsageSummary>({
-    scansUsed: 0,
-    scansLimit: 5,
-    explanationsUsed: 0,
-    explanationsLimit: 5,
-    hasUnlimited: false,
-    canScan: true,
-    timeRemaining: null
+  const { user, loading } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [userCounters, setUserCounters] = useState<UserCounters>({
+    scans_used: 0,
+    scans_limit: 5,
+    current_menu_dish_explanations: 0,
+    subscription_type: 'free'
   });
 
-  // Fetch user profile and calculate usage
-  const updateUsageData = async () => {
-    if (user) {
-      setLoading(true);
-      try {
-        const profile = await getOrCreateEnhancedUserProfile(user.id, user.email || undefined);
-        setUserProfile(profile);
-        const usageSummary = getEnhancedUsageSummary(profile);
-        setUsage(usageSummary);
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // Anonymous user
-      setUserProfile(null);
-      const anonymousUsage = getAnonymousLimits();
-      setUsage(anonymousUsage);
-    }
-  };
-
-  // Update usage when user changes or when counter update is triggered
+  // Load user counters when user changes or when triggered
   useEffect(() => {
-    updateUsageData();
-  }, [user, onCounterUpdate]);
-
-  // Close mobile menu when clicking outside or on navigation
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowMobileMenu(false);
+    const loadUserCounters = async () => {
+      if (user) {
+        try {
+          const counters = await getUserCounters(user.id);
+          setUserCounters(counters);
+        } catch (error) {
+          console.error('Error loading user counters:', error);
+        }
       }
     };
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, []);
+    if (user) {
+      loadUserCounters();
+    }
+  }, [user, onCounterUpdate]);
 
-  // Format time remaining for unlimited users
-  const formatTimeRemaining = (ms: number) => {
-    const hours = Math.floor(ms / (1000 * 60 * 60));
-    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hours > 24) {
-      const days = Math.floor(hours / 24);
-      return `${days}d ${hours % 24}h`;
-    }
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
+  const handleLoginClick = () => {
+    setIsLoginModalOpen(true);
   };
 
-  // Format expiry date in user's current timezone (for travelers)
-  const formatExpiryInCurrentTimezone = (expiryDateString: string) => {
-    try {
-      const expiryDate = new Date(expiryDateString);
-      const now = new Date();
-      
-      // If expired, return expired message
-      if (expiryDate <= now) {
-        return 'expired';
-      }
-      
-      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
-      // Calculate time difference
-      const msRemaining = expiryDate.getTime() - now.getTime();
-      const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
-      const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-      
-      // Format the expiry time in user's current timezone
-      const formattedTime = expiryDate.toLocaleString('en-US', {
-        timeZone: userTimezone,
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-      
-      // Return time remaining + formatted expiry time
-      if (hoursRemaining > 24) {
-        const days = Math.floor(hoursRemaining / 24);
-        return `${days}d ${hoursRemaining % 24}h - expires ${formattedTime}`;
-      } else if (hoursRemaining > 0) {
-        return `${hoursRemaining}h ${minutesRemaining}m - expires ${formattedTime}`;
-      } else {
-        return `${minutesRemaining}m - expires ${formattedTime}`;
-      }
-    } catch (error) {
-      console.error('Error formatting expiry date:', error);
-      // Fallback to simple time remaining
-      return usage.timeRemaining ? formatTimeRemaining(usage.timeRemaining) : 'active';
-    }
-  };
-
-  // Handle mobile menu functions
-  const handlePricingClick = () => {
-    setShowMobileMenu(false); // Close menu
-    // If not on home page, navigate to home first
-    if (window.location.pathname !== '/') {
-      navigate('/');
-      // Wait for navigation, then scroll
-      setTimeout(() => {
-        scrollToPricing();
-      }, 100);
-    } else {
-      scrollToPricing();
-    }
-  };
-
-  const handleLinkClick = () => {
-    setShowMobileMenu(false); // Close menu when link is clicked
-    window.scrollTo(0, 0); // Scroll to top
-  };
-
-  // FIXED: Logo click handler
-  const handleLogoClick = () => {
-    window.scrollTo(0, 0);
+  const handleCloseModal = () => {
+    setIsLoginModalOpen(false);
   };
 
   return (
     <>
-      <header className="bg-cream/80 backdrop-blur-sm sticky top-0 z-40 w-full border-b-4 border-charcoal">
+      <header className="bg-yellow border-b-4 border-charcoal sticky top-0 z-40">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          
-          {/* First Line: Hamburger + Logo + Desktop Nav + Desktop Counters + Auth Buttons */}
-          <div className="flex items-center justify-between h-16 lg:h-20">
-            
-            {/* Left Section: Hamburger + Logo + Desktop Nav */}
+          <div className="flex justify-between items-center py-4">
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-2 group">
+              <div className="text-3xl sm:text-4xl font-black text-charcoal group-hover:text-coral transition-colors">
+                🍽️
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black text-charcoal group-hover:text-coral transition-colors">
+                  What The Menu?
+                </h1>
+                <p className="text-xs sm:text-sm font-bold text-charcoal/70 hidden sm:block">
+                  AI-powered menu translator
+                </p>
+              </div>
+            </Link>
+
+            {/* User Section */}
             <div className="flex items-center space-x-4">
-              {/* Hamburger Menu Button - Mobile Only */}
-              <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="md:hidden flex flex-col justify-center items-center w-8 h-8 space-y-1"
-                aria-label="Toggle menu"
-              >
-                <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${showMobileMenu ? 'rotate-45 translate-y-1.5' : ''}`}></span>
-                <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${showMobileMenu ? 'opacity-0' : ''}`}></span>
-                <span className={`block w-6 h-0.5 bg-charcoal transition-all duration-300 ${showMobileMenu ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
-              </button>
-              
-              {/* FIXED: Logo with proper navigation */}
-              <Link 
-                to="/" 
-                onClick={handleLogoClick}
-                className="text-2xl lg:text-3xl font-black text-charcoal tracking-tighter hover:text-coral transition-colors"
-              >
-                WhatTheMenu?
-              </Link>
-              
-              {/* Desktop Navigation */}
-              <nav className="hidden md:flex space-x-6 ml-8">
-                <NavLink 
-                  to="/faq" 
-                  onClick={() => window.scrollTo(0, 0)}
-                  className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}
-                >
-                  FAQ
-                </NavLink>
-                <NavLink 
-                  to="/contact" 
-                  onClick={() => window.scrollTo(0, 0)}
-                  className={({ isActive }) => `text-lg font-bold ${isActive ? 'text-coral' : 'text-charcoal/70 hover:text-charcoal'}`}
-                >
-                  Contact
-                </NavLink>
-              </nav>
-            </div>
-
-            {/* Desktop Counters - Centered between logo and auth */}
-            <div className="hidden lg:flex items-center gap-4">
-              {usage.hasUnlimited ? (
-                // Unlimited users - single green pill with timezone-aware expiry
-                <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-green-50 text-green-700 border-green-300">
-                  Unlimited scans. Enjoy your meal
-                  {userProfile?.subscription_expires_at && (
-                    <span className="ml-2 text-xs opacity-75">
-                      ({formatExpiryInCurrentTimezone(userProfile.subscription_expires_at)})
-                    </span>
-                  )}
+              {loading ? (
+                <div className="animate-pulse">
+                  <div className="h-8 w-20 bg-charcoal/20 rounded"></div>
                 </div>
-              ) : usage.scansUsed >= (usage.scansLimit as number) ? (
-                // Limit reached - upgrade pill
-                <button 
-                  onClick={scrollToPricing}
-                  className="px-4 py-2 rounded-full border-2 text-sm font-medium bg-green-50 text-green-700 border-green-300 hover:bg-green-100 transition-colors cursor-pointer"
+              ) : user ? (
+                <div className="flex items-center space-x-4">
+                  {/* User Stats */}
+                  <div className="hidden sm:flex items-center space-x-3 text-sm">
+                    <div className="bg-white/50 rounded-full px-3 py-1 border-2 border-charcoal">
+                      <span className="font-bold">Scans: </span>
+                      <span className="font-black">{userCounters.scans_used}/{userCounters.scans_limit}</span>
+                    </div>
+                    <div className="bg-white/50 rounded-full px-3 py-1 border-2 border-charcoal">
+                      <span className="font-bold">Plan: </span>
+                      <span className="font-black capitalize">{userCounters.subscription_type}</span>
+                    </div>
+                  </div>
+
+                  {/* Mobile Stats */}
+                  <div className="sm:hidden flex items-center space-x-2 text-xs">
+                    <div className="bg-white/50 rounded-full px-2 py-1 border border-charcoal">
+                      <span className="font-black">{userCounters.scans_used}/{userCounters.scans_limit}</span>
+                    </div>
+                  </div>
+
+                  {/* Profile Link */}
+                  <Link 
+                    to="/profile"
+                    className="flex items-center space-x-2 px-3 py-2 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 transition-colors shadow-[2px_2px_0px_#292524] hover:shadow-[4px_4px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1"
+                  >
+                    <div className="text-lg">👤</div>
+                    <span className="hidden sm:inline">Profile</span>
+                  </Link>
+                </div>
+              ) : (
+                <button
+                  onClick={handleLoginClick}
+                  className="px-4 py-2 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 transition-colors shadow-[2px_2px_0px_#292524] hover:shadow-[4px_4px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1"
                 >
-                  Purchase one of our plans to continue scanning
+                  Sign In
                 </button>
-              ) : (
-                // Normal usage - two grey pills with "Free User Limits" label
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-bold text-charcoal/70">Free User Limits</span>
-                  <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-gray-50 text-gray-700 border-gray-300">
-                    Menus Scanned: {usage.scansUsed}/{usage.scansLimit}
-                  </div>
-                  <div className="px-4 py-2 rounded-full border-2 text-sm font-medium select-none bg-gray-50 text-gray-700 border-gray-300">
-                    Dish Explanations: {usage.explanationsUsed}/{usage.explanationsLimit}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Auth Buttons */}
-            <div className="flex items-center space-x-2">
-              {user ? (
-                <div className="flex items-center space-x-2">
-                  <span className="hidden sm:inline text-sm font-bold text-charcoal/70">
-                    {userProfile ? `Welcome, ${user.email?.split('@')[0]}` : 'Loading...'}
-                  </span>
-                  <button 
-                    onClick={signOut}
-                    className="px-3 py-2 text-sm lg:text-lg font-bold text-charcoal hover:text-coral transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button 
-                    onClick={() => setShowLoginModal(true)}
-                    className="hidden sm:inline-block px-3 py-2 text-sm lg:text-lg font-bold text-charcoal hover:text-coral transition-colors"
-                  >
-                    Login
-                  </button>
-                  <button 
-                    onClick={() => setShowLoginModal(true)}
-                    className="px-3 py-2 text-sm lg:text-lg font-bold text-white bg-coral rounded-full border-2 lg:border-4 border-charcoal shadow-[2px_2px_0px_#292524] lg:shadow-[4px_4px_0px_#292524] hover:shadow-[4px_4px_0px_#292524] lg:hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
-                  >
-                    Sign Up
-                  </button>
-                </>
               )}
             </div>
           </div>
-
-          {/* Second Line: Mobile Counters (only visible on mobile) */}
-          <div className="lg:hidden border-t border-charcoal/20 py-2">
-            <div className="flex flex-col items-center gap-2 text-xs">
-              {usage.hasUnlimited ? (
-                // Unlimited users - mobile version with timezone-aware expiry
-                <div className="px-3 py-1 rounded-full bg-green-50 text-green-700 font-medium text-center">
-                  <div>Unlimited scans. Enjoy your meal</div>
-                  {userProfile?.subscription_expires_at && (
-                    <div className="text-xs opacity-75 mt-1">
-                      {formatExpiryInCurrentTimezone(userProfile.subscription_expires_at)}
-                    </div>
-                  )}
-                </div>
-              ) : usage.scansUsed >= (usage.scansLimit as number) ? (
-                // Limit reached - upgrade pill
-                <button 
-                  onClick={scrollToPricing}
-                  className="px-3 py-1 rounded-full bg-green-50 text-green-700 font-medium text-center hover:bg-green-100 transition-colors cursor-pointer"
-                >
-                  Purchase one of our plans to continue scanning
-                </button>
-              ) : (
-                // Normal usage - label + two grey pills
-                <>
-                  <span className="text-xs font-bold text-charcoal/70">Free User Limits</span>
-                  <div className="flex items-center gap-4">
-                    <div className="px-3 py-1 rounded-full bg-gray-50 text-gray-700 font-medium">
-                      Menus: {usage.scansUsed}/{usage.scansLimit}
-                    </div>
-                    <div className="px-3 py-1 rounded-full bg-gray-50 text-gray-700 font-medium">
-                      Dishes: {usage.explanationsUsed}/{usage.explanationsLimit}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
-      {showMobileMenu && (
-        <div className="md:hidden fixed inset-0 z-50 bg-charcoal/50" onClick={() => setShowMobileMenu(false)}>
-          <div 
-            className="fixed top-0 left-0 h-full w-80 bg-cream border-r-4 border-charcoal shadow-[8px_0px_16px_rgba(0,0,0,0.1)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              {/* Close button */}
-              <button
-                onClick={() => setShowMobileMenu(false)}
-                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-charcoal hover:text-coral"
-                aria-label="Close menu"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-
-              {/* Menu Title */}
-              <h2 className="text-2xl font-black text-charcoal mb-8 mt-4">Menu</h2>
-
-              {/* Menu Items */}
-              <nav className="space-y-4">
-                <button
-                  onClick={handlePricingClick}
-                  className="block w-full text-left text-lg font-bold text-charcoal hover:text-coral transition-colors py-2"
-                >
-                  Pricing
-                </button>
-                
-                <NavLink
-                  to="/faq"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
-                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
-                  }`}
-                >
-                  FAQ
-                </NavLink>
-                
-                <NavLink
-                  to="/terms"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
-                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
-                  }`}
-                >
-                  Terms of Use
-                </NavLink>
-                
-                <NavLink
-                  to="/privacy-policy"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
-                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
-                  }`}
-                >
-                  Privacy Policy
-                </NavLink>
-                
-                <NavLink
-                  to="/refund-policy"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
-                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
-                  }`}
-                >
-                  Refund Policy
-                </NavLink>
-                
-                <NavLink
-                  to="/contact"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) => `block text-lg font-bold py-2 transition-colors ${
-                    isActive ? 'text-coral' : 'text-charcoal hover:text-coral'
-                  }`}
-                >
-                  Contact
-                </NavLink>
-              </nav>
-            </div>
-          </div>
-        </div>
-      )}
-      
       <LoginModal 
-        isOpen={showLoginModal} 
-        onClose={() => setShowLoginModal(false)} 
+        isOpen={isLoginModalOpen} 
+        onClose={handleCloseModal} 
       />
     </>
   );

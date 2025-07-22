@@ -6,10 +6,9 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<any>;
-  signIn: (email: string, password: string) => Promise<any>;
+  signUpWithMagicLink: (email: string) => Promise<any>;
+  signInWithMagicLink: (email: string) => Promise<any>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -32,34 +31,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Handle the auth event types for magic link flow
+        if (event === 'SIGNED_IN') {
+          console.log('User signed in successfully');
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed');
+        }
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    return await supabase.auth.signUp({ email, password });
+  const signUpWithMagicLink = async (email: string) => {
+    return await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}`,
+        shouldCreateUser: true, // This allows new user creation
+      }
+    });
   };
 
-  const signIn = async (email: string, password: string) => {
-    return await supabase.auth.signInWithPassword({ email, password });
+  const signInWithMagicLink = async (email: string) => {
+    return await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}`,
+        shouldCreateUser: false, // This prevents new user creation for sign-in
+      }
+    });
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
-  const resetPassword = async (email: string) => {
-    return await supabase.auth.resetPasswordForEmail(email);
-  };
-
   return (
     <AuthContext.Provider value={{
-      user, session, loading, signUp, signIn, signOut, resetPassword
+      user, 
+      session, 
+      loading, 
+      signUpWithMagicLink, 
+      signInWithMagicLink, 
+      signOut
     }}>
       {children}
     </AuthContext.Provider>

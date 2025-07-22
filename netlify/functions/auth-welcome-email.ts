@@ -19,19 +19,19 @@ const handler: Handler = async (event, context) => {
 
   try {
     // Log incoming webhook for debugging
-    console.log('Webhook received!');
+    console.log('Auth webhook received!');
     console.log('Headers:', JSON.stringify(event.headers, null, 2));
     console.log('Body:', event.body);
 
-    // Parse the webhook payload from Supabase
+    // Parse the webhook payload from Supabase Auth
     const payload = JSON.parse(event.body || '{}');
     console.log('Parsed payload:', JSON.stringify(payload, null, 2));
     
-    // Validate webhook signature - Supabase Database Webhooks use different auth
+    // Validate webhook signature
     const authHeader = event.headers['authorization'];
     const expectedSecret = process.env.SUPABASE_AUTH_WEBHOOK_SECRET;
     
-    // Check if auth header matches our secret (case insensitive)
+    // Check if auth header matches our secret
     const expectedAuthHeader = `Bearer ${expectedSecret}`;
     if (expectedSecret && authHeader?.toLowerCase() !== expectedAuthHeader.toLowerCase()) {
       console.error('Invalid webhook signature. Expected:', expectedAuthHeader, 'Got:', authHeader);
@@ -41,23 +41,21 @@ const handler: Handler = async (event, context) => {
       };
     }
 
-    // Extract user data from the Supabase Database Webhook payload
-    const { type, table, record, old_record } = payload;
+    // Extract event data from Supabase Auth webhook
+    const { type, user } = payload;
     
-    console.log('Webhook type:', type, 'table:', table);
+    console.log('Webhook type:', type);
+    console.log('User data:', user);
     
-    // Only process new user signups
-    if (type !== 'INSERT' || table !== 'users') {
-      console.log('Event ignored - not a user insert');
+    // Only process user signup events (when user confirms their email via magic link)
+    if (type !== 'user.created') {
+      console.log('Event ignored - not a user creation event');
       return {
         statusCode: 200,
-        body: JSON.stringify({ message: 'Event ignored - not a user insert' }),
+        body: JSON.stringify({ message: 'Event ignored - not a user creation event' }),
       };
     }
 
-    const user = record;
-    console.log('User record:', JSON.stringify(user, null, 2));
-    
     if (!user || !user.email) {
       console.error('No user email found in payload');
       return {
@@ -74,19 +72,38 @@ const handler: Handler = async (event, context) => {
     
     const emailService = new EmailService(process.env.RESEND_API_KEY!);
 
-    // Extract user name from email
-    let userName = user.email.split('@')[0]; // Default to email prefix
+    // Extract user name from email or user metadata
+    let userName = user.user_metadata?.full_name || user.email.split('@')[0];
     console.log('User name:', userName);
 
-    // Create verification link if user needs to verify email
-    let verificationLink;
-    if (!user.email_confirmed_at && user.confirmation_token) {
-      verificationLink = `https://whatthemenu.com/auth/confirm?token=${user.confirmation_token}&type=signup&redirect_to=https://whatthemenu.com`;
-    }
-    console.log('Verification link:', verificationLink);
+    // Create user profile in our custom table
+    try {
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name || null,
+          subscription_type: 'free',
+          scans_used: 0,
+          scans_limit: 5,
+          current_menu_dish_explanations: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
 
-    // Generate welcome email
-    const welcomeTemplate = emailTemplates.welcome(userName, verificationLink);
+      if (profileError) {
+        console.error('Error creating user profile:', profileError);
+        // Don't fail the whole process if profile creation fails
+      } else {
+        console.log('User profile created successfully');
+      }
+    } catch (profileErr) {
+      console.error('Error creating user profile:', profileErr);
+    }
+
+    // Generate welcome email (no verification link needed for magic link flow)
+    const welcomeTemplate = emailTemplates.welcome(userName, null);
     
     const emailData = {
       to: [user.email],
@@ -95,7 +112,7 @@ const handler: Handler = async (event, context) => {
       text: welcomeTemplate.text
     };
 
-    console.log('Sending email to:', user.email);
+    console.log('Sending welcome email to:', user.email);
 
     // Send welcome email
     const emailResult = await emailService.sendEmail(emailData);
