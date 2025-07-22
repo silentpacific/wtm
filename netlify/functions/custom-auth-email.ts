@@ -1,27 +1,28 @@
-// Create new file: netlify/functions/custom-auth-email.ts
+// netlify/functions/custom-auth-email.ts
 
 import { EmailService } from './shared/emailService';
 import { createClient } from '@supabase/supabase-js';
+import { createHmac, randomBytes } from 'crypto';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role key for admin access
 );
 
-export const handler = async (event: any) => {
-  // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    };
-  }
+// Generate a secure token for the magic link
+function generateSecureToken(): string {
+  return randomBytes(32).toString('hex');
+}
 
+// Create HMAC signature for token validation
+function createTokenSignature(token: string, email: string): string {
+  const secret = process.env.SUPABASE_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createHmac('sha256', secret)
+    .update(`${token}:${email}`)
+    .digest('hex');
+}
+
+export const handler = async (event: any) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -32,6 +33,17 @@ export const handler = async (event: any) => {
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
       },
       body: '',
+    };
+  }
+
+  // Only allow POST requests
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      },
+      body: JSON.stringify({ error: 'Method not allowed' }),
     };
   }
 
@@ -60,37 +72,57 @@ export const handler = async (event: any) => {
       };
     }
 
-    // Generate the magic link using Supabase (but don't let it send the email)
-    const { data, error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${process.env.URL || 'https://whatthemenu.com'}`,
-        shouldCreateUser: isSignUp,
-        // This prevents Supabase from sending the email
-        data: {
-          custom_email_handling: true
-        }
+    // Check if user exists (only for sign-in)
+    if (!isSignUp) {
+      const { data: existingUser, error: userCheckError } = await supabase.auth.admin.getUserByEmail(email);
+      
+      if (userCheckError || !existingUser.user) {
+        return {
+          statusCode: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+          },
+          body: JSON.stringify({ 
+            error: 'No account found with this email. Please sign up first.' 
+          }),
+        };
       }
-    });
+    }
 
-    if (error) {
-      console.error('Supabase auth error:', error);
+    // Generate our own secure token instead of using Supabase's OTP
+    const token = generateSecureToken();
+    const signature = createTokenSignature(token, email);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+
+    // Store the token in Supabase for later verification
+    const { error: tokenError } = await supabase
+      .from('magic_link_tokens')
+      .insert({
+        token,
+        email,
+        signature,
+        expires_at: expiresAt.toISOString(),
+        is_signup: isSignUp,
+        used: false,
+        created_at: new Date().toISOString()
+      });
+
+    if (tokenError) {
+      console.error('Error storing magic link token:', tokenError);
       return {
-        statusCode: 400,
+        statusCode: 500,
         headers: {
           'Access-Control-Allow-Origin': '*',
         },
         body: JSON.stringify({ 
-          error: error.message || 'Authentication failed' 
+          error: 'Failed to generate magic link' 
         }),
       };
     }
 
     // Create the magic link URL
-    // Note: You'll need to get the actual token from Supabase's response
-    // This is a simplified version - you may need to adjust based on Supabase's response structure
     const baseUrl = process.env.URL || 'https://whatthemenu.com';
-    const magicLink = `${baseUrl}/auth/callback?token_hash=${data}&type=signup&next=/`;
+    const magicLink = `${baseUrl}/auth/verify?token=${token}&signature=${signature}&email=${encodeURIComponent(email)}`;
 
     // Initialize email service
     const emailService = new EmailService(
@@ -98,7 +130,7 @@ export const handler = async (event: any) => {
       'WhatTheMenu <noreply@whatthemenu.com>'
     );
 
-    // Send the magic link email using Resend
+    // Send the magic link email using Resend (completely bypasses Supabase email)
     const emailResult = await emailService.sendMagicLinkEmail(
       email,
       magicLink,
