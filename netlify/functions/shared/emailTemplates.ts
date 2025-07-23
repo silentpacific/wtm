@@ -4,7 +4,7 @@
 export const emailTemplates = {
   // 1. PURCHASE CONFIRMATION EMAIL
   purchaseConfirmation: (userName: string, planName: string, amount: number, expiryDate: string) => {
-    const subject = `🚀 Welcome to ${planName} - Your WhatTheMenu upgrade is ready!`;
+    const subject = `Your ${planName} on WhatTheMenu? is now active`;
     
     // Determine plan features and scan limits
     const isDaily = planName.toLowerCase().includes('daily');
@@ -71,10 +71,6 @@ export const emailTemplates = {
                   <span style="background: #FF6B6B; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; margin-right: 12px;">🍽️</span>
                   <span style="font-weight: 600; color: #292524;">Unlimited dish explanations per scan</span>
                 </div>
-                <div style="display: flex; align-items: center; margin-bottom: 12px;">
-                  <span style="background: #FF6B6B; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; margin-right: 12px;">🌍</span>
-                  <span style="font-weight: 600; color: #292524;">All major languages supported</span>
-                </div>
                 <div style="display: flex; align-items: center;">
                   <span style="background: #FF6B6B; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; margin-right: 12px;">⚡</span>
                   <span style="font-weight: 600; color: #292524;">Priority support</span>
@@ -135,21 +131,20 @@ export const emailTemplates = {
     `;
 
     const text = `
-🚀 Payment Successful! Your ${planName} is now active
+Payment Successful! Your ${planName} is now active
 
-Hey ${userName}! 🎉
+Hey ${userName}!
 
 Thank you for upgrading to ${planName}! Your payment has been processed and you're all set to start scanning menus like a pro.
 
 📋 Purchase Details:
 • Plan: ${planName}
 • Amount: $${(amount / 100).toFixed(2)}
-• Valid Until: ${expiryDate}
+• Valid Until: 24 hours from time of purchase
 
 🔓 What's Unlocked:
 • ${scanLimit}
 • Unlimited dish explanations per scan
-• All major languages supported
 • Priority support
 
 Ready to explore? Your premium features are active right now!
@@ -157,7 +152,7 @@ Start scanning: https://whatthemenu.com
 
 ⚠️ Remember: Always double-check with restaurants about allergens!
 
-Happy dining! 🥘
+Happy dining!
 The WhatTheMenu Team
 
 Questions? Reply to this email or visit: https://whatthemenu.com/contact

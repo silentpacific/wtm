@@ -1022,24 +1022,24 @@ const PricingTier: React.FC<PricingTierProps> = ({
         </li>
       ))}
     </ul>
-    <button 
-      onClick={onPurchase}
-      disabled={isLoading || isFree}
-      className={`mt-8 w-full py-4 rounded-full font-bold border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed ${
-        isPopular ? 'bg-coral text-white' : 
-        isFree ? 'bg-gray-300 text-charcoal cursor-default' : 
-        'bg-yellow text-charcoal'
-      }`}
-    >
-      {isLoading ? (
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white mr-2"></div>
-          Processing...
-        </div>
-      ) : (
-        buttonText
-      )}
-    </button>
+	<button 
+	  onClick={isFree ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : onPurchase}
+	  disabled={isLoading && !isFree}  // Only disable if loading AND not free
+	  className={`mt-8 w-full py-4 rounded-full font-bold border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+		isPopular ? 'bg-coral text-white' : 
+		isFree ? 'bg-teal text-white hover:bg-teal/90' : // Changed from gray to teal
+		'bg-yellow text-charcoal'
+	  }`}
+	>
+	  {isLoading && !isFree ? (  // Only show loading if not free
+		<div className="flex items-center justify-center">
+		  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white mr-2"></div>
+		  Processing...
+		</div>
+	  ) : (
+		buttonText
+	  )}
+	</button>
   </div>
 );
 
