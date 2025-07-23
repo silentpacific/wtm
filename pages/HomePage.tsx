@@ -1339,7 +1339,6 @@ const FinalShowcaseSection = () => {
   );
 };
 
-export default FinalShowcaseSection;
 
 
 interface PricingTierProps {
