@@ -261,7 +261,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         <div className="mt-4 p-3 bg-yellow/20 rounded-lg border border-yellow/40">
           <p className="text-xs text-charcoal/70 text-center">
             🔒 Your account is secured with industry-standard encryption. 
-            {!isResetPassword && !isLogin && 'You\'ll need to verify your email before signing in.'}
+            {!isResetPassword && !isLogin && 'You will be logged in automatically after signing up'}
           </p>
         </div>
       </div>
