@@ -1734,8 +1734,6 @@ const handleSignUpFromModal = () => {
         onScanAttempt={handleScanAttempt}
       />
       
-      {/* 2. Examples Section - NEW! */}
-      <FinalShowcaseSection />
       
       {/* 3. Pricing Section */}
       {!hasActivePaidSubscription() && (
