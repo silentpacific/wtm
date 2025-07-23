@@ -955,33 +955,392 @@ const MenuResults: React.FC<{
     );
 };
 
-const ReviewsSection: React.FC = () => (
-  <div className="py-12 sm:py-24 bg-teal border-y-4 border-charcoal">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center">
-        <h2 className="font-black text-5xl text-charcoal sm:text-6xl tracking-tighter">Early Reviews</h2>
-        <p className="mt-4 text-xl text-charcoal/80">A lot of people are loving this app!</p>
-      </div>
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-        {[
-          { text: "Tried it at a Korean BBQ place - worked pretty well! Got the gist of most dishes and avoided ordering something too spicy.", author: "Matt from Adelaide, Australia", shadowColor: "shadow-[8px_8px_0px_#FF6B6B]" },
-          { text: "No more pointing at random menu items! I've used this a few times and find it especially useful when the servers are busy!", author: "Emma from Sydney, Australia", shadowColor: "shadow-[8px_8px_0px_#FFC700]" },
-          { text: "Finally understood what I was eating in that hole-in-the-wall tapas bar. The ingredient breakdown was incredibly helpful.", author: "Rohit from Mumbai, India", shadowColor: "shadow-[8px_8px_0px_#4A90E2]" }
-        ].map(review => (
-          <div key={review.author} className={`bg-white p-6 rounded-2xl border-4 border-charcoal flex flex-col h-full ${review.shadowColor}`}>
-            <div className="flex items-center mb-4">
-              {[...Array(5)].map((_, i) => (
-                <svg key={i} className="w-6 h-6 text-yellow" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.5 4.5a1 1 0 00.95.69h4.7c.969 0 1.371 1.24.588 1.81l-3.8 2.75a1 1 0 00-.364 1.118l1.5 4.5c.3.921-.755 1.688-1.54 1.118l-3.8-2.75a1 1 0 00-1.175 0l-3.8 2.75c-.784.57-1.838-.197-1.539-1.118l1.5-4.5a1 1 0 00-.364-1.118L2.06 9.927c-.783-.57-.38-1.81.588-1.81h4.7a1 1 0 00.95-.69l1.5-4.5z"/></svg>
-              ))}
+
+const FinalShowcaseSection = () => {
+  const [flippedCards, setFlippedCards] = useState({});
+  
+  const examples = [
+    {
+      id: 'french',
+      title: 'French Cuisine',
+      emoji: '🇫🇷',
+      restaurant: 'Le Petit Bistro, Paris',
+      menuImage: '/api/placeholder/400/500',
+      resultImage: '/api/placeholder/400/500',
+      dishName: 'COQ AU VIN, PÂTES FRAÎCHES',
+      explanation: 'Classic French dish: chicken slowly cooked in red wine with bacon, mushrooms, and onions, served with fresh pasta. A rich, savory comfort food.',
+      tags: ['Savory', 'Braised'],
+      allergens: ['Contains Gluten', 'Contains Eggs', 'Contains Dairy'],
+      accent: 'border-blue-300 bg-blue-50'
+    },
+    {
+      id: 'indian',  
+      title: 'Indian Cuisine',
+      emoji: '🇮🇳',
+      restaurant: 'Spice Garden, Mumbai',
+      menuImage: '/api/placeholder/400/500',
+      resultImage: '/api/placeholder/400/500',
+      dishName: 'CHICKEN SAAGWALA',
+      explanation: 'Un delicioso curry indio de pollo cocinado con una salsa rica y cremosa a base de espinacas y especias. Es un plato aromático y reconfortante.',
+      tags: ['Cremoso', 'Especiado', 'Sabroso', 'Cocido'],
+      allergens: ['Contiene Lácteos'],
+      accent: 'border-orange-300 bg-orange-50'
+    },
+    {
+      id: 'italian',
+      title: 'Italian Cuisine',
+      emoji: '🇮🇹', 
+      restaurant: 'Nonna\'s Kitchen, Florence',
+      menuImage: '/api/placeholder/400/500',
+      resultImage: '/api/placeholder/400/500',
+      dishName: 'BISTECCA ALLA GRIGLIA',
+      explanation: 'A classic thick-cut Italian steak, simply grilled to perfection, often served rare to medium-rare. Known for its rich, savory flavor and tender texture.',
+      tags: ['Savory', 'Grilled'],
+      allergens: [],
+      accent: 'border-green-300 bg-green-50'
+    }
+  ];
+
+  const flipCard = (cardId) => {
+    setFlippedCards(prev => ({
+      ...prev,
+      [cardId]: !prev[cardId]
+    }));
+  };
+
+  return (
+    <div className="py-12 sm:py-24 bg-cream">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h2 className="font-black text-4xl sm:text-5xl lg:text-6xl text-charcoal tracking-tighter mb-6">
+            See The Magic Happen
+          </h2>
+          <p className="text-xl text-charcoal/80 max-w-4xl mx-auto mb-8">
+            Watch real menus transform from confusing foreign text into crystal-clear explanations with dietary information and allergen warnings.
+          </p>
+          
+          {/* Mobile Instructions */}
+          <div className="lg:hidden">
+            <div className="inline-flex items-center bg-yellow/30 border-2 border-yellow rounded-full px-4 py-2">
+              <span className="text-2xl mr-2">👆</span>
+              <span className="font-bold text-charcoal">Tap cards to see the transformation</span>
             </div>
-            <p className="text-charcoal/90 text-lg flex-grow">"{review.text}"</p>
-            <p className="mt-4 font-bold text-charcoal/60">- {review.author}</p>
           </div>
-        ))}
+          
+          {/* Desktop Stats */}
+          <div className="hidden lg:flex justify-center items-center gap-8">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">⚡</span>
+              <span className="font-bold text-charcoal">5 Second Scans</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🌍</span>
+              <span className="font-bold text-charcoal">80+ Languages</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🏷️</span>
+              <span className="font-bold text-charcoal">Full Allergen Info</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Layout - Side by Side */}
+        <div className="hidden lg:block space-y-16">
+          {examples.map((example, index) => (
+            <div key={example.id}>
+              
+              {/* Restaurant Header */}
+              <div className="text-center mb-8">
+                <div className={`inline-flex items-center ${example.accent} border-4 border-charcoal rounded-full px-8 py-4 shadow-[6px_6px_0px_#292524]`}>
+                  <span className="text-3xl mr-3">{example.emoji}</span>
+                  <div className="text-left">
+                    <h3 className="font-black text-xl text-charcoal">{example.title}</h3>
+                    <p className="text-sm text-charcoal/70 font-medium">{example.restaurant}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Side by Side Comparison */}
+              <div className="grid grid-cols-2 gap-12 items-start">
+                
+                {/* BEFORE Section */}
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <div className="inline-block bg-red-100 border-4 border-red-300 rounded-full px-6 py-3 shadow-[4px_4px_0px_#292524]">
+                      <span className="font-black text-red-700 text-lg uppercase tracking-wide">
+                        😵 What You See
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white border-4 border-charcoal rounded-2xl shadow-[8px_8px_0px_#292524] overflow-hidden">
+                    <div className="p-6">
+                      <div className="bg-gray-100 border-2 border-charcoal rounded-xl overflow-hidden mb-6">
+                        <img 
+                          src={example.menuImage}
+                          alt={`${example.title} menu`}
+                          className="w-full h-64 object-cover"
+                        />
+                      </div>
+                      
+                      <div className="text-center space-y-4">
+                        <div className="bg-gray-100 border-2 border-charcoal rounded-lg p-4">
+                          <p className="font-bold text-lg text-charcoal">{example.dishName}</p>
+                        </div>
+                        <p className="text-charcoal/60 font-medium">🤔 "What is this exactly?"</p>
+                        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3">
+                          <p className="text-red-700 font-medium text-sm">❌ No helpful information</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div className="flex justify-center items-center">
+                  <div className="bg-yellow border-4 border-charcoal rounded-full w-20 h-20 flex items-center justify-center shadow-[6px_6px_0px_#292524]">
+                    <span className="text-3xl">→</span>
+                  </div>
+                </div>
+
+                {/* AFTER Section */}
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <div className="inline-block bg-teal/20 border-4 border-teal rounded-full px-6 py-3 shadow-[4px_4px_0px_#292524]">
+                      <span className="font-black text-teal-700 text-lg uppercase tracking-wide">
+                        ✨ What You Get
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white border-4 border-charcoal rounded-2xl shadow-[12px_12px_0px_#1DD1A1] overflow-hidden">
+                    <div className="p-6">
+                      <div className="bg-gray-100 border-2 border-charcoal rounded-xl overflow-hidden mb-6">
+                        <img 
+                          src={example.resultImage}
+                          alt={`${example.title} explanation`}
+                          className="w-full h-64 object-cover"
+                        />
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {/* Explanation */}
+                        <div className="bg-cream border-2 border-charcoal rounded-lg p-4">
+                          <p className="font-medium text-charcoal leading-relaxed">
+                            {example.explanation}
+                          </p>
+                        </div>
+
+                        {/* Tags */}
+                        {example.tags.length > 0 && (
+                          <div>
+                            <p className="font-bold text-charcoal text-sm mb-2 uppercase tracking-wide">Dietary & Style</p>
+                            <div className="flex flex-wrap gap-2">
+                              {example.tags.map((tag, tagIndex) => (
+                                <span key={tagIndex} className="bg-teal/20 text-teal-800 px-3 py-2 rounded-full text-sm font-bold border border-teal/30">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Allergens */}
+                        {example.allergens.length > 0 ? (
+                          <div>
+                            <p className="font-bold text-red-700 text-sm mb-2 uppercase tracking-wide">⚠️ Allergen Info</p>
+                            <div className="flex flex-wrap gap-2">
+                              {example.allergens.map((allergen, allergenIndex) => (
+                                <span key={allergenIndex} className="bg-red-100 text-red-800 px-3 py-2 rounded-full text-sm font-bold border border-red-200">
+                                  {allergen}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-green-100 border-2 border-green-300 rounded-lg p-3 text-center">
+                            <span className="text-green-700 font-bold">✅ No Common Allergens Detected</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile Layout - Interactive Flip Cards (Option 3) */}
+        <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-8">
+          {examples.map((example) => {
+            const isFlipped = flippedCards[example.id];
+            
+            return (
+              <div key={example.id} className="relative h-96">
+                <div 
+                  onClick={() => flipCard(example.id)}
+                  className={`absolute inset-0 w-full h-full transition-transform duration-700 cursor-pointer ${
+                    isFlipped ? 'transform rotateY-180' : ''
+                  }`}
+                  style={{ 
+                    transformStyle: 'preserve-3d',
+                    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                  }}
+                >
+                  
+                  {/* Front Card (Menu) */}
+                  <div 
+                    className={`absolute inset-0 w-full h-full bg-white border-4 border-charcoal rounded-2xl shadow-[8px_8px_0px_#292524] p-6 flex flex-col ${
+                      isFlipped ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    }`}
+                    style={{ backfaceVisibility: 'hidden' }}
+                  >
+                    {/* Restaurant Header */}
+                    <div className={`${example.accent} rounded-xl p-4 mb-4 border-2`}>
+                      <div className="flex items-center justify-center mb-2">
+                        <span className="text-3xl mr-2">{example.emoji}</span>
+                        <div className="text-center">
+                          <h3 className="font-black text-lg text-charcoal">{example.title}</h3>
+                          <p className="text-sm text-charcoal/70">{example.restaurant}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Menu Image */}
+                    <div className="flex-1 bg-gray-100 border-2 border-charcoal rounded-xl overflow-hidden mb-4">
+                      <img 
+                        src={example.menuImage}
+                        alt="Menu item"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Confused State */}
+                    <div className="text-center">
+                      <div className="bg-red-100 border-2 border-red-300 rounded-lg p-3 mb-2">
+                        <p className="font-bold text-charcoal text-sm">{example.dishName}</p>
+                      </div>
+                      <p className="text-charcoal/60 text-sm font-medium">🤔 What is this dish?</p>
+                    </div>
+
+                    {/* Tap Hint */}
+                    <div className="absolute top-2 right-2">
+                      <div className="bg-coral text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm animate-pulse">
+                        ?
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Back Card (Explanation) */}
+                  <div 
+                    className={`absolute inset-0 w-full h-full bg-white border-4 border-charcoal rounded-2xl shadow-[8px_8px_0px_#292524] p-6 flex flex-col overflow-y-auto ${
+                      isFlipped ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                    }`}
+                    style={{ 
+                      backfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)'
+                    }}
+                  >
+                    {/* Success Header */}
+                    <div className="bg-teal/20 border-2 border-teal rounded-xl p-3 mb-4 text-center">
+                      <span className="font-black text-teal-700 text-sm uppercase">✨ Now You Know!</span>
+                    </div>
+
+                    {/* Explanation Image */}
+                    <div className="bg-gray-100 border-2 border-charcoal rounded-xl overflow-hidden mb-4 h-32">
+                      <img 
+                        src={example.resultImage}
+                        alt="Detailed explanation"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Explanation Text */}
+                    <div className="bg-cream border-2 border-charcoal rounded-lg p-3 mb-4 flex-1">
+                      <p className="font-medium text-charcoal text-sm leading-relaxed">
+                        {example.explanation}
+                      </p>
+                    </div>
+
+                    {/* Tags */}
+                    {example.tags.length > 0 && (
+                      <div className="mb-3">
+                        <p className="font-bold text-charcoal text-xs mb-2 uppercase">Dietary Info</p>
+                        <div className="flex flex-wrap gap-1">
+                          {example.tags.slice(0, 3).map((tag, tagIndex) => (
+                            <span key={tagIndex} className="bg-teal/20 text-teal-800 px-2 py-1 rounded-full text-xs font-bold">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Allergens */}
+                    {example.allergens.length > 0 ? (
+                      <div className="mb-2">
+                        <p className="font-bold text-red-700 text-xs mb-2 uppercase">⚠️ Allergens</p>
+                        <div className="flex flex-wrap gap-1">
+                          {example.allergens.slice(0, 2).map((allergen, allergenIndex) => (
+                            <span key={allergenIndex} className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">
+                              {allergen}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-green-100 border-2 border-green-300 rounded-lg p-2 text-center mb-2">
+                        <span className="text-green-700 font-bold text-xs">✅ No Allergens</span>
+                      </div>
+                    )}
+
+                    {/* Tap Again Hint */}
+                    <div className="absolute top-2 right-2">
+                      <div className="bg-teal text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">
+                        ✓
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="mt-16 text-center">
+          <div className="bg-white border-4 border-charcoal rounded-2xl p-8 shadow-[8px_8px_0px_#292524] max-w-3xl mx-auto">
+            <h3 className="font-black text-2xl lg:text-3xl text-charcoal mb-4">This Is What Every User Gets</h3>
+            <p className="text-lg lg:text-xl text-charcoal/80 mb-6">
+              Detailed explanations, dietary information, and allergen warnings for every single dish. 
+              No more guessing, no more pointing at random menu items.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button 
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="bg-green-600 text-white font-bold py-4 px-8 rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
+              >
+                Try 5 Scans Free
+              </button>
+              <button 
+                onClick={() => document.getElementById('pricing-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="bg-coral text-white font-bold py-4 px-8 rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
+              >
+                Get Full Access for $1
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
+
+export default FinalShowcaseSection;
+
 
 interface PricingTierProps {
   title: string;
@@ -1369,6 +1728,36 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
 
 
 
+const ReviewsSection: React.FC = () => (
+  <div className="py-12 sm:py-24 bg-teal border-y-4 border-charcoal">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center">
+        <h2 className="font-black text-5xl text-charcoal sm:text-6xl tracking-tighter">Early Reviews</h2>
+        <p className="mt-4 text-xl text-charcoal/80">A lot of people are loving this app!</p>
+      </div>
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+        {[
+          { text: "Tried it at a Korean BBQ place - worked pretty well! Got the gist of most dishes and avoided ordering something too spicy.", author: "Matt from Adelaide, Australia", shadowColor: "shadow-[8px_8px_0px_#FF6B6B]" },
+          { text: "No more pointing at random menu items! I've used this a few times and find it especially useful when the servers are busy!", author: "Emma from Sydney, Australia", shadowColor: "shadow-[8px_8px_0px_#FFC700]" },
+          { text: "Finally understood what I was eating in that hole-in-the-wall tapas bar. The ingredient breakdown was incredibly helpful.", author: "Rohit from Mumbai, India", shadowColor: "shadow-[8px_8px_0px_#4A90E2]" }
+        ].map(review => (
+          <div key={review.author} className={`bg-white p-6 rounded-2xl border-4 border-charcoal flex flex-col h-full ${review.shadowColor}`}>
+            <div className="flex items-center mb-4">
+              {[...Array(5)].map((_, i) => (
+                <svg key={i} className="w-6 h-6 text-yellow" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.5 4.5a1 1 0 00.95.69h4.7c.969 0 1.371 1.24.588 1.81l-3.8 2.75a1 1 0 00-.364 1.118l1.5 4.5c.3.921-.755 1.688-1.54 1.118l-3.8-2.75a1 1 0 00-1.175 0l-3.8 2.75c-.784.57-1.838-.197-1.539-1.118l1.5-4.5a1 1 0 00-.364-1.118L2.06 9.927c-.783-.57-.38-1.81.588-1.81h4.7a1 1 0 00.95-.69l1.5-4.5z"/></svg>
+              ))}
+            </div>
+            <p className="text-charcoal/90 text-lg flex-grow">"{review.text}"</p>
+            <p className="mt-4 font-bold text-charcoal/60">- {review.author}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+
+
 const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess }) => {
     const { user } = useAuth();
     const [isScanning, setIsScanning] = useState(false);
@@ -1702,45 +2091,52 @@ const handleSignUpFromModal = () => {
       </div>
     )}
 
-    {!isScanning && !scanError && (
-      scanResult ? (
-        <>
-          <MenuResults
-            menuSections={scanResult}
-            restaurantInfo={restaurantInfo || undefined}
-            onExplanationSuccess={onExplanationSuccess}
-            userProfile={userProfile}
-            user={user}
-          />
-          <div className="text-center pb-12 sm:pb-16">
-            <button
-              onClick={handleResetScan}
-              className="px-10 py-4 bg-coral text-white font-bold rounded-full border-4 border-charcoal shadow-[6px_6px_0px_#292524] hover:shadow-[8px_8px_0px_#292524] active:shadow-none active:translate-x-1.5 active:translate-y-1.5 transition-all text-xl"
-            >
-              Scan Another Menu!
-            </button>
-          </div>
-        </>
-      ) : (
-        <HeroSection
-          onImageSelect={handleFileSelect}
-          onBase64Select={handleBase64Select}
-          canScan={canScan()}
-          onScanAttempt={handleScanAttempt}
-        />
-      )
-    )}
-
-    <ReviewsSection />
-
-    {/* Only show pricing for non-paid users */}
-    {!hasActivePaidSubscription() && (
-      <PricingSection
+{!isScanning && !scanError && (
+  scanResult ? (
+    <>
+      <MenuResults
+        menuSections={scanResult}
+        restaurantInfo={restaurantInfo || undefined}
+        onExplanationSuccess={onExplanationSuccess}
+        userProfile={userProfile}
         user={user}
-        loadingPlan={loadingPlan}
-        handlePurchase={handlePurchase}
       />
-    )}
+      <div className="text-center pb-12 sm:pb-16">
+        <button
+          onClick={handleResetScan}
+          className="px-10 py-4 bg-coral text-white font-bold rounded-full border-4 border-charcoal shadow-[6px_6px_0px_#292524] hover:shadow-[8px_8px_0px_#292524] active:shadow-none active:translate-x-1.5 active:translate-y-1.5 transition-all text-xl"
+        >
+          Scan Another Menu!
+        </button>
+      </div>
+    </>
+  ) : (
+    <>
+      {/* 1. Hero Section */}
+      <HeroSection
+        onImageSelect={handleFileSelect}
+        onBase64Select={handleBase64Select}
+        canScan={canScan()}
+        onScanAttempt={handleScanAttempt}
+      />
+      
+      {/* 2. Examples Section - NEW! */}
+      <FinalShowcaseSection />
+      
+      {/* 3. Pricing Section */}
+      {!hasActivePaidSubscription() && (
+        <PricingSection
+          user={user}
+          loadingPlan={loadingPlan}
+          handlePurchase={handlePurchase}
+        />
+      )}
+      
+      {/* 4. Reviews Section */}
+      <ReviewsSection />
+    </>
+  )
+)}
 
     <ScanLimitModal
       isOpen={showLimitModal}
