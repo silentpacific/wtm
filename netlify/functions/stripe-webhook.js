@@ -1,5 +1,5 @@
 // netlify/functions/stripe-webhook.js
-// Updated to use shared email templates
+// Updated to use orders table instead of payment_history
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { createClient } = require('@supabase/supabase-js');
@@ -101,22 +101,24 @@ async function handleCheckoutSessionCompleted(session) {
     return;
   }
 
-  // Record payment history
-  const { error: historyError } = await supabase
-    .from('payment_history')
+  // UPDATED: Record order in orders table (not payment_history)
+  const { error: orderError } = await supabase
+    .from('orders')
     .insert({
       user_id: userId,
       stripe_payment_intent_id: session.payment_intent,
-      stripe_customer_id: session.customer,
       amount: session.amount_total,
       currency: session.currency || 'usd',
-      subscription_type: planType,
-      status: 'succeeded',
-      expires_at: expirationDate.toISOString()
+      status: 'completed', // Mark as completed since payment succeeded
+      plan_type: planType,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     });
 
-  if (historyError) {
-    console.error('Error recording payment history:', historyError);
+  if (orderError) {
+    console.error('Error recording order:', orderError);
+  } else {
+    console.log('Order recorded successfully in orders table');
   }
 
   // Get user email for purchase confirmation
@@ -143,7 +145,7 @@ async function handleCheckoutSessionCompleted(session) {
       minute: '2-digit'
     });
 
-    // Use the shared email template instead of inline function
+    // Use the shared email template
     const emailTemplate = emailTemplates.purchaseConfirmation(
       userName,
       planName,
