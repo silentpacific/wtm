@@ -22,86 +22,237 @@ import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
 
 // Updated Footer component with new URLs
-const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => (
-  <footer className="bg-yellow border-t-4 border-charcoal">
-    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-charcoal/80">
-      <p className="font-bold">
-        <span className="font-black">ALWAYS</span> double-check with the restaurant regarding possible allergens.
-      </p>
-      
-      {/* Improved mobile layout for navigation links */}
-      <div className="flex flex-wrap justify-center gap-3 sm:gap-6 my-6 font-bold">
-        <Link 
-          to="/faq" 
-          onClick={() => window.scrollTo(0, 0)}
-          className="hover:text-charcoal px-2 py-1"
-        >
-          FAQ
-        </Link>
-        <Link 
-          to="/terms" 
-          onClick={() => window.scrollTo(0, 0)}
-          className="hover:text-charcoal px-2 py-1"
-        >
-          Terms of Use
-        </Link>
-        <Link 
-          to="/refund-policy" 
-          onClick={() => window.scrollTo(0, 0)}
-          className="hover:text-charcoal px-2 py-1"
-        >
-          Refund Policy
-        </Link>
-        <Link 
-          to="/privacy-policy" 
-          onClick={() => window.scrollTo(0, 0)}
-          className="hover:text-charcoal px-2 py-1"
-        >
-          Privacy Policy
-        </Link>
-        <Link 
-          to="/contact" 
-          onClick={() => window.scrollTo(0, 0)}
-          className="hover:text-charcoal px-2 py-1"
-        >
-          Contact Us
-        </Link>
-      </div>
-      
-      {/* Improved mobile layout for counters */}
-      <div className="my-6">
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-8">
-          <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
-            <span className="text-sm font-bold">Menus Scanned: </span>
-            <span className="font-black text-lg">{globalCounters.menus_scanned.toLocaleString()}</span>
-          </div>
-          <div className="bg-white/50 rounded-full px-4 py-2 border-2 border-charcoal">
-            <span className="text-sm font-bold">Dishes Explained: </span>
-            <span className="font-black text-lg">{globalCounters.dish_explanations.toLocaleString()}</span>
+const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
+  const [aboutExpanded, setAboutExpanded] = useState(false);
+  const [legalExpanded, setLegalExpanded] = useState(false);
+
+  const toggleAbout = () => {
+    setAboutExpanded(prev => !prev);
+  };
+
+  const toggleLegal = () => {
+    setLegalExpanded(prev => !prev);
+  };
+
+  return (
+    <footer className="bg-[#F8F8F8] border-t-4 border-charcoal">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Row 1: Warning Statement */}
+        <div className="py-6 border-b border-gray-300">
+          <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+            <p className="text-sm text-gray-800 text-center leading-relaxed">
+              <span className="font-bold">⚠️ Warning:</span> The information provided by What The Menu? is for informational purposes only and should not be considered medical or dietary advice. Always consult with a qualified professional for personalized guidance.
+            </p>
           </div>
         </div>
+
+        {/* Row 2: Three Columns (Desktop) / Accordions + Counters (Mobile) */}
+        <div className="py-8">
+          
+          {/* Desktop Layout - Hidden on mobile */}
+          <div className="hidden md:grid md:grid-cols-3 md:gap-8">
+            
+            {/* Column 1: About */}
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 mb-4">About</h3>
+              <nav aria-label="About navigation">
+                <ul className="space-y-2">
+                  <li>
+                    <Link 
+                      to="/faq" 
+                      onClick={() => window.scrollTo(0, 0)}
+                      className="text-gray-600 hover:text-gray-800 hover:underline focus:text-gray-800 focus:underline focus:outline-none transition-colors"
+                    >
+                      FAQ
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      to="/contact" 
+                      onClick={() => window.scrollTo(0, 0)}
+                      className="text-gray-600 hover:text-gray-800 hover:underline focus:text-gray-800 focus:underline focus:outline-none transition-colors"
+                    >
+                      Contact
+                    </Link>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+
+            {/* Column 2: Legal */}
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Legal</h3>
+              <nav aria-label="Legal navigation">
+                <ul className="space-y-2">
+                  <li>
+                    <Link 
+                      to="/terms" 
+                      onClick={() => window.scrollTo(0, 0)}
+                      className="text-gray-600 hover:text-gray-800 hover:underline focus:text-gray-800 focus:underline focus:outline-none transition-colors"
+                    >
+                      Terms
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      to="/refund-policy" 
+                      onClick={() => window.scrollTo(0, 0)}
+                      className="text-gray-600 hover:text-gray-800 hover:underline focus:text-gray-800 focus:underline focus:outline-none transition-colors"
+                    >
+                      Refunds
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      to="/privacy-policy" 
+                      onClick={() => window.scrollTo(0, 0)}
+                      className="text-gray-600 hover:text-gray-800 hover:underline focus:text-gray-800 focus:underline focus:outline-none transition-colors"
+                    >
+                      Privacy
+                    </Link>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+
+            {/* Column 3: Counters */}
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Our Impact</h3>
+              <div className="space-y-3">
+                <div className="bg-white rounded-lg px-4 py-2 border border-gray-200">
+                  <p className="text-sm font-medium text-gray-600">Menus Scanned:</p>
+                  <p className="text-xl font-bold text-gray-800">{globalCounters.menus_scanned.toLocaleString()}+</p>
+                </div>
+                <div className="bg-white rounded-lg px-4 py-2 border border-gray-200">
+                  <p className="text-sm font-medium text-gray-600">Dishes Analyzed:</p>
+                  <p className="text-xl font-bold text-gray-800">{globalCounters.dish_explanations.toLocaleString()}+</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Layout - Visible only on mobile */}
+          <div className="md:hidden space-y-4">
+            
+            {/* About Accordion */}
+            <div className="border border-gray-200 rounded-lg">
+              <button
+                onClick={toggleAbout}
+                aria-expanded={aboutExpanded}
+                aria-controls="about-content"
+                className="w-full px-4 py-3 text-left font-bold text-gray-800 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors flex justify-between items-center"
+              >
+                About
+                <span className={`transition-transform duration-200 ${aboutExpanded ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+              {aboutExpanded && (
+                <div id="about-content" className="px-4 py-3 bg-gray-50">
+                  <nav aria-label="About navigation">
+                    <ul className="space-y-2">
+                      <li>
+                        <Link 
+                          to="/faq" 
+                          onClick={() => window.scrollTo(0, 0)}
+                          className="block text-gray-600 hover:text-gray-800 hover:underline focus:text-gray-800 focus:underline focus:outline-none transition-colors"
+                        >
+                          FAQ
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          to="/contact" 
+                          onClick={() => window.scrollTo(0, 0)}
+                          className="block text-gray-600 hover:text-gray-800 hover:underline focus:text-gray-800 focus:underline focus:outline-none transition-colors"
+                        >
+                          Contact
+                        </Link>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              )}
+            </div>
+
+            {/* Legal Accordion */}
+            <div className="border border-gray-200 rounded-lg">
+              <button
+                onClick={toggleLegal}
+                aria-expanded={legalExpanded}
+                aria-controls="legal-content"
+                className="w-full px-4 py-3 text-left font-bold text-gray-800 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors flex justify-between items-center"
+              >
+                Legal
+                <span className={`transition-transform duration-200 ${legalExpanded ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+              {legalExpanded && (
+                <div id="legal-content" className="px-4 py-3 bg-gray-50">
+                  <nav aria-label="Legal navigation">
+                    <ul className="space-y-2">
+                      <li>
+                        <Link 
+                          to="/terms" 
+                          onClick={() => window.scrollTo(0, 0)}
+                          className="block text-gray-600 hover:text-gray-800 hover:underline focus:text-gray-800 focus:underline focus:outline-none transition-colors"
+                        >
+                          Terms
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          to="/refund-policy" 
+                          onClick={() => window.scrollTo(0, 0)}
+                          className="block text-gray-600 hover:text-gray-800 hover:underline focus:text-gray-800 focus:underline focus:outline-none transition-colors"
+                        >
+                          Refunds
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          to="/privacy-policy" 
+                          onClick={() => window.scrollTo(0, 0)}
+                          className="block text-gray-600 hover:text-gray-800 hover:underline focus:text-gray-800 focus:underline focus:outline-none transition-colors"
+                        >
+                          Privacy
+                        </Link>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              )}
+            </div>
+
+            {/* Counters Block (Mobile) */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-bold text-gray-800 mb-3">Our Impact</h3>
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Menus Scanned:</span> 
+                  <span className="font-bold text-gray-800 ml-1">{globalCounters.menus_scanned.toLocaleString()}+</span>
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Dishes Analyzed:</span> 
+                  <span className="font-bold text-gray-800 ml-1">{globalCounters.dish_explanations.toLocaleString()}+</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 3: Copyright Statement */}
+        <div className="py-6 border-t border-gray-300">
+          <p className="text-center text-sm text-gray-600">
+            © 2025 What The Menu? All rights reserved. Built with ❤️ in Adelaide, Australia.
+          </p>
+        </div>
       </div>
-      
-      <p className="font-bold text-sm sm:text-base leading-relaxed">
-        <span className="block sm:inline">
-          &copy; {new Date().getFullYear()} What The Menu? All rights reserved.
-        </span>
-        <span className="block sm:inline">
-          {' '}Built by{' '}
-          <a 
-            href="https://www.lofisimplify.com.au/" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="underline hover:text-coral transition-colors"
-          >
-            LoFi Simplify
-          </a>
-          {' '}with ❤️ in Adelaide, Australia.
-        </span>
-      </p>
-    </div>
-  </footer>
-);
+    </footer>
+  );
+};
 
 const AppContent: FC = () => {
   const location = useLocation();
