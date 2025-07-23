@@ -1088,62 +1088,66 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
             isFree={true}
           />
           
-			// --- Daily Explorer Tier ---
-			<PricingTier
-			  title="Daily Explorer"
-			  description="Your instant passport to a day of culinary adventure. A simple, **one-time purchase** to effortlessly understand any menu for a full day!"
-			  price="$1"
-			  period="for one confident day"
-			  subtext="That's just $1 for **10 menu scans** – **more than enough for a delicious day out!**"
-			  features={[
-				"10 menu scans in 24 hours – perfect for a day out!",
-				"Unlimited, instant dish explanations per scan",
-				"**Scan menus in all major languages**",
-				"**Get explanations in English, Chinese, French, and Spanish**",
-				"Dine with confidence, no more awkward guesswork!",
-				"**One-time purchase – no subscriptions, no recurring fees!**"
-			  ]}
-			  buttonText="Unlock Today for $1"
-			  onPurchase={() => handlePurchase('daily')}
-			  isLoading={loadingPlan === 'daily'}
-			/>
-
-			// --- Weekly Voyager Tier ---
-			<PricingTier
-			  title="Weekly Voyager"
-			  description="Your essential travel companion! Enjoy a full week of effortless menu understanding with a **single, one-time purchase**, making every meal a confident discovery."
-			  price="$5"
-			  period="for 7 days of discovery"
-			  subtext="Incredible value! Get **70 menu scans** for the week – that's less than $0.75/day and **less than 8 cents per scan*** for total peace of mind on your trip."
-			  features={[
-				"**All features from the Daily Explorer plan, and more!**",
-				"**70 menu scans over 7 days – you'll never run out of insights, even on long trips!**",
-				"Unlimited, instant dish explanations per scan",
-				"Translate menus across all major languages",
-				"Perfect for vacations, business trips, or extended food adventures",
-				"**One-time purchase – no subscriptions, no recurring fees!**"
-			  ]}
-			  buttonText="Start Your Week of Discovery for $5"
-			  onPurchase={() => handlePurchase('weekly')}
-			  isLoading={loadingPlan === 'weekly'}
-			  isPopular={true}
-			/>
-
-			<div className="mt-8 text-center">
-			  <p className="text-sm text-charcoal/60 italic">
-				*Cost per scan based on the Weekly Voyager plan's pricing of $5 for 70 menu scans.
-			  </p>
-			</div>
+          {/* Daily Explorer Tier */}
+          <PricingTier
+            title="Daily Explorer"
+            description="Your instant passport to a day of culinary adventure. A simple, **one-time purchase** to effortlessly understand any menu for a full day!"
+            price="$1"
+            period="for one confident day"
+            subtext="That's just $1 for **10 menu scans** – **more than enough for a delicious day out!**"
+            features={[
+              "10 menu scans in 24 hours – perfect for a day out!",
+              "Unlimited, instant dish explanations per scan",
+              "**Scan menus in all major languages**",
+              "**Get explanations in English, Chinese, French, and Spanish**",
+              "Dine with confidence, no more awkward guesswork!",
+              "**One-time purchase – no subscriptions, no recurring fees!**"
+            ]}
+            buttonText="Unlock Today for $1"
+            onPurchase={() => handlePurchase('daily')}
+            isLoading={loadingPlan === 'daily'}
+          />
+          
+          {/* Weekly Voyager Tier */}
+          <PricingTier
+            title="Weekly Voyager"
+            description="Your essential travel companion! Enjoy a full week of effortless menu understanding with a **single, one-time purchase**, making every meal a confident discovery."
+            price="$5"
+            period="for 7 days of discovery"
+            subtext="Incredible value! Get **70 menu scans** for the week – that's less than $0.75/day and **less than 8 cents per scan*** for total peace of mind on your trip."
+            features={[
+              "**All features from the Daily Explorer plan, and more!**",
+              "**70 menu scans over 7 days – you'll never run out of insights, even on long trips!**",
+              "Unlimited, instant dish explanations per scan",
+              "Translate menus across all major languages",
+              "Perfect for vacations, business trips, or extended food adventures",
+              "**One-time purchase – no subscriptions, no recurring fees!**"
+            ]}
+            buttonText="Start Your Week of Discovery for $5"
+            onPurchase={() => handlePurchase('weekly')}
+            isLoading={loadingPlan === 'weekly'}
+            isPopular={true}
+          />
+        </div>
         
-		<div className="mt-12 text-center">
-		  <p className="text-sm text-charcoal/60">
-			Daily Pass $1 • Weekly Pass $5 • 💳 Secure payments powered by Stripe • 🔒 SSL encrypted • 📱 Works on all devices
-		  </p>
-		</div>
+        {/* Footnote for Weekly Voyager */}
+        <div className="mt-8 text-center">
+          <p className="text-sm text-charcoal/60 italic">
+            *Cost per scan based on the Weekly Voyager plan's pricing of $5 for 70 menu scans.
+          </p>
+        </div>
+        
+        <div className="mt-12 text-center">
+          <p className="text-sm text-charcoal/60">
+            Daily Pass $1 • Weekly Pass $5 • 💳 Secure payments powered by Stripe • 🔒 SSL encrypted • 📱 Works on all devices
+          </p>
+        </div>
       </div>
     </div>
   );
 };
+
+
 const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess }) => {
     const { user } = useAuth();
     const [isScanning, setIsScanning] = useState(false);
