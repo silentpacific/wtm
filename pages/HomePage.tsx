@@ -296,34 +296,39 @@ const HeroSection: React.FC<{
         multiple: false
     });
 
-    const boxStyle = `w-full sm:w-auto flex-1 p-6 border-4 border-charcoal rounded-2xl cursor-pointer transition-all bg-white shadow-[8px_8px_0px_#292524] hover:shadow-[10px_10px_0px_#292524] hover:-translate-y-1 ${!canScan ? 'opacity-75' : ''}`;
+    const boxStyle = `flex-1 p-6 border-4 border-charcoal rounded-2xl cursor-pointer transition-all bg-white shadow-[8px_8px_0px_#292524] hover:shadow-[10px_10px_0px_#292524] hover:-translate-y-1 ${!canScan ? 'opacity-75' : ''}`;
 
     return (
         <>
             {showCamera && <CameraModal onClose={() => setShowCamera(false)} onCapture={handleCameraCapture} />}
             <div className="text-center py-20 sm:py-28 px-4">
                 <h1 className="font-black text-5xl sm:text-6xl lg:text-7xl text-charcoal tracking-tighter">
-                    Menu Scanner <span className="text-coral">&</span> Explainer
+                    Confused by a menu?
                 </h1>
                 <p className="mt-4 max-w-2xl mx-auto text-xl text-charcoal/80 font-medium">
-                    Waiter doesn't have time to explain every little dish? No worries! <br></br>Get your answers here.
+                    Upload a photo of the menu and tap any dish for instant explanations.
                 </p>
-                <div className="mt-12 max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-8">
+                
+                {/* Updated button layout - always side by side */}
+                <div className="mt-12 max-w-2xl mx-auto flex gap-4">
                     <div {...getRootProps()} className={`${boxStyle} ${isDragActive ? 'bg-yellow shadow-[10px_10px_0px_#1DD1A1]' : 'bg-white'}`}>
                         <input {...getInputProps()} />
                         <div className="flex flex-col items-center justify-center text-center">
-                            <UploadIcon className="w-16 h-16 text-charcoal mb-2"/>
-                            <p className="font-bold text-xl text-charcoal">Drop image here</p>
-                            <p className="text-md text-charcoal/70">or click to upload</p>
+                            <UploadIcon className="w-12 h-12 sm:w-16 sm:h-16 text-charcoal mb-2"/>
+                            <p className="font-bold text-lg sm:text-xl text-charcoal">Upload Menu</p>
                         </div>
                     </div>
-                     <div className="text-charcoal/50 font-black text-2xl hidden sm:block">OR</div>
+                    
                     <button onClick={handleCameraClick} className={`${boxStyle} hover:shadow-[10px_10px_0px_#FF6B6B] flex flex-col items-center justify-center`}>
-                         <CameraIcon className="w-16 h-16 text-charcoal mb-2"/>
-                        <p className="font-bold text-xl text-charcoal">Take a picture</p>
-                        <p className="text-md text-charcoal/70">using your camera</p>
+                         <CameraIcon className="w-12 h-12 sm:w-16 sm:h-16 text-charcoal mb-2"/>
+                        <p className="font-bold text-lg sm:text-xl text-charcoal">Take Photo</p>
                     </button>
                 </div>
+                
+                {/* Updated bottom text */}
+                <p className="mt-8 text-lg text-charcoal/70 font-medium">
+                    Getting started is easy — and your first 5 scans are free.
+                </p>
                 
                 {!canScan && (
                     <div className="mt-8 max-w-md mx-auto">
