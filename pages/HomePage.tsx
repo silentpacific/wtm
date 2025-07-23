@@ -1083,40 +1083,30 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
                 <p className="text-sm font-bold text-charcoal/60 mt-2">5 Free Scans</p>
               </div>
               
-              <div className="flex-grow space-y-4 mb-6">
-                <div className="bg-cream rounded-xl p-4 border-2 border-charcoal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Menu Scans</span>
-                    <span className="font-black text-charcoal">5 Total</span>
-                  </div>
+              <div className="flex-grow space-y-3 mb-6">
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Menu Scans</span>
+                  <span className="font-black text-charcoal">5 Total</span>
                 </div>
                 
-                <div className="bg-cream rounded-xl p-4 border-2 border-charcoal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Dish Explanations</span>
-                    <span className="font-bold text-charcoal/60">Limited</span>
-                  </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Dish Explanations</span>
+                  <span className="font-bold text-charcoal/60">Limited</span>
                 </div>
                 
-                <div className="bg-teal/20 rounded-xl p-4 border-2 border-teal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Translate Menus</span>
-                    <span className="text-2xl">✓</span>
-                  </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Translate Menus</span>
+                  <span className="text-xl text-teal">✓</span>
                 </div>
                 
-                <div className="bg-teal/20 rounded-xl p-4 border-2 border-teal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">One-Time Purchase</span>
-                    <span className="text-2xl">✓</span>
-                  </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">One-Time Purchase</span>
+                  <span className="text-xl text-teal">✓</span>
                 </div>
                 
-                <div className="bg-teal/20 rounded-xl p-4 border-2 border-teal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Signup Required</span>
-                    <span className="font-black text-teal">No</span>
-                  </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Signup Required</span>
+                  <span className="font-black text-teal">No</span>
                 </div>
               </div>
               
@@ -1137,40 +1127,30 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
                 <p className="text-sm font-bold text-charcoal/60 mt-2">1 Day Access</p>
               </div>
               
-              <div className="flex-grow space-y-4 mb-6">
-                <div className="bg-cream rounded-xl p-4 border-2 border-charcoal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Menu Scans</span>
-                    <span className="font-black text-charcoal">10 Scans</span>
-                  </div>
+              <div className="flex-grow space-y-3 mb-6">
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Menu Scans</span>
+                  <span className="font-black text-charcoal">10 Scans</span>
                 </div>
                 
-                <div className="bg-teal/20 rounded-xl p-4 border-2 border-teal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Dish Explanations</span>
-                    <span className="font-black text-teal">✓ Unlimited</span>
-                  </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Dish Explanations</span>
+                  <span className="font-black text-teal">✓ Unlimited</span>
                 </div>
                 
-                <div className="bg-teal/20 rounded-xl p-4 border-2 border-teal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Translate Menus</span>
-                    <span className="text-2xl">✓</span>
-                  </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Translate Menus</span>
+                  <span className="text-xl text-teal">✓</span>
                 </div>
                 
-                <div className="bg-teal/20 rounded-xl p-4 border-2 border-teal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Not a Subscription</span>
-                    <span className="text-2xl">✓</span>
-                  </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Not a Subscription</span>
+                  <span className="text-xl text-teal">✓</span>
                 </div>
                 
-                <div className="bg-cream rounded-xl p-4 border-2 border-charcoal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Signup Required</span>
-                    <span className="font-bold text-charcoal">Yes</span>
-                  </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Signup Required</span>
+                  <span className="font-bold text-charcoal">Yes</span>
                 </div>
               </div>
               
@@ -1185,7 +1165,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
                     Processing...
                   </div>
                 ) : (
-                  'Unlock Today for $1'
+                  'Buy for Just $1'
                 )}
               </button>
             </div>
@@ -1203,41 +1183,33 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
                 <p className="text-sm font-bold text-charcoal/60 mt-2">7 Day Access</p>
               </div>
               
-              <div className="flex-grow space-y-4 mb-6">
-                <div className="bg-yellow/30 rounded-xl p-4 border-2 border-yellow">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Menu Scans</span>
+              <div className="flex-grow space-y-3 mb-6">
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Menu Scans</span>
+                  <div className="text-right">
                     <span className="font-black text-charcoal">70 Scans</span>
-                  </div>
-                  <div className="text-xs text-charcoal/70 mt-1 font-medium">(Less than 8¢ per scan)</div>
-                </div>
-                
-                <div className="bg-teal/20 rounded-xl p-4 border-2 border-teal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Dish Explanations</span>
-                    <span className="font-black text-teal">✓ Unlimited</span>
+                    <div className="text-xs text-charcoal/70 font-medium">(Less than 8¢ per scan)</div>
                   </div>
                 </div>
                 
-                <div className="bg-teal/20 rounded-xl p-4 border-2 border-teal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Translate Menus</span>
-                    <span className="text-2xl">✓</span>
-                  </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Dish Explanations</span>
+                  <span className="font-black text-teal">✓ Unlimited</span>
                 </div>
                 
-                <div className="bg-teal/20 rounded-xl p-4 border-2 border-teal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Not a Subscription</span>
-                    <span className="text-2xl">✓</span>
-                  </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Translate Menus</span>
+                  <span className="text-xl text-teal">✓</span>
                 </div>
                 
-                <div className="bg-cream rounded-xl p-4 border-2 border-charcoal">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-charcoal">Signup Required</span>
-                    <span className="font-bold text-charcoal">Yes</span>
-                  </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Not a Subscription</span>
+                  <span className="text-xl text-teal">✓</span>
+                </div>
+                
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-bold text-charcoal">Signup Required</span>
+                  <span className="font-bold text-charcoal">Yes</span>
                 </div>
               </div>
               
@@ -1252,7 +1224,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
                     Processing...
                   </div>
                 ) : (
-                  'Start Your Week for $5'
+                  'Start Your Week - Just $5'
                 )}
               </button>
             </div>
@@ -1271,23 +1243,17 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
             </div>
             
             <div className="space-y-3 mb-6">
-              <div className="bg-cream rounded-lg p-3 border-2 border-charcoal">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-charcoal">5 Total Menu Scans</span>
-                  <span className="text-xl">📱</span>
-                </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="font-bold text-charcoal">5 Total Menu Scans</span>
+                <span className="text-xl">📱</span>
               </div>
-              <div className="bg-cream rounded-lg p-3 border-2 border-charcoal">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-charcoal">Limited Dish Explanations</span>
-                  <span className="text-xl">📝</span>
-                </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="font-bold text-charcoal">Limited Dish Explanations</span>
+                <span className="text-xl">📝</span>
               </div>
-              <div className="bg-teal/20 rounded-lg p-3 border-2 border-teal">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-charcoal">No Signup Required</span>
-                  <span className="text-xl">✓</span>
-                </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="font-bold text-charcoal">No Signup Required</span>
+                <span className="text-xl text-teal">✓</span>
               </div>
             </div>
             
@@ -1308,23 +1274,17 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
             </div>
             
             <div className="space-y-3 mb-6">
-              <div className="bg-cream rounded-lg p-3 border-2 border-charcoal">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-charcoal">10 Menu Scans</span>
-                  <span className="text-xl">📱</span>
-                </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="font-bold text-charcoal">10 Menu Scans</span>
+                <span className="text-xl">📱</span>
               </div>
-              <div className="bg-teal/20 rounded-lg p-3 border-2 border-teal">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-charcoal">Unlimited Dish Explanations</span>
-                  <span className="text-xl">✓</span>
-                </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="font-bold text-charcoal">Unlimited Dish Explanations</span>
+                <span className="text-xl text-teal">✓</span>
               </div>
-              <div className="bg-teal/20 rounded-lg p-3 border-2 border-teal">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-charcoal">Not a Subscription</span>
-                  <span className="text-xl">✓</span>
-                </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="font-bold text-charcoal">Not a Subscription</span>
+                <span className="text-xl text-teal">✓</span>
               </div>
             </div>
             
@@ -1357,24 +1317,18 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
             </div>
             
             <div className="space-y-3 mb-6">
-              <div className="bg-yellow/30 rounded-lg p-3 border-2 border-yellow">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-charcoal">70 Menu Scans</span>
-                  <span className="text-xl">📱</span>
-                </div>
-                <div className="text-xs text-charcoal/70 mt-1 font-medium">(Less than 8¢ per scan)</div>
+              <div className="flex items-center justify-between py-2">
+                <span className="font-bold text-charcoal">70 Menu Scans</span>
+                <span className="text-xl">📱</span>
               </div>
-              <div className="bg-teal/20 rounded-lg p-3 border-2 border-teal">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-charcoal">Unlimited Dish Explanations</span>
-                  <span className="text-xl">✓</span>
-                </div>
+              <div className="text-xs text-charcoal/70 font-medium text-center -mt-1 mb-2">(Less than 8¢ per scan)</div>
+              <div className="flex items-center justify-between py-2">
+                <span className="font-bold text-charcoal">Unlimited Dish Explanations</span>
+                <span className="text-xl text-teal">✓</span>
               </div>
-              <div className="bg-teal/20 rounded-lg p-3 border-2 border-teal">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-charcoal">Not a Subscription</span>
-                  <span className="text-xl">✓</span>
-                </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="font-bold text-charcoal">Not a Subscription</span>
+                <span className="text-xl text-teal">✓</span>
               </div>
             </div>
             
@@ -1405,13 +1359,14 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
         {/* Bottom Payment Info */}
         <div className="mt-12 text-center">
           <p className="text-sm text-charcoal/60">
-            Daily Pass $1 • Weekly Pass $5 • 💳 Secure payments powered by Stripe • 🔒 SSL encrypted • 📱 Works on all devices
+            All Prices in USD • 💳 Secure payments powered by Stripe • 🔒 SSL encrypted • 📱 Works on all devices
           </p>
         </div>
       </div>
     </div>
   );
 };
+
 
 
 const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess }) => {
