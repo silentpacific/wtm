@@ -1059,84 +1059,328 @@ interface PricingSectionProps {
 
 const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, handlePurchase }) => {
   return (
-    // Add some top padding and position the ID anchor slightly above the heading
     <div className="py-12 sm:py-24 relative">
       {/* Invisible anchor positioned above the heading */}
       <div id="pricing-section" className="absolute -top-20"></div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
         <div className="text-center mb-12">
           <h2 className="font-black text-5xl text-charcoal sm:text-6xl tracking-tighter">Choose Your Plan</h2>
           <p className="mt-4 text-xl text-charcoal/80">Start with free scans, upgrade when you need more!</p>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-8">
-          <PricingTier
-            title="Try It Free"
-            description="Perfect for testing the app and getting a taste of what it can do."
-            price="$0"
-            period="to start"
-            subtext="5 free menu scans, 5 dishes per menu."
-            features={[
-              "5 free menu scans", 
-              "Up to 5 dishes explained per scan", 
-              "All major languages", 
-              "No signup required", 
-              "Works on any device"
-            ]}
-            buttonText="Get Started"
-            isFree={true}
-          />
-          
-          {/* Daily Explorer Tier */}
-          <PricingTier
-            title="Daily Explorer"
-            description="Your instant passport to a day of culinary adventure. A simple, **one-time purchase** to effortlessly understand any menu for a full day!"
-            price="$1"
-            period="for one confident day"
-            subtext="That's just $1 for **10 menu scans** – **more than enough for a delicious day out!**"
-            features={[
-              "10 menu scans in 24 hours – perfect for a day out!",
-              "Unlimited, instant dish explanations per scan",
-              "**Scan menus in all major languages**",
-              "**Get explanations in English, Chinese, French, and Spanish**",
-              "Dine with confidence, no more awkward guesswork!",
-              "**One-time purchase – no subscriptions, no recurring fees!**"
-            ]}
-            buttonText="Unlock Today for $1"
-            onPurchase={() => handlePurchase('daily')}
-            isLoading={loadingPlan === 'daily'}
-          />
-          
-          {/* Weekly Voyager Tier */}
-          <PricingTier
-            title="Weekly Voyager"
-            description="Your essential travel companion! Enjoy a full week of effortless menu understanding with a **single, one-time purchase**, making every meal a confident discovery."
-            price="$5"
-            period="for 7 days of discovery"
-            subtext="Incredible value! Get **70 menu scans** for the week – that's less than $0.75/day and **less than 8 cents per scan*** for total peace of mind on your trip."
-            features={[
-              "**All features from the Daily Explorer plan, and more!**",
-              "**70 menu scans over 7 days – you'll never run out of insights, even on long trips!**",
-              "Unlimited, instant dish explanations per scan",
-              "Translate menus across all major languages",
-              "Perfect for vacations, business trips, or extended food adventures",
-              "**One-time purchase – no subscriptions, no recurring fees!**"
-            ]}
-            buttonText="Start Your Week of Discovery for $5"
-            onPurchase={() => handlePurchase('weekly')}
-            isLoading={loadingPlan === 'weekly'}
-            isPopular={true}
-          />
+        {/* Desktop Layout: Comparison Table */}
+        <div className="hidden lg:block">
+          <div className="bg-white border-4 border-charcoal rounded-2xl shadow-[8px_8px_0px_#292524] overflow-hidden">
+            
+            {/* Table Header */}
+            <div className="grid grid-cols-4 bg-cream border-b-4 border-charcoal">
+              <div className="p-6"></div> {/* Empty corner */}
+              
+              {/* Try It Free Header */}
+              <div className="p-6 text-center border-r-4 border-charcoal">
+                <h3 className="text-2xl font-black text-charcoal tracking-tight">Try It Free</h3>
+                <p className="text-sm text-charcoal/70 font-medium mt-1">Perfect for a quick test of all features.</p>
+              </div>
+              
+              {/* Daily Explorer Header */}
+              <div className="p-6 text-center border-r-4 border-charcoal">
+                <h3 className="text-2xl font-black text-charcoal tracking-tight">Daily Explorer</h3>
+                <p className="text-sm text-charcoal/70 font-medium mt-1">Your guide for your day trip</p>
+              </div>
+              
+              {/* Weekly Voyager Header */}
+              <div className="p-6 text-center relative">
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-yellow text-charcoal text-xs font-black px-3 py-1 rounded-full border-2 border-charcoal uppercase">
+                  Most Popular
+                </div>
+                <h3 className="text-2xl font-black text-charcoal tracking-tight mt-4">Weekly Voyager</h3>
+                <p className="text-sm text-charcoal/70 font-medium mt-1">The best value.</p>
+              </div>
+            </div>
+            
+            {/* Price Row */}
+            <div className="grid grid-cols-4 border-b-2 border-charcoal/20">
+              <div className="p-4 font-black text-charcoal bg-gray-50 border-r-4 border-charcoal">Price</div>
+              <div className="p-4 text-center font-black text-3xl text-charcoal border-r-4 border-charcoal">$0</div>
+              <div className="p-4 text-center font-black text-3xl text-charcoal border-r-4 border-charcoal">$1</div>
+              <div className="p-4 text-center font-black text-3xl text-charcoal">$5</div>
+            </div>
+            
+            {/* Duration Row */}
+            <div className="grid grid-cols-4 border-b-2 border-charcoal/20">
+              <div className="p-4 font-black text-charcoal bg-gray-50 border-r-4 border-charcoal">Duration</div>
+              <div className="p-4 text-center font-bold text-charcoal border-r-4 border-charcoal">5 Free Scans</div>
+              <div className="p-4 text-center font-bold text-charcoal border-r-4 border-charcoal">1 Day Access</div>
+              <div className="p-4 text-center font-bold text-charcoal">7 Day Access</div>
+            </div>
+            
+            {/* Menu Scans Row */}
+            <div className="grid grid-cols-4 border-b-2 border-charcoal/20">
+              <div className="p-4 font-black text-charcoal bg-gray-50 border-r-4 border-charcoal">Menu Scans</div>
+              <div className="p-4 text-center font-bold text-charcoal border-r-4 border-charcoal">5 Total</div>
+              <div className="p-4 text-center font-bold text-charcoal border-r-4 border-charcoal">10 Scans</div>
+              <div className="p-4 text-center font-bold text-charcoal">
+                70 Scans
+                <div className="text-xs text-charcoal/60 font-medium">(Less than 8¢ per scan)</div>
+              </div>
+            </div>
+            
+            {/* Dish Explanations Row */}
+            <div className="grid grid-cols-4 border-b-2 border-charcoal/20">
+              <div className="p-4 font-black text-charcoal bg-gray-50 border-r-4 border-charcoal">Dish Explanations</div>
+              <div className="p-4 text-center font-bold text-charcoal border-r-4 border-charcoal">Limited</div>
+              <div className="p-4 text-center font-bold text-teal border-r-4 border-charcoal">✓ Unlimited</div>
+              <div className="p-4 text-center font-bold text-teal">✓ Unlimited</div>
+            </div>
+            
+            {/* Translate Menus Row */}
+            <div className="grid grid-cols-4 border-b-2 border-charcoal/20">
+              <div className="p-4 font-black text-charcoal bg-gray-50 border-r-4 border-charcoal">Translate Menus</div>
+              <div className="p-4 text-center font-bold text-teal border-r-4 border-charcoal">✓</div>
+              <div className="p-4 text-center font-bold text-teal border-r-4 border-charcoal">✓</div>
+              <div className="p-4 text-center font-bold text-teal">✓</div>
+            </div>
+            
+            {/* One-Time Purchase Row */}
+            <div className="grid grid-cols-4 border-b-2 border-charcoal/20">
+              <div className="p-4 font-black text-charcoal bg-gray-50 border-r-4 border-charcoal">One-Time Purchase</div>
+              <div className="p-4 text-center font-bold text-teal border-r-4 border-charcoal">✓</div>
+              <div className="p-4 text-center font-bold text-teal border-r-4 border-charcoal">✓</div>
+              <div className="p-4 text-center font-bold text-teal">✓</div>
+            </div>
+            
+            {/* Not a Subscription Row */}
+            <div className="grid grid-cols-4 border-b-2 border-charcoal/20">
+              <div className="p-4 font-black text-charcoal bg-gray-50 border-r-4 border-charcoal">Not a Subscription</div>
+              <div className="p-4 text-center font-bold text-charcoal/40 border-r-4 border-charcoal">-</div>
+              <div className="p-4 text-center font-bold text-teal border-r-4 border-charcoal">✓</div>
+              <div className="p-4 text-center font-bold text-teal">✓</div>
+            </div>
+            
+            {/* Signup Required Row */}
+            <div className="grid grid-cols-4 border-b-4 border-charcoal">
+              <div className="p-4 font-black text-charcoal bg-gray-50 border-r-4 border-charcoal">Signup Required</div>
+              <div className="p-4 text-center font-bold text-teal border-r-4 border-charcoal">No</div>
+              <div className="p-4 text-center font-bold text-charcoal border-r-4 border-charcoal">Yes</div>
+              <div className="p-4 text-center font-bold text-charcoal">Yes</div>
+            </div>
+            
+            {/* Action Buttons Row */}
+            <div className="grid grid-cols-4 bg-cream">
+              <div className="p-6"></div> {/* Empty corner */}
+              
+              {/* Try It Free Button */}
+              <div className="p-6 text-center border-r-4 border-charcoal">
+                <button 
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="w-full py-3 bg-green-600 text-white font-bold rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all hover:bg-green-700"
+                >
+                  Get Started
+                </button>
+              </div>
+              
+              {/* Daily Explorer Button */}
+              <div className="p-6 text-center border-r-4 border-charcoal">
+                <button 
+                  onClick={() => handlePurchase('daily')}
+                  disabled={loadingPlan === 'daily'}
+                  className="w-full py-3 bg-blue-600 text-white font-bold rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingPlan === 'daily' ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </div>
+                  ) : (
+                    'Unlock Today for $1'
+                  )}
+                </button>
+              </div>
+              
+              {/* Weekly Voyager Button */}
+              <div className="p-6 text-center">
+                <button 
+                  onClick={() => handlePurchase('weekly')}
+                  disabled={loadingPlan === 'weekly'}
+                  className="w-full py-3 bg-blue-600 text-white font-bold rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingPlan === 'weekly' ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </div>
+                  ) : (
+                    'Start Your Week for $5'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
         
-        {/* Footnote for Weekly Voyager */}
+        {/* Mobile Layout: Stacked Cards */}
+        <div className="lg:hidden space-y-6">
+          
+          {/* Try It Free Card */}
+          <div className="bg-white border-4 border-charcoal rounded-2xl p-6 shadow-[8px_8px_0px_#292524]">
+            <div className="text-center mb-6">
+              <h3 className="text-3xl font-black text-charcoal tracking-tight">Try It Free</h3>
+              <div className="text-5xl font-black text-charcoal mt-2">$0</div>
+              <p className="text-charcoal/70 font-medium mt-2">Perfect for a quick test.</p>
+            </div>
+            
+            <ul className="space-y-3 mb-6">
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">5 Total Menu Scans</span>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">Limited Dish Explanations</span>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">One-Time Purchase</span>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">No Signup Required</span>
+              </li>
+            </ul>
+            
+            <button 
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="w-full py-4 bg-green-600 text-white font-bold rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all hover:bg-green-700"
+            >
+              Get Started
+            </button>
+          </div>
+          
+          {/* Daily Explorer Card */}
+          <div className="bg-white border-4 border-charcoal rounded-2xl p-6 shadow-[8px_8px_0px_#292524]">
+            <div className="text-center mb-6">
+              <h3 className="text-3xl font-black text-charcoal tracking-tight">Daily Explorer</h3>
+              <div className="text-5xl font-black text-charcoal mt-2">$1</div>
+              <p className="text-charcoal/70 font-medium mt-2">Your guide for a full day of discovery.</p>
+            </div>
+            
+            <ul className="space-y-3 mb-6">
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">10 Menu Scans</span>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">Unlimited Dish Explanations</span>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">Translate Menus</span>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">One-Time Purchase</span>
+              </li>
+            </ul>
+            
+            <button 
+              onClick={() => handlePurchase('daily')}
+              disabled={loadingPlan === 'daily'}
+              className="w-full py-4 bg-blue-600 text-white font-bold rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingPlan === 'daily' ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white mr-2"></div>
+                  Processing...
+                </div>
+              ) : (
+                'Unlock Today for $1'
+              )}
+            </button>
+          </div>
+          
+          {/* Weekly Voyager Card */}
+          <div className="bg-white border-4 border-charcoal rounded-2xl p-6 shadow-[12px_12px_0px_#FF6B6B] relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow text-charcoal text-sm font-black px-4 py-1 rounded-full border-2 border-charcoal uppercase">
+              Most Popular
+            </div>
+            
+            <div className="text-center mb-6 mt-4">
+              <h3 className="text-3xl font-black text-charcoal tracking-tight">Weekly Voyager</h3>
+              <div className="text-5xl font-black text-charcoal mt-2">$5</div>
+              <p className="text-charcoal/70 font-medium mt-2">The best value for your entire trip.</p>
+            </div>
+            
+            <ul className="space-y-3 mb-6">
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">70 Menu Scans (Less than 8¢ per scan)</span>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">Unlimited Dish Explanations</span>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">Translate Menus</span>
+              </li>
+              <li className="flex items-center">
+                <svg className="w-6 h-6 text-teal mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-bold text-charcoal">One-Time Purchase</span>
+              </li>
+            </ul>
+            
+            <button 
+              onClick={() => handlePurchase('weekly')}
+              disabled={loadingPlan === 'weekly'}
+              className="w-full py-4 bg-blue-600 text-white font-bold rounded-full border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingPlan === 'weekly' ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white mr-2"></div>
+                  Processing...
+                </div>
+              ) : (
+                'Start Your Week for $5'
+              )}
+            </button>
+          </div>
+        </div>
+        
+        {/* Footnote */}
         <div className="mt-8 text-center">
           <p className="text-sm text-charcoal/60 italic">
             *Cost per scan based on the Weekly Voyager plan's pricing of $5 for 70 menu scans.
           </p>
         </div>
         
+        {/* Bottom Payment Info */}
         <div className="mt-12 text-center">
           <p className="text-sm text-charcoal/60">
             Daily Pass $1 • Weekly Pass $5 • 💳 Secure payments powered by Stripe • 🔒 SSL encrypted • 📱 Works on all devices
