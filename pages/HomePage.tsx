@@ -1026,9 +1026,9 @@ const PricingTier: React.FC<PricingTierProps> = ({
 	  onClick={isFree ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : onPurchase}
 	  disabled={isLoading && !isFree}  // Only disable if loading AND not free
 	  className={`mt-8 w-full py-4 rounded-full font-bold border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed ${
-		isPopular ? 'bg-coral text-white' : 
-		isFree ? 'bg-teal text-white hover:bg-teal/90' : // Changed from gray to teal
-		'bg-yellow text-charcoal'
+		isPopular ? 'bg-blue-600 text-white hover:bg-blue-700' : 
+		  isFree ? 'bg-green-600 text-white hover:bg-green-700' : 
+		  'bg-orange-500 text-white hover:bg-orange-600'
 	  }`}
 	>
 	  {isLoading && !isFree ? (  // Only show loading if not free
