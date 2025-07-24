@@ -1737,7 +1737,7 @@ const handleSignUpFromModal = () => {
       />
 	  
 	  {/* Section Separator */}
-		<div className="relative py-4">
+		<div className="relative py-2">  {/* Changed from py-8 to py-2 */}
 		  <div className="absolute inset-0 flex items-center">
 			<div className="w-full border-t-2 border-charcoal-200"></div>
 		  </div>
@@ -1751,8 +1751,8 @@ const handleSignUpFromModal = () => {
 
 	  <DemoSection selectedLanguage="en" />
       
-	  {/* Section Separator */}
-		<div className="relative py-8">
+		{/* Section Separator - Demo to Pricing */}
+		<div className="relative py-2">  {/* Changed from py-8 to py-2 */}
 		  <div className="absolute inset-0 flex items-center">
 			<div className="w-full border-t-2 border-charcoal-200"></div>
 		  </div>
@@ -1762,6 +1762,7 @@ const handleSignUpFromModal = () => {
 			</div>
 		  </div>
 		</div>
+
       
       {/* 3. Pricing Section */}
       {!hasActivePaidSubscription() && (
