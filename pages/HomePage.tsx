@@ -8,6 +8,8 @@ import { supabase } from '../services/supabaseClient';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { getUserLocation, findOrCreateRestaurant } from '../services/restaurantService';
 import { LoginModal } from '../components/LoginModal';
+import DemoSection from '../components/DemoSection';
+
 import { 
   incrementUserMenuScan, 
   incrementUserDishExplanation, 
@@ -1733,6 +1735,8 @@ const handleSignUpFromModal = () => {
         canScan={canScan()}
         onScanAttempt={handleScanAttempt}
       />
+	  
+	  <DemoSection selectedLanguage={selectedLanguage} />
       
       
       {/* 3. Pricing Section */}
