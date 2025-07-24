@@ -26,8 +26,24 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
   });
   const [isLoadingCounters, setIsLoadingCounters] = useState(false);
 
-  // Function to handle pricing link click
-  const handlePricingClick = () => {
+  // Fixed logo click handler
+  const handleLogoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Force navigation to home page
+    if (location.pathname !== '/') {
+      window.location.href = '/';
+    } else {
+      // If already on home, scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Fixed pricing click handler
+  const handlePricingClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (location.pathname === '/') {
       // If already on home page, scroll to pricing section
       const pricingElement = document.getElementById('pricing-section');
@@ -174,7 +190,7 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
 
   return (
     <>
-      <header className="bg-cream/80 backdrop-blur-sm border-b-4 border-charcoal fixed top-0 left-0 right-0 z-40">
+      <header className="bg-cream/80 backdrop-blur-sm border-b-4 border-charcoal fixed top-0 left-0 right-0 z-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           {/* Main header row */}
           <div className="flex justify-between items-center py-4">
@@ -191,25 +207,28 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
               </button>
             </div>
 
-            {/* Center - Logo */}
-            <Link to="/" className="flex items-center group flex-1 lg:flex-none justify-center lg:justify-start">
+            {/* Center - Logo (Fixed with proper click handling) */}
+            <button 
+              onClick={handleLogoClick}
+              className="flex items-center group flex-1 lg:flex-none justify-center lg:justify-start focus:outline-none"
+            >
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-charcoal group-hover:text-coral transition-colors">
                 WhatTheMenu?
               </h1>
-            </Link>
+            </button>
 
-            {/* Desktop Navigation Links - NEW */}
+            {/* Desktop Navigation Links (Fixed with proper click handlers) */}
             <div className="hidden lg:flex items-center space-x-6 flex-1 justify-center">
-              <Link 
-                to="/"
-                className="font-bold text-charcoal hover:text-coral transition-colors"
+              <button 
+                onClick={handleLogoClick}
+                className="font-bold text-charcoal hover:text-coral transition-colors focus:outline-none"
               >
                 Home
-              </Link>
+              </button>
               
               <button
                 onClick={handlePricingClick}
-                className="font-bold text-charcoal hover:text-coral transition-colors"
+                className="font-bold text-charcoal hover:text-coral transition-colors focus:outline-none"
               >
                 Pricing
               </button>
@@ -340,20 +359,22 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
             </div>
           </div>
 
-          {/* Mobile Menu Dropdown - UPDATED */}
+          {/* Mobile Menu Dropdown (Fixed with proper handlers) */}
           {isMobileMenuOpen && (
             <div className="lg:hidden border-t-2 border-charcoal bg-cream/90 backdrop-blur-sm">
               <div className="py-4 space-y-2">
                 {/* Navigation Links */}
-                <Link 
-                  to="/" 
-                  onClick={closeMobileMenu}
-                  className="block py-3 px-4 font-bold text-charcoal hover:text-coral transition-colors border-b border-charcoal/10"
+                <button
+                  onClick={(e) => {
+                    handleLogoClick(e);
+                    closeMobileMenu();
+                  }}
+                  className="block w-full text-left py-3 px-4 font-bold text-charcoal hover:text-coral transition-colors border-b border-charcoal/10"
                 >
                   Home
-                </Link>
+                </button>
                 
-                {/* NEW: Pricing Link */}
+                {/* Pricing Link (Fixed) */}
                 <button
                   onClick={handlePricingClick}
                   className="block w-full text-left py-3 px-4 font-bold text-charcoal hover:text-coral transition-colors border-b border-charcoal/10"
@@ -442,7 +463,7 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
         </div>
       </header>
 
-      {/* Spacer to account for fixed header */}
+      {/* Spacer to account for fixed header (Increased z-index to z-50) */}
       <div className="h-20 lg:h-24"></div>
 
       <LoginModal 

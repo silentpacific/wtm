@@ -366,6 +366,11 @@ const MenuResults: React.FC<{
     }>>>({});
     const [expandedDishes, setExpandedDishes] = useState<Set<string>>(new Set());
 
+    // Calculate if we have any explanations yet (for showing hints)
+    const hasAnyExplanations = Object.keys(explanations).some(dishName => 
+        explanations[dishName][selectedLanguage]?.data
+    );
+
     // Load language preference from localStorage
     useEffect(() => {
         const savedLanguage = localStorage.getItem('preferred-language');
@@ -393,24 +398,59 @@ const MenuResults: React.FC<{
         });
     };
 
-    // Dedicated retry function
+    // Enhanced dish name component with cursor hints
+    const DishNameWithHints: React.FC<{ 
+        dishName: string; 
+        onClick: () => void; 
+        isLoading: boolean;
+        isFirstDish: boolean;
+        showHint: boolean;
+    }> = ({ dishName, onClick, isLoading, isFirstDish, showHint }) => {
+        return (
+            <div className="relative group">
+                <button 
+                    onClick={onClick}
+                    disabled={isLoading}
+                    className={`text-xl font-medium text-charcoal tracking-tight text-left hover:text-coral transition-all duration-200 w-full disabled:hover:text-charcoal disabled:cursor-default relative ${
+                        showHint && isFirstDish ? 'animate-pulse' : ''
+                    }`}
+                    aria-label={`Get explanation for ${dishName}`}
+                >
+                    {dishName}
+                    
+                    {/* Subtle hover background effect */}
+                    <div className="absolute inset-0 bg-coral/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 -z-10 -mx-2 -my-1"></div>
+                    
+                    {/* Pointing finger emoji (desktop hover only) */}
+                    <span className="hidden md:inline absolute -right-8 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-coral text-lg">
+                        👈
+                    </span>
+                </button>
+                
+                {/* Ripple effect on click */}
+                <div className="absolute inset-0 rounded-lg pointer-events-none -mx-2 -my-1">
+                    <div className="absolute inset-0 bg-coral/20 rounded-lg scale-0 group-active:scale-100 transition-transform duration-150"></div>
+                </div>
+            </div>
+        );
+    };
+
+    // Your existing dedicated retry function
     const handleRetryDish = (dishName: string) => {
-        // Completely clear the explanation state for this dish and language
         setExplanations(prev => ({
             ...prev,
             [dishName]: {
                 ...prev[dishName],
-                [selectedLanguage]: undefined // Completely remove the entry
+                [selectedLanguage]: undefined
             }
         }));
         
-        // Small delay to ensure state is cleared, then retry
         setTimeout(() => {
             handleDishClick(dishName);
         }, 50);
     };
 
-    // Translations object
+    // Your existing translations object (keeping it the same)
     const translations = {
         en: {
             pageTitle: "Your Menu",
@@ -472,7 +512,7 @@ const MenuResults: React.FC<{
 
     const t = translations[selectedLanguage as keyof typeof translations];
 
-    // Language options - clean names only
+    // Language options
     const languageOptions = [
         { code: 'en', name: 'English' },
         { code: 'es', name: 'Español' },
