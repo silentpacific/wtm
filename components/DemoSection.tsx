@@ -353,7 +353,7 @@ const DemoSection: React.FC<DemoSectionProps> = ({ selectedLanguage = 'en' }) =>
                             onClick={() => setCurrentLanguage(lang.code)}
                             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                               currentLanguage === lang.code
-                                ? 'bg-charcoal-800 text-white'
+                                ? 'bg-gray-800 text-white'
                                 : 'bg-gray-200 text-charcoal-600 hover:bg-gray-300'
                             }`}
                           >
