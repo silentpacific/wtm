@@ -480,215 +480,245 @@ const MenuResults: React.FC<{
         { code: 'fr', name: 'Français' },
     ];
 
-    const handleDishClick = async (dishName: string) => {
-        if (!explanations[dishName]) {
-            explanations[dishName] = {};
+const handleDishClick = async (dishName: string) => {
+    if (!explanations[dishName]) {
+        explanations[dishName] = {};
+    }
+    
+    // Check for successful data OR currently loading
+    const currentExplanation = explanations[dishName][selectedLanguage];
+    if (currentExplanation?.data || currentExplanation?.isLoading) {
+        return;
+    }
+    
+    // Check if user can explain more dishes before making API call
+    let canExplain;
+    if (user) {
+        try {
+            const counters = await getUserCounters(user.id);
+            canExplain = canUserExplainDish(counters);
+        } catch (error) {
+            console.error('Error checking user dish explanation capability:', error);
+            canExplain = false;
         }
-        
-        // Check for successful data OR currently loading
-        const currentExplanation = explanations[dishName][selectedLanguage];
-        if (currentExplanation?.data || currentExplanation?.isLoading) {
-            return;
-        }
-        
-        // Check if user can explain more dishes before making API call
-        let canExplain;
+    } else {
+        canExplain = canAnonymousUserExplainDish();
+    }
+    
+    if (!canExplain) {
+        // Get appropriate error message based on user type
+        let errorMessage;
         if (user) {
             try {
                 const counters = await getUserCounters(user.id);
-                canExplain = canUserExplainDish(counters);
+                const hasUnlimited = counters.subscription_type !== 'free' && 
+                    counters.subscription_status === 'active' &&
+                    counters.subscription_expires_at &&
+                    new Date() < new Date(counters.subscription_expires_at) &&
+                    ['daily', 'weekly'].includes(counters.subscription_type.toLowerCase());
+                
+                if (hasUnlimited) {
+                    errorMessage = "Error checking explanation limit. Please try again.";
+                } else {
+                    errorMessage = t.dishLimitReached;
+                }
             } catch (error) {
-                console.error('Error checking user dish explanation capability:', error);
-                canExplain = false;
+                errorMessage = "Error checking explanation limit. Please try again.";
             }
         } else {
-            canExplain = canAnonymousUserExplainDish();
+            errorMessage = t.dishLimitReached;
         }
         
-        if (!canExplain) {
-            // Get appropriate error message based on user type
-            let errorMessage;
-            if (user) {
-                try {
-                    const counters = await getUserCounters(user.id);
-                    const hasUnlimited = counters.subscription_type !== 'free' && 
-                        counters.subscription_status === 'active' &&
-                        counters.subscription_expires_at &&
-                        new Date() < new Date(counters.subscription_expires_at) &&
-                        ['daily', 'weekly'].includes(counters.subscription_type.toLowerCase());
-                    
-                    if (hasUnlimited) {
-                        // This shouldn't happen for unlimited users, but just in case
-                        errorMessage = "Error checking explanation limit. Please try again.";
-                    } else {
-                        errorMessage = t.dishLimitReached;
-                    }
-                } catch (error) {
-                    errorMessage = "Error checking explanation limit. Please try again.";
+        setExplanations(prev => ({
+            ...prev,
+            [dishName]: {
+                ...prev[dishName],
+                [selectedLanguage]: { 
+                    data: null, 
+                    isLoading: false, 
+                    error: errorMessage
                 }
+            }
+        }));
+        return;
+    }
+    
+    // Helper function to make the secure API request
+    const makeRequest = async (): Promise<DishExplanation> => {
+        // Prepare request headers
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        };
+
+        // Add authorization header if user is logged in
+        if (user) {
+            // Get the current session to access the JWT token
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`;
+            }
+        }
+
+        // Prepare request body (no more query parameters!)
+        const requestBody = {
+            dishName,
+            language: selectedLanguage,
+            ...(restaurantInfo?.id && { restaurantId: restaurantInfo.id.toString() }),
+            ...(restaurantInfo?.name && { restaurantName: restaurantInfo.name })
+        };
+
+        console.log('🔐 Making secure API request:', {
+            url: '/.netlify/functions/getDishExplanation',
+            method: 'POST',
+            hasAuth: !!headers['Authorization'],
+            body: requestBody
+        });
+
+        const response = await fetch('/.netlify/functions/getDishExplanation', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            if (response.status === 429) {
+                throw new Error('RATE_LIMIT');
+            } else if (response.status === 401) {
+                throw new Error('Authentication failed. Please try logging in again.');
+            } else if (response.status === 403) {
+                throw new Error('Access denied. Please check your permissions.');
             } else {
-                errorMessage = t.dishLimitReached;
+                const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
+                throw new Error(errorData.error || `Request failed`);
+            }
+        }
+        
+        return await response.json();
+    };
+
+    // Auto-retry logic with friendly messages (keeping your existing implementation)
+    const startTime = Date.now();
+    let retryCount = 0;
+    const maxRetries = 2;
+    const retryDelays = [3000, 5000];
+
+    setExplanations(prev => ({
+        ...prev,
+        [dishName]: {
+            ...prev[dishName],
+            [selectedLanguage]: { data: null, isLoading: true, error: null }
+        }
+    }));
+
+    const attemptRequest = async (): Promise<void> => {
+        try {
+            const data = await makeRequest();
+            const loadTime = Date.now() - startTime;
+            const dataSource = 'api';
+            
+            // Track successful dish explanation
+            gtag('event', 'dish_explanation_success', {
+                'dish_name': dishName,
+                'language': selectedLanguage,
+                'load_time_ms': loadTime,
+                'source': dataSource,
+                'restaurant_name': restaurantInfo?.name || 'unknown',
+                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+                'retry_count': retryCount,
+                'user_type': user ? 'authenticated' : 'anonymous'
+            });
+            
+            // Update user-specific counters
+            try {
+                if (user) {
+                    await incrementUserDishExplanation(user.id);
+                } else {
+                    incrementAnonymousExplanation();
+                }
+                
+                // Call the global counter increment callback
+                onExplanationSuccess();
+            } catch (error) {
+                console.error('Error updating explanation counter:', error);
             }
             
             setExplanations(prev => ({
                 ...prev,
                 [dishName]: {
                     ...prev[dishName],
-                    [selectedLanguage]: { 
-                        data: null, 
-                        isLoading: false, 
-                        error: errorMessage
-                    }
+                    [selectedLanguage]: { data, isLoading: false, error: null }
                 }
             }));
-            return;
-        }
-        
-        // Helper function to make the API request
-        const makeRequest = async (): Promise<DishExplanation> => {
-            let url = `/.netlify/functions/getDishExplanation?dishName=${encodeURIComponent(dishName)}&language=${selectedLanguage}`;
-            
-            if (restaurantInfo?.id) {
-                url += `&restaurantId=${restaurantInfo.id}`;
-            }
-            
-            if (restaurantInfo?.name) {
-                url += `&restaurantName=${encodeURIComponent(restaurantInfo.name)}`;
-            }
 
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-                if (response.status === 429) {
-                    throw new Error('RATE_LIMIT');
-                } else {
-                    const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
-                    throw new Error(errorData.error || `Request failed`);
-                }
-            }
-            
-            return await response.json();
-        };
-
-        // Auto-retry logic with friendly messages
-        const startTime = Date.now();
-        let retryCount = 0;
-        const maxRetries = 2;
-        const retryDelays = [3000, 5000];
-
-        setExplanations(prev => ({
-            ...prev,
-            [dishName]: {
-                ...prev[dishName],
-                [selectedLanguage]: { data: null, isLoading: true, error: null }
-            }
-        }));
-
-        const attemptRequest = async (): Promise<void> => {
-            try {
-                const data = await makeRequest();
-                const loadTime = Date.now() - startTime;
-                const dataSource = 'api';
-                
-                // Track successful dish explanation
-                gtag('event', 'dish_explanation_success', {
-                    'dish_name': dishName,
-                    'language': selectedLanguage,
-                    'load_time_ms': loadTime,
-                    'source': dataSource,
-                    'restaurant_name': restaurantInfo?.name || 'unknown',
-                    'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
-                    'retry_count': retryCount
-                });
-                
-                // Update user-specific counters
-                try {
-                    if (user) {
-                        await incrementUserDishExplanation(user.id);
-                    } else {
-                        incrementAnonymousExplanation();
-                    }
-                    
-                    // Call the global counter increment callback
-                    onExplanationSuccess();
-                } catch (error) {
-                    console.error('Error updating explanation counter:', error);
-                }
+        } catch (err) {
+            if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
+                // Show friendly message for rate limit
+                const isFirstRetry = retryCount === 0;
+                const message = isFirstRetry ? t.serversBusy : t.stillTrying;
                 
                 setExplanations(prev => ({
                     ...prev,
                     [dishName]: {
                         ...prev[dishName],
-                        [selectedLanguage]: { data, isLoading: false, error: null }
+                        [selectedLanguage]: { data: null, isLoading: true, error: message }
                     }
                 }));
 
-            } catch (err) {
-                if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
-                    // Show friendly message for rate limit
-                    const isFirstRetry = retryCount === 0;
-                    const message = isFirstRetry ? t.serversBusy : t.stillTrying;
-                    
+                // Wait and retry
+                const delay = retryDelays[retryCount];
+                retryCount++;
+                
+                setTimeout(() => {
+                    // Clear the message and show loading again
                     setExplanations(prev => ({
                         ...prev,
                         [dishName]: {
                             ...prev[dishName],
-                            [selectedLanguage]: { data: null, isLoading: true, error: message }
+                            [selectedLanguage]: { data: null, isLoading: true, error: null }
                         }
                     }));
+                    
+                    attemptRequest();
+                }, delay);
 
-                    // Wait and retry
-                    const delay = retryDelays[retryCount];
-                    retryCount++;
-                    
-                    setTimeout(() => {
-                        // Clear the message and show loading again
-                        setExplanations(prev => ({
-                            ...prev,
-                            [dishName]: {
-                                ...prev[dishName],
-                                [selectedLanguage]: { data: null, isLoading: true, error: null }
-                            }
-                        }));
-                        
-                        attemptRequest();
-                    }, delay);
-
-                } else {
-                    // Final error
-                    const loadTime = Date.now() - startTime;
-                    let errorMessage = t.finalError;
-                    
-                    if (err instanceof Error && err.message !== 'RATE_LIMIT') {
-                        errorMessage = err.message;
-                    }
-                    
-                    // Track failed dish explanation
-                    gtag('event', 'dish_explanation_error', {
-                        'dish_name': dishName,
-                        'language': selectedLanguage,
-                        'load_time_ms': loadTime,
-                        'error_message': errorMessage,
-                        'error_type': err instanceof Error && err.message === 'RATE_LIMIT' ? 'rate_limit_final' : 'other',
-                        'restaurant_name': restaurantInfo?.name || 'unknown',
-                        'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
-                        'retry_count': retryCount
-                    });
-                    
-                    setExplanations(prev => ({
-                        ...prev,
-                        [dishName]: {
-                            ...prev[dishName],
-                            [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
-                        }
-                    }));
+            } else {
+                // Final error
+                const loadTime = Date.now() - startTime;
+                let errorMessage = t.finalError;
+                
+                if (err instanceof Error && err.message !== 'RATE_LIMIT') {
+                    errorMessage = err.message;
                 }
+                
+                // Track failed dish explanation
+                gtag('event', 'dish_explanation_error', {
+                    'dish_name': dishName,
+                    'language': selectedLanguage,
+                    'load_time_ms': loadTime,
+                    'error_message': errorMessage,
+                    'error_type': err instanceof Error && err.message === 'RATE_LIMIT' ? 'rate_limit_final' : 'other',
+                    'restaurant_name': restaurantInfo?.name || 'unknown',
+                    'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+                    'retry_count': retryCount,
+                    'user_type': user ? 'authenticated' : 'anonymous'
+                });
+                
+                setExplanations(prev => ({
+                    ...prev,
+                    [dishName]: {
+                        ...prev[dishName],
+                        [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+                    }
+                }));
             }
-        };
-
-        // Start the initial request
-        attemptRequest();
+        }
     };
+
+    // Start the initial request
+    attemptRequest();
+};
+
+
 
     // Handle mobile accordion click
     const handleMobileAccordionClick = (dishName: string) => {

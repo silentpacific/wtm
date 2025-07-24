@@ -32,22 +32,91 @@ const explanationSchema = {
     required: ["explanation", "tags", "allergens", "cuisine"]
 };
 
-// Initialize Supabase client
+// Initialize Supabase client with service role for server-side operations
 const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Use service role
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const geminiApiKey = process.env.GEMINI_API_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey || !geminiApiKey) {
+if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey || !geminiApiKey) {
     console.error('Missing environment variables:', {
         supabaseUrl: !!supabaseUrl,
+        supabaseServiceKey: !!supabaseServiceKey,
         supabaseAnonKey: !!supabaseAnonKey,
         geminiApiKey: !!geminiApiKey
     });
 }
 
-const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+// Two Supabase clients: one for auth verification, one for admin operations
+const supabaseAuth = createClient(supabaseUrl || '', supabaseAnonKey || '');
+const supabaseAdmin = createClient(supabaseUrl || '', supabaseServiceKey || '');
 
-// Language-specific prompts
+// Rate limiting storage (in production environment, consider using Redis)
+interface RateLimitEntry {
+    count: number;
+    resetTime: number;
+}
+
+const rateLimitMap = new Map<string, RateLimitEntry>();
+
+// Rate limiting function
+function checkRateLimit(
+    identifier: string, 
+    maxRequests: number = 30, // 30 requests per 5 minutes per IP
+    windowMs: number = 300000 // 5 minutes
+): boolean {
+    const now = Date.now();
+    const entry = rateLimitMap.get(identifier);
+
+    if (!entry || now > entry.resetTime) {
+        rateLimitMap.set(identifier, {
+            count: 1,
+            resetTime: now + windowMs
+        });
+        return true;
+    }
+
+    if (entry.count >= maxRequests) {
+        return false;
+    }
+
+    entry.count++;
+    return true;
+}
+
+// Origin validation
+function isValidOrigin(origin: string | undefined): boolean {
+    if (!origin) return false;
+    
+    const allowedOrigins = [
+        'https://whatthemenu.com',
+        'https://www.whatthemenu.com',
+        'https://whatthemenu.netlify.app',
+        // Add your Netlify preview URLs
+        ...(process.env.NODE_ENV === 'development' ? [
+            'http://localhost:5173', 
+            'http://localhost:3000',
+            'http://127.0.0.1:5173'
+        ] : [])
+    ];
+
+    // Check for Netlify deploy previews
+    if (origin.includes('--whatthemenu.netlify.app')) {
+        return true;
+    }
+
+    return allowedOrigins.includes(origin);
+}
+
+// CORS headers
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*', // We validate origin manually
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true'
+};
+
+// Language-specific prompts (keeping your existing implementation)
 const getLanguagePrompt = (dishName: string, language: string): string => {
     const baseInstructions = {
         en: `You are a culinary expert. Explain the dish "${decodeURIComponent(dishName)}". 
@@ -106,38 +175,32 @@ const getLanguagePrompt = (dishName: string, language: string): string => {
     return baseInstructions[language as keyof typeof baseInstructions] || baseInstructions.en;
 };
 
-// Universal string cleaning (improved for better matching)
+// Keep all your existing string processing functions
 const cleanString = (str: string): string => {
     return str
         .trim()
-        .toLowerCase()  // Added back for better case-insensitive matching
-        // Only remove punctuation that's clearly not part of words
+        .toLowerCase()
         .replace(/[.,!?;:"()[\]{}]/g, '')
-        // Keep apostrophes and hyphens as they're often part of dish names
         .replace(/\s+/g, ' ')
         .trim();
 };
 
-// Levenshtein Distance - works for ANY writing system
 const levenshteinDistance = (str1: string, str2: string): number => {
     const len1 = str1.length;
     const len2 = str2.length;
     
-    // Create matrix
     const matrix = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(null));
     
-    // Initialize first row and column
     for (let i = 0; i <= len1; i++) matrix[i][0] = i;
     for (let j = 0; j <= len2; j++) matrix[0][j] = j;
     
-    // Fill matrix
     for (let i = 1; i <= len1; i++) {
         for (let j = 1; j <= len2; j++) {
             const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
             matrix[i][j] = Math.min(
-                matrix[i - 1][j] + 1,     // deletion
-                matrix[i][j - 1] + 1,     // insertion
-                matrix[i - 1][j - 1] + cost // substitution
+                matrix[i - 1][j] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j - 1] + cost
             );
         }
     }
@@ -145,45 +208,26 @@ const levenshteinDistance = (str1: string, str2: string): number => {
     return matrix[len1][len2];
 };
 
-// Universal similarity calculation
 const calculateSimilarity = (str1: string, str2: string): number => {
-    // Clean both strings minimally
     const clean1 = cleanString(str1);
     const clean2 = cleanString(str2);
     
-    console.log(`  Cleaned: "${clean1}" vs "${clean2}"`);
+    if (clean1 === clean2) return 1.0;
     
-    // Exact match (case-insensitive now handled by cleanString)
-    if (clean1 === clean2) {
-        console.log(`  -> EXACT MATCH! Score: 1.0`);
-        return 1.0;
-    }
-    
-    // Calculate similarity using Levenshtein distance
     const maxLength = Math.max(clean1.length, clean2.length);
-    if (maxLength === 0) return 1.0; // Both empty strings
+    if (maxLength === 0) return 1.0;
     
     const distance = levenshteinDistance(clean1, clean2);
     const similarity = (maxLength - distance) / maxLength;
     
-    console.log(`  -> Levenshtein similarity: ${similarity.toFixed(3)} (distance: ${distance}, max: ${maxLength})`);
-    
-    // For very short strings, be more strict
-    if (maxLength <= 3 && similarity < 0.8) {
-        return 0;
-    }
+    if (maxLength <= 3 && similarity < 0.8) return 0;
     
     return similarity;
 };
 
-// Multi-level fuzzy search that works for all languages
 const universalFuzzySearch = (searchTerm: string, targetString: string): number => {
-    console.log(`  Comparing: "${searchTerm}" vs "${targetString}"`);
-    
-    // Level 1: Direct similarity
     const directSimilarity = calculateSimilarity(searchTerm, targetString);
     
-    // Level 2: Word-by-word for languages that use spaces
     let wordSimilarity = 0;
     const searchWords = searchTerm.trim().split(/\s+/).filter(w => w.length > 0);
     const targetWords = targetString.trim().split(/\s+/).filter(w => w.length > 0);
@@ -206,114 +250,148 @@ const universalFuzzySearch = (searchTerm: string, targetString: string): number 
         
         if (matchCount > 0) {
             wordSimilarity = (totalSimilarity / matchCount) * (matchCount / Math.max(searchWords.length, targetWords.length));
-            console.log(`  -> Word-based similarity: ${wordSimilarity.toFixed(3)}`);
         }
     }
     
-    // Return the best similarity score
-    const finalScore = Math.max(directSimilarity, wordSimilarity);
-    console.log(`  -> Final score: ${finalScore.toFixed(3)}`);
-    
-    return finalScore;
+    return Math.max(directSimilarity, wordSimilarity);
 };
 
-// Comprehensive menu language detection
 const detectMenuLanguage = (dishName: string): string => {
-    // Chinese/Japanese/Korean - CJK characters
-    if (/[\u4e00-\u9fff]/.test(dishName)) return 'zh'; // Chinese
-    if (/[\u3040-\u309f\u30a0-\u30ff]/.test(dishName)) return 'ja'; // Japanese
-    if (/[\uac00-\ud7af]/.test(dishName)) return 'ko'; // Korean
+    if (/[\u4e00-\u9fff]/.test(dishName)) return 'zh';
+    if (/[\u3040-\u309f\u30a0-\u30ff]/.test(dishName)) return 'ja';
+    if (/[\uac00-\ud7af]/.test(dishName)) return 'ko';
+    if (/[\u0600-\u06ff\u0750-\u077f]/.test(dishName)) return 'ar';
+    if (/[\u0590-\u05ff]/.test(dishName)) return 'he';
+    if (/[\u0400-\u04ff]/.test(dishName)) return 'ru';
+    if (/[\u0900-\u097f]/.test(dishName)) return 'hi';
+    if (/[\u0e00-\u0e7f]/.test(dishName)) return 'th';
+    if (/[\u0370-\u03ff]/.test(dishName)) return 'el';
     
-    // Arabic script languages
-    if (/[\u0600-\u06ff\u0750-\u077f]/.test(dishName)) return 'ar'; // Arabic
-    if (/[\u0590-\u05ff]/.test(dishName)) return 'he'; // Hebrew
-    
-    // Cyrillic script languages
-    if (/[\u0400-\u04ff]/.test(dishName)) return 'ru'; // Russian/Cyrillic
-    
-    // Devanagari script
-    if (/[\u0900-\u097f]/.test(dishName)) return 'hi'; // Hindi
-    
-    // Thai
-    if (/[\u0e00-\u0e7f]/.test(dishName)) return 'th'; // Thai
-    
-    // Greek
-    if (/[\u0370-\u03ff]/.test(dishName)) return 'el'; // Greek
-    
-    // European languages with Latin script
-    // French - accents and common words
     if (/[àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/i.test(dishName) || 
         /\b(du|de|la|le|les|au|aux|avec|sur|dans|pour|et|à|chez|sous)\b/i.test(dishName)) {
         return 'fr';
     }
     
-    // Spanish - accents and common words
     if (/[ñáéíóúü]/i.test(dishName) || 
         /\b(con|del|de|la|el|los|las|y|en|al|por|para|desde|hasta)\b/i.test(dishName)) {
         return 'es';
     }
     
-    // Portuguese
     if (/[ãõç]/i.test(dishName) || 
         /\b(com|do|da|dos|das|no|na|nos|nas|para|por|em)\b/i.test(dishName)) {
         return 'pt';
     }
     
-    // Italian
     if (/\b(alla|con|di|al|del|della|dello|degli|delle|nel|nella|sui|sulle)\b/i.test(dishName)) {
         return 'it';
     }
     
-    // German - umlauts and common words
     if (/[äöüß]/i.test(dishName) || 
         /\b(mit|und|der|die|das|von|zu|im|am|auf|für|bei|über)\b/i.test(dishName)) {
         return 'de';
     }
     
-    // Dutch
     if (/\b(met|van|de|het|een|in|op|aan|voor|bij|door)\b/i.test(dishName)) {
         return 'nl';
     }
     
-    // Swedish/Norwegian/Danish
     if (/[åøæ]/i.test(dishName) || 
         /\b(med|och|på|av|för|till|från|eller|som)\b/i.test(dishName)) {
-        return 'sv'; // Using Swedish as representative of Scandinavian
+        return 'sv';
     }
     
-    // Polish
     if (/[ąćęłńóśźż]/i.test(dishName) || 
         /\b(z|w|na|do|od|dla|przez|przy|pod)\b/i.test(dishName)) {
         return 'pl';
     }
     
-    // Turkish
     if (/[çğıöşü]/i.test(dishName) || 
         /\b(ile|ve|bu|bir|için|gibi|kadar)\b/i.test(dishName)) {
         return 'tr';
     }
     
-    // Vietnamese
     if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(dishName)) {
         return 'vi';
     }
     
-    // Default to English for unidentified Latin script
     return 'en';
 };
 
-const handler: Handler = async (event: HandlerEvent) => {
+export const handler: Handler = async (event: HandlerEvent) => {
     const startTime = Date.now();
-    const dishName = event.queryStringParameters?.dishName;
-    const language = event.queryStringParameters?.language || 'en';
-    const restaurantId = event.queryStringParameters?.restaurantId;
-    const restaurantName = event.queryStringParameters?.restaurantName;
 
+    // Handle preflight requests
+    if (event.httpMethod === 'OPTIONS') {
+        return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: ''
+        };
+    }
+
+    // Only allow POST requests
+    if (event.httpMethod !== 'POST') {
+        return {
+            statusCode: 405,
+            headers: corsHeaders,
+            body: JSON.stringify({ error: 'Method not allowed. Use POST.' })
+        };
+    }
+
+    // Validate origin
+    const origin = event.headers.origin || event.headers.referer;
+    if (!isValidOrigin(origin)) {
+        console.log(`❌ Invalid origin: ${origin}`);
+        return {
+            statusCode: 403,
+            headers: corsHeaders,
+            body: JSON.stringify({ error: 'Request from unauthorized origin' })
+        };
+    }
+
+    // Rate limiting by IP
+    const clientIP = event.headers['x-forwarded-for']?.split(',')[0] || 
+                     event.headers['x-real-ip'] || 
+                     event.headers['client-ip'] || 
+                     'unknown';
+    
+    if (!checkRateLimit(clientIP, 30, 300000)) { // 30 requests per 5 minutes
+        return {
+            statusCode: 429,
+            headers: corsHeaders,
+            body: JSON.stringify({ 
+                error: 'Too many requests. Please wait a moment before trying again.' 
+            })
+        };
+    }
+
+    // Parse request body
+    let requestBody;
+    try {
+        if (!event.body) {
+            return {
+                statusCode: 400,
+                headers: corsHeaders,
+                body: JSON.stringify({ error: 'Request body is required' })
+            };
+        }
+        requestBody = JSON.parse(event.body);
+    } catch (parseError) {
+        return {
+            statusCode: 400,
+            headers: corsHeaders,
+            body: JSON.stringify({ error: 'Invalid JSON in request body' })
+        };
+    }
+
+    const { dishName, language, restaurantId, restaurantName } = requestBody;
+
+    // Validate required fields
     if (!dishName) {
         return { 
             statusCode: 400, 
-            body: JSON.stringify({ error: "A dishName query parameter is required." }),
-            headers: { 'Content-Type': 'application/json' }
+            headers: corsHeaders,
+            body: JSON.stringify({ error: "dishName is required." })
         };
     }
 
@@ -321,42 +399,76 @@ const handler: Handler = async (event: HandlerEvent) => {
     if (!['en', 'es', 'zh', 'fr'].includes(language)) {
         return { 
             statusCode: 400, 
-            body: JSON.stringify({ error: "Unsupported language. Supported languages: en, es, zh, fr" }),
-            headers: { 'Content-Type': 'application/json' }
+            headers: corsHeaders,
+            body: JSON.stringify({ error: "Unsupported language. Supported languages: en, es, zh, fr" })
         };
     }
+
+    // Authentication check
+    const authHeader = event.headers.authorization;
+    let userId = null;
     
-    if (!supabaseUrl || !supabaseAnonKey || !geminiApiKey) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        
+        try {
+            // Verify the JWT token with Supabase
+            const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
+            
+            if (error || !user) {
+                return {
+                    statusCode: 401,
+                    headers: corsHeaders,
+                    body: JSON.stringify({ error: 'Invalid or expired authentication token' })
+                };
+            }
+            
+            userId = user.id;
+            console.log(`✅ Authenticated request from user: ${user.email}`);
+            
+        } catch (authError) {
+            console.error('Token verification failed:', authError);
+            return {
+                statusCode: 401,
+                headers: corsHeaders,
+                body: JSON.stringify({ error: 'Authentication failed' })
+            };
+        }
+    } else {
+        // No auth header - this is an anonymous request
+        console.log('📝 Anonymous request detected');
+    }
+    
+    if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey || !geminiApiKey) {
         return { 
             statusCode: 500, 
-            body: JSON.stringify({ error: "Server environment variables are not configured correctly." }),
-            headers: { 'Content-Type': 'application/json' }
+            headers: corsHeaders,
+            body: JSON.stringify({ error: "Server configuration error." })
         };
     }
 
     try {
-        console.log(`🔍 Searching for dish: "${dishName}" in language: ${language}${restaurantId ? ` for restaurant: ${restaurantId}` : ''}`);
+        console.log(`🔍 Processing dish explanation request: "${dishName}" in ${language}${restaurantId ? ` for restaurant: ${restaurantId}` : ''}`);
         
-        // 1. Enhanced database search - prioritize dishes from the same restaurant
-        let { data: allDishes, error: fetchError } = await supabase
+        // 1. Database search for existing explanations (using admin client for better performance)
+        let { data: allDishes, error: fetchError } = await supabaseAdmin
             .from('dishes')
             .select('name, explanation, tags, allergens, cuisine, restaurant_id')
             .eq('language', language);
 
         if (fetchError) {
             console.error("Database fetch error:", fetchError);
-            // Don't throw error, just log and continue to Gemini API
         }
 
         console.log(`📊 Database returned ${allDishes ? allDishes.length : 0} dishes for language: ${language}`);
 
-        // 2. Enhanced fuzzy search with restaurant preference
+        // 2. Fuzzy search with restaurant preference
         let bestMatch = null;
         let bestScore = 0;
         const FUZZY_THRESHOLD = 0.80;
 
         if (allDishes && allDishes.length > 0) {
-            console.log(`🔎 Starting enhanced fuzzy search for ${language}...`);
+            console.log(`🔎 Starting fuzzy search for ${language}...`);
             
             for (const dish of allDishes) {
                 if (dish.name) {
@@ -380,14 +492,14 @@ const handler: Handler = async (event: HandlerEvent) => {
             console.log(`🎯 Best match: ${bestMatch ? `"${bestMatch.name}" (${bestScore.toFixed(3)})` : `None (best score: ${bestScore.toFixed(3)})`}`);
         }
 
-        // 3. If found in database with good confidence, return it
+        // 3. Return cached result if found
         if (bestMatch && bestScore >= FUZZY_THRESHOLD) {
             console.log(`✅ FOUND MATCH IN DB: "${bestMatch.name}" in ${language} (score: ${bestScore.toFixed(3)})`);
             
             // Increment restaurant explanation count if we have a restaurant ID
             if (restaurantId) {
                 try {
-                    const { error: updateError } = await supabase
+                    const { error: updateError } = await supabaseAdmin
                         .rpc('increment_restaurant_explanation_count', { 
                             restaurant_id: parseInt(restaurantId) 
                         });
@@ -404,23 +516,24 @@ const handler: Handler = async (event: HandlerEvent) => {
             
             return {
                 statusCode: 200,
-                body: JSON.stringify({
-                    explanation: bestMatch.explanation,
-                    tags: bestMatch.tags || [],
-                    allergens: bestMatch.allergens || [],
-                    cuisine: bestMatch.cuisine
-                }),
-                headers: { 
+                headers: {
+                    ...corsHeaders,
                     'Content-Type': 'application/json',
                     'X-Data-Source': 'Database',
                     'X-Match-Score': bestScore.toString(),
                     'X-Language': language,
                     'X-Processing-Time': (Date.now() - startTime).toString()
-                }
+                },
+                body: JSON.stringify({
+                    explanation: bestMatch.explanation,
+                    tags: bestMatch.tags || [],
+                    allergens: bestMatch.allergens || [],
+                    cuisine: bestMatch.cuisine
+                })
             };
         }
 
-        // 4. If not found in DB, call Gemini API
+        // 4. Call Gemini API if not found in database
         console.log(`❌ No match found in DB for ${language} (best score: ${bestScore.toFixed(3)}), calling Gemini API`);
         
         const ai = new GoogleGenAI({ apiKey: geminiApiKey });
@@ -439,7 +552,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         const jsonText = response.text.trim();
         const dishExplanation: DishExplanation = JSON.parse(jsonText);
 
-        // 5. Save to database with restaurant link and menu language detection
+        // 5. Save to database for future use
         console.log(`💾 Checking for duplicates before saving: "${dishName}" in ${language}`);
         
         const duplicateExists = allDishes?.some(dish => 
@@ -449,8 +562,8 @@ const handler: Handler = async (event: HandlerEvent) => {
         if (!duplicateExists) {
             const insertData = { 
                 name: dishName,
-                language: language, // explanation language
-                menu_language: detectMenuLanguage(dishName), // detected menu language
+                language: language,
+                menu_language: detectMenuLanguage(dishName),
                 explanation: dishExplanation.explanation,
                 tags: dishExplanation.tags || [],
                 allergens: dishExplanation.allergens || [],
@@ -459,7 +572,7 @@ const handler: Handler = async (event: HandlerEvent) => {
                 restaurant_name: restaurantName ? decodeURIComponent(restaurantName) : null
             };
 
-            const { error: insertError } = await supabase
+            const { error: insertError } = await supabaseAdmin
                 .from('dishes')
                 .insert(insertData);
                 
@@ -475,7 +588,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         // Increment restaurant explanation count for API responses too
         if (restaurantId) {
             try {
-                const { error: updateError } = await supabase
+                const { error: updateError } = await supabaseAdmin
                     .rpc('increment_restaurant_explanation_count', { 
                         restaurant_id: parseInt(restaurantId) 
                     });
@@ -492,13 +605,14 @@ const handler: Handler = async (event: HandlerEvent) => {
         
         return {
             statusCode: 200,
-            body: JSON.stringify(dishExplanation),
-            headers: { 
+            headers: {
+                ...corsHeaders,
                 'Content-Type': 'application/json',
                 'X-Data-Source': 'Gemini-API',
                 'X-Language': language,
                 'X-Processing-Time': (Date.now() - startTime).toString()
-            }
+            },
+            body: JSON.stringify(dishExplanation)
         };
 
     } catch (error) {
@@ -506,12 +620,10 @@ const handler: Handler = async (event: HandlerEvent) => {
         const errorMessage = error instanceof Error ? error.message : "An unknown internal error occurred.";
         return {
             statusCode: 500,
+            headers: corsHeaders,
             body: JSON.stringify({ 
                 error: `Failed to get explanation for "${dishName}" in ${language}. Reason: ${errorMessage}` 
-            }),
-            headers: { 'Content-Type': 'application/json' }
+            })
         };
     }
 };
-
-export { handler };
