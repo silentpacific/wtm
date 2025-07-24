@@ -110,9 +110,11 @@ const getLanguagePrompt = (dishName: string, language: string): string => {
 const cleanString = (str: string): string => {
     return str
         .trim()
-        // Only remove common punctuation that appears in menus
-        .replace(/[.,!?;:"'()[\]{}]/g, '')
-        // Normalize whitespace
+        .toLowerCase()
+        // Only remove punctuation that's clearly not part of words
+        .replace(/[.,!?;:"()[\]{}]/g, '')
+        // Keep apostrophes and hyphens as they're often part of dish names
+        // Keep accents and special characters for all languages
         .replace(/\s+/g, ' ')
         .trim();
 };
@@ -276,7 +278,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         // 2. Enhanced fuzzy search with restaurant preference
         let bestMatch = null;
         let bestScore = 0;
-        const FUZZY_THRESHOLD = 0.85;
+        const FUZZY_THRESHOLD = 0.80;
 
         if (allDishes && allDishes.length > 0) {
             console.log(`🔎 Starting enhanced fuzzy search for ${language}...`);
@@ -372,7 +374,8 @@ const handler: Handler = async (event: HandlerEvent) => {
         if (!duplicateExists) {
             const insertData = { 
                 name: dishName,
-                language: language,
+                language: language, // explanation language
+				menu_language: detectMenuLanguage(dishName), // NEW
                 explanation: dishExplanation.explanation,
                 tags: dishExplanation.tags || [],
                 allergens: dishExplanation.allergens || [],

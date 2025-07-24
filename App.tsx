@@ -124,11 +124,11 @@ const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
               <div className="space-y-3">
                 <div className="bg-white border-4 border-charcoal rounded-2xl px-4 py-3 shadow-[4px_4px_0px_#292524]">
                   <p className="text-sm font-bold text-charcoal/80">Menus Scanned:</p>
-                  <p className="text-2xl font-black text-charcoal">{globalCounters.menus_scanned.toLocaleString()}+</p>
+                  <p className="text-2xl font-black text-charcoal">{globalCounters.menus_scanned.toLocaleString()}</p>
                 </div>
                 <div className="bg-white border-4 border-charcoal rounded-2xl px-4 py-3 shadow-[4px_4px_0px_#292524]">
                   <p className="text-sm font-bold text-charcoal/80">Dishes Analyzed:</p>
-                  <p className="text-2xl font-black text-charcoal">{globalCounters.dish_explanations.toLocaleString()}+</p>
+                  <p className="text-2xl font-black text-charcoal">{globalCounters.dish_explanations.toLocaleString()}</p>
                 </div>
               </div>
             </div>
