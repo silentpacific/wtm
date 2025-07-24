@@ -288,7 +288,7 @@ const DemoSection: React.FC<DemoSectionProps> = ({ selectedLanguage = 'en' }) =>
         </div>
       </div>
 
-      <section className="py-8 bg-gradient-to-br from-cream-50 to-cream-100">
+      <section className="py-4 bg-gradient-to-br from-cream-50 to-cream-100">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-charcoal-800 mb-4">

@@ -1736,8 +1736,8 @@ const handleSignUpFromModal = () => {
         onScanAttempt={handleScanAttempt}
       />
 	  
-	  {/* Section Separator */}
-		<div className="relative py-2">  {/* Changed from py-8 to py-2 */}
+		{/* Section Separator - No extra padding */}
+		<div className="relative">  {/* Removed py-8 */}
 		  <div className="absolute inset-0 flex items-center">
 			<div className="w-full border-t-2 border-charcoal-200"></div>
 		  </div>
@@ -1751,8 +1751,8 @@ const handleSignUpFromModal = () => {
 
 	  <DemoSection selectedLanguage="en" />
       
-		{/* Section Separator - Demo to Pricing */}
-		<div className="relative py-2">  {/* Changed from py-8 to py-2 */}
+		{/* Section Separator - No extra padding */}
+		<div className="relative">  {/* Removed py-8 */}
 		  <div className="absolute inset-0 flex items-center">
 			<div className="w-full border-t-2 border-charcoal-200"></div>
 		  </div>
