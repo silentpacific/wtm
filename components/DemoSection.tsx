@@ -10,56 +10,48 @@ const SAMPLE_MENU_DATA = {
     {
       name: "STEAK D'ESPADON AU POIVRE VERT",
       originalName: "STEAK D'ESPADON AU POIVRE VERT, FRITES",
-      price: "24",
       section: "LES PLATS",
       description: "Pan-Seared North Atlantic Sword Fish Steak, GreenPeppercorn Sauce, Haricots Verts, Garlic Fries"
     },
     {
       name: "COQ AU VIN, PÂTES FRAÎCHES", 
       originalName: "COQ AU VIN, PÂTES FRAÎCHES",
-      price: "18",
       section: "LES PLATS",
       description: "Braised Organic Chicken In A Cabernet Wine Sauce, Mushrooms, Carrots, Pearl Onions, With Fresh Fettuccine"
     },
     {
       name: "OSSO BUCO D'AGNEAU À LA PROVENÇALE",
       originalName: "OSSO BUCO D'AGNEAU À LA PROVENÇALE",
-      price: "22", 
       section: "LES PLATS",
       description: "Braised Lamb Shank, Spicy Harissa Jus, Gratin Dauphinois, Ratatouille"
     },
     {
       name: "CHOUCROUTE GARNIE ALSACIENNE",
       originalName: "CHOUCROUTE GARNIE ALSACIENNE", 
-      price: "22",
       section: "LES CLASSIQUES",
       description: "Alsacian Stew Of Imported French Sausages, Charcuterie And Homemade Sauerkraut"
     },
     {
       name: "CASSOULET TOULOUSAIN",
       originalName: "CASSOULET TOULOUSAIN",
-      price: "22",
       section: "LES CLASSIQUES", 
       description: "Slow-Cooked Casserole Of White Beans, Duck Confit, Imported Lyonnaise Organic Sausages And Pork"
     },
     {
       name: "FOIE DE VEAU À LA PROVENÇALE",
       originalName: "FOIE DE VEAU À LA PROVENÇALE",
-      price: "16",
       section: "LES CLASSIQUES",
       description: "Pan Seared Calf's Liver, Roasted Grenailles Potatoes, Grilled Asparagus, Tomate Confit, Shallots, Garlic, Parsley"
     },
     {
       name: "ESCARGOTS DE BOURGOGNE",
       originalName: "ESCARGOTS DE BOURGOGNE",
-      price: "7", 
       section: "POUR COMMENCER",
       description: "1/2 dz Burgundy Snails, Garlic Parsley Butter Sauce"
     },
     {
       name: "COCKTAIL DE CREVETTES CLASSIQUE",
       originalName: "COCKTAIL DE CREVETTES CLASSIQUE",
-      price: "12",
       section: "POUR COMMENCER", 
       description: "Classic Jumbo Shrimp Cocktail"
     }
@@ -348,96 +340,33 @@ const DemoSection: React.FC<DemoSectionProps> = ({ selectedLanguage = 'en' }) =>
     return labels[lang as keyof typeof labels] || lang;
   };
 
-  return (
-    <section className="py-16 bg-gradient-to-br from-cream-50 to-cream-100">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-charcoal-800 mb-4">
-            See How It Works
-          </h2>
-          <p className="text-lg text-charcoal-600 max-w-2xl mx-auto">
-            Watch our AI analyze a real French menu in real-time. Click on any dish to get instant explanations, ingredients, and allergen information.
-          </p>
-        </div>
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-        <div className="grid lg:grid-cols-2 gap-12 items-start max-w-7xl mx-auto">
-          {/* Desktop: Menu Image, Mobile: Hidden */}
-          <div className="hidden lg:block">
-            <div className="bg-white rounded-2xl shadow-brutal p-8">
-              <h3 className="text-2xl font-bold text-charcoal-800 mb-6 text-center">
-                Original Menu
-              </h3>
-              <div className="relative overflow-hidden rounded-xl">
-                <img 
-                  src="/api/placeholder/600/800" 
-                  alt="French Restaurant Menu"
-                  className="w-full h-auto object-cover"
-                  style={{
-                    background: `url("data:image/svg+xml,${encodeURIComponent(`
-                      <svg viewBox="0 0 600 800" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="600" height="800" fill="#f8f6f1"/>
-                        <text x="300" y="50" font-family="serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#2d3748">BRASSERIE FRANÇAISE</text>
-                        
-                        <!-- LES SOUPES Section -->
-                        <text x="50" y="100" font-family="serif" font-size="18" font-weight="bold" fill="#1a365d">- LES SOUPES -</text>
-                        <text x="50" y="125" font-family="serif" font-size="12" fill="#2d3748">ESCAROLE ET HARICOTS 6</text>
-                        <text x="50" y="140" font-family="serif" font-size="10" fill="#4a5568">Escarole, Beans, Fresh Parmesan</text>
-                        
-                        <text x="50" y="170" font-family="serif" font-size="12" fill="#2d3748">À L'OIGNON 7</text>
-                        <text x="50" y="185" font-family="serif" font-size="10" fill="#4a5568">Classic French Onion Soup</text>
-                        
-                        <text x="50" y="215" font-family="serif" font-size="12" fill="#2d3748">LENTILLES 6</text>
-                        <text x="50" y="230" font-family="serif" font-size="10" fill="#4a5568">Classic French Lentils</text>
-                        
-                        <!-- POUR COMMENCER Section -->
-                        <text x="50" y="270" font-family="serif" font-size="18" font-weight="bold" fill="#1a365d">- POUR COMMENCER -</text>
-                        <text x="50" y="295" font-family="serif" font-size="12" fill="#2d3748">ESCARGOTS DE BOURGOGNE 7</text>
-                        <text x="50" y="310" font-family="serif" font-size="10" fill="#4a5568">1/2 dz Burgundy Snails, Garlic Parsley Butter Sauce</text>
-                        
-                        <text x="50" y="340" font-family="serif" font-size="12" fill="#2d3748">COCKTAIL DE CREVETTES CLASSIQUE 12</text>
-                        <text x="50" y="355" font-family="serif" font-size="10" fill="#4a5568">Classic Jumbo Shrimp Cocktail</text>
-                        
-                        <!-- LES PLATS Section -->
-                        <text x="320" y="100" font-family="serif" font-size="18" font-weight="bold" fill="#1a365d">- LES PLATS -</text>
-                        <text x="320" y="125" font-family="serif" font-size="12" fill="#2d3748">STEAK D'ESPADON AU POIVRE VERT, FRITES 24</text>
-                        <text x="320" y="140" font-family="serif" font-size="10" fill="#4a5568">Pan-Seared North Atlantic Sword Fish Steak, GreenPeppercorn Sauce,</text>
-                        <text x="320" y="155" font-family="serif" font-size="10" fill="#4a5568">Haricots Verts, Garlic Fries</text>
-                        
-                        <text x="320" y="185" font-family="serif" font-size="12" fill="#2d3748">COQ AU VIN, PÂTES FRAÎCHES 18</text>
-                        <text x="320" y="200" font-family="serif" font-size="10" fill="#4a5568">Braised Organic Chicken In A Cabernet Wine Sauce, Mushrooms,</text>
-                        <text x="320" y="215" font-family="serif" font-size="10" fill="#4a5568">Carrots, Pearl Onions, With Fresh Fettuccine</text>
-                        
-                        <text x="320" y="245" font-family="serif" font-size="12" fill="#2d3748">OSSO BUCO D'AGNEAU À LA PROVENÇALE 22</text>
-                        <text x="320" y="260" font-family="serif" font-size="10" fill="#4a5568">Braised Lamb Shank, Spicy Harissa Jus, Gratin Dauphinois, Ratatouille</text>
-                        
-                        <!-- LES CLASSIQUES Section -->
-                        <text x="320" y="310" font-family="serif" font-size="18" font-weight="bold" fill="#1a365d">- LES CLASSIQUES -</text>
-                        <text x="320" y="335" font-family="serif" font-size="12" fill="#2d3748">CHOUCROUTE GARNIE ALSACIENNE 22</text>
-                        <text x="320" y="350" font-family="serif" font-size="10" fill="#4a5568">Alsacian Stew Of Imported French Sausages, Charcuterie And</text>
-                        <text x="320" y="365" font-family="serif" font-size="10" fill="#4a5568">Homemade Sauerkraut</text>
-                        
-                        <text x="320" y="395" font-family="serif" font-size="12" fill="#2d3748">CASSOULET TOULOUSAIN 22</text>
-                        <text x="320" y="410" font-family="serif" font-size="10" fill="#4a5568">Slow-Cooked Casserole Of White Beans, Duck Confit, Imported</text>
-                        <text x="320" y="425" font-family="serif" font-size="10" fill="#4a5568">Lyonnaise Organic Sausages And Pork</text>
-                        
-                        <text x="320" y="455" font-family="serif" font-size="12" fill="#2d3748">FOIE DE VEAU À LA PROVENÇALE 16</text>
-                        <text x="320" y="470" font-family="serif" font-size="10" fill="#4a5568">Pan Seared Calf's Liver, Roasted Grenailles Potatoes, Grilled Asparagus,</text>
-                        <text x="320" y="485" font-family="serif" font-size="10" fill="#4a5568">Tomate Confit, Shallots, Garlic, Parsley</text>
-                        
-                        <!-- Decorative border -->
-                        <rect x="20" y="20" width="560" height="760" fill="none" stroke="#8b4513" stroke-width="2"/>
-                        <rect x="30" y="30" width="540" height="740" fill="none" stroke="#8b4513" stroke-width="1"/>
-                      </svg>
-                    `)}")`
-                  }}
-                />
-              </div>
-            </div>
+  return (
+    <>
+      {/* Section Separator */}
+      <div className="bg-charcoal-800 py-2">
+        <div className="container mx-auto px-4">
+          <div className="w-full h-px bg-gradient-to-r from-transparent via-charcoal-600 to-transparent"></div>
+        </div>
+      </div>
+
+      <section className="py-16 bg-gradient-to-br from-cream-50 to-cream-100">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-charcoal-800 mb-4">
+              See How It Works
+            </h2>
+            <p className="text-lg text-charcoal-600 max-w-2xl mx-auto">
+              See us work our magic on a French menu in real-time. Click on any dish to get a description and allergen information.
+            </p>
           </div>
 
-          {/* iPhone Frame with Menu Results */}
-          <div className="flex justify-center lg:justify-start">
-            <div className="relative">
+          {/* Centered iPhone Frame */}
+          <div className="flex justify-center">
+            <div className="relative mx-4">
               {/* iPhone Frame */}
               <div className="relative bg-black rounded-[3rem] p-2 shadow-2xl" style={{ width: '375px', height: '812px' }}>
                 {/* Screen */}
@@ -464,20 +393,8 @@ const DemoSection: React.FC<DemoSectionProps> = ({ selectedLanguage = 'en' }) =>
                   <div className="flex-1 overflow-hidden bg-gradient-to-br from-cream-50 to-cream-100">
                     {/* Header */}
                     <div className="bg-white shadow-sm px-4 py-3 border-b border-gray-200">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-center">
                         <h1 className="text-lg font-bold text-charcoal-800">Menu Results</h1>
-                        <div className="flex items-center gap-2">
-                          <select 
-                            value={currentLanguage}
-                            onChange={(e) => setCurrentLanguage(e.target.value)}
-                            className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white"
-                          >
-                            <option value="en">🇺🇸 EN</option>
-                            <option value="es">🇪🇸 ES</option>
-                            <option value="zh">🇨🇳 ZH</option>
-                            <option value="fr">🇫🇷 FR</option>
-                          </select>
-                        </div>
                       </div>
                       
                       {/* Restaurant Info */}
@@ -487,10 +404,50 @@ const DemoSection: React.FC<DemoSectionProps> = ({ selectedLanguage = 'en' }) =>
                           {SAMPLE_MENU_DATA.restaurant.cuisine} Cuisine
                         </span>
                       </div>
+
+                      {/* Language Pills */}
+                      <div className="mt-3 flex justify-center gap-2">
+                        {[
+                          { code: 'en', label: 'English' },
+                          { code: 'es', label: 'Español' },
+                          { code: 'zh', label: '中文' },
+                          { code: 'fr', label: 'Français' }
+                        ].map((lang) => (
+                          <button
+                            key={lang.code}
+                            onClick={() => setCurrentLanguage(lang.code)}
+                            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                              currentLanguage === lang.code
+                                ? 'bg-charcoal-800 text-white'
+                                : 'bg-gray-200 text-charcoal-600 hover:bg-gray-300'
+                            }`}
+                          >
+                            {lang.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Important Notice */}
+                    <div className="p-4">
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-xs text-red-800 font-medium">
+                              Important: Always double-check with the restaurant about allergens and ingredients. AI descriptions are for guidance only.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Scrollable Menu Results */}
-                    <div className="flex-1 overflow-y-auto p-4" style={{ height: 'calc(100vh - 200px)' }}>
+                    <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ height: 'calc(100vh - 300px)' }}>
                       <div className="space-y-3">
                         {SAMPLE_MENU_DATA.dishes.map((dish, index) => {
                           const isClicked = clickedDishes.has(dish.name);
@@ -515,21 +472,21 @@ const DemoSection: React.FC<DemoSectionProps> = ({ selectedLanguage = 'en' }) =>
                                       {dish.description}
                                     </p>
                                   </div>
-                                  <div className="text-right flex-shrink-0">
-                                    <span className="text-lg font-bold text-coral-600">${dish.price}</span>
-                                    <div className="mt-1">
-                                      {isLoading ? (
-                                        <div className="animate-spin w-4 h-4 border-2 border-coral-500 border-t-transparent rounded-full"></div>
-                                      ) : isClicked ? (
-                                        <div className="w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center">
-                                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                          </svg>
-                                        </div>
-                                      ) : (
-                                        <div className="w-4 h-4 border-2 border-gray-300 rounded-full"></div>
-                                      )}
-                                    </div>
+                                  <div className="flex-shrink-0 ml-2">
+                                    {isLoading ? (
+                                      <div className="animate-spin w-5 h-5 border-2 border-coral-500 border-t-transparent rounded-full"></div>
+                                    ) : (
+                                      <svg 
+                                        className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                                          isClicked ? 'rotate-180' : ''
+                                        }`} 
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -581,38 +538,35 @@ const DemoSection: React.FC<DemoSectionProps> = ({ selectedLanguage = 'en' }) =>
               </div>
             </div>
           </div>
+
+          {/* Call to Action */}
+          <div className="text-center mt-12">
+            <button 
+              onClick={scrollToTop}
+              className="bg-coral-500 hover:bg-coral-600 text-white px-8 py-3 rounded-full font-semibold text-lg transition-colors duration-200 shadow-brutal hover:shadow-brutal-hover transform hover:scale-105"
+            >
+              Try it yourself
+            </button>
+          </div>
         </div>
 
-        {/* Call to Action */}
-        <div className="text-center mt-12">
-          <p className="text-lg text-charcoal-600 mb-6">
-            Ready to try it with your own menu?
-          </p>
-          <button 
-            onClick={() => document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth' })}
-            className="bg-coral-500 hover:bg-coral-600 text-white px-8 py-3 rounded-full font-semibold text-lg transition-colors duration-200 shadow-brutal hover:shadow-brutal-hover transform hover:scale-105"
-          >
-            Upload Your Menu
-          </button>
-        </div>
-      </div>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
+        <style jsx>{`
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(-10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
+          .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out;
           }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
-    </section>
+        `}</style>
+      </section>
+    </>
   );
 };
 
