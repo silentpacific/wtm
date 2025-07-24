@@ -106,12 +106,14 @@ const getLanguagePrompt = (dishName: string, language: string): string => {
     return baseInstructions[language as keyof typeof baseInstructions] || baseInstructions.en;
 };
 
-// Universal string cleaning (minimal processing to preserve all languages)
+// Universal string cleaning (improved for better matching)
 const cleanString = (str: string): string => {
     return str
         .trim()
-        // .toLowerCase()  // Comment this out temporarily
-        .replace(/[.,!?;:"'()[\]{}]/g, '')  // Put the apostrophe back
+        .toLowerCase()  // Added back for better case-insensitive matching
+        // Only remove punctuation that's clearly not part of words
+        .replace(/[.,!?;:"()[\]{}]/g, '')
+        // Keep apostrophes and hyphens as they're often part of dish names
         .replace(/\s+/g, ' ')
         .trim();
 };
@@ -151,15 +153,9 @@ const calculateSimilarity = (str1: string, str2: string): number => {
     
     console.log(`  Cleaned: "${clean1}" vs "${clean2}"`);
     
-    // Exact match (case-insensitive)
-    if (clean1.toLowerCase() === clean2.toLowerCase()) {
-        console.log(`  -> EXACT MATCH! Score: 1.0`);
-        return 1.0;
-    }
-    
-    // Exact match on original strings (preserves case sensitivity for non-Latin scripts)
+    // Exact match (case-insensitive now handled by cleanString)
     if (clean1 === clean2) {
-        console.log(`  -> EXACT CASE MATCH! Score: 1.0`);
+        console.log(`  -> EXACT MATCH! Score: 1.0`);
         return 1.0;
     }
     
@@ -187,10 +183,7 @@ const universalFuzzySearch = (searchTerm: string, targetString: string): number 
     // Level 1: Direct similarity
     const directSimilarity = calculateSimilarity(searchTerm, targetString);
     
-    // Level 2: Case-insensitive similarity (for Latin scripts)
-    const lowerSimilarity = calculateSimilarity(searchTerm.toLowerCase(), targetString.toLowerCase());
-    
-    // Level 3: Word-by-word for languages that use spaces
+    // Level 2: Word-by-word for languages that use spaces
     let wordSimilarity = 0;
     const searchWords = searchTerm.trim().split(/\s+/).filter(w => w.length > 0);
     const targetWords = targetString.trim().split(/\s+/).filter(w => w.length > 0);
@@ -218,10 +211,95 @@ const universalFuzzySearch = (searchTerm: string, targetString: string): number 
     }
     
     // Return the best similarity score
-    const finalScore = Math.max(directSimilarity, lowerSimilarity, wordSimilarity);
+    const finalScore = Math.max(directSimilarity, wordSimilarity);
     console.log(`  -> Final score: ${finalScore.toFixed(3)}`);
     
     return finalScore;
+};
+
+// Comprehensive menu language detection
+const detectMenuLanguage = (dishName: string): string => {
+    // Chinese/Japanese/Korean - CJK characters
+    if (/[\u4e00-\u9fff]/.test(dishName)) return 'zh'; // Chinese
+    if (/[\u3040-\u309f\u30a0-\u30ff]/.test(dishName)) return 'ja'; // Japanese
+    if (/[\uac00-\ud7af]/.test(dishName)) return 'ko'; // Korean
+    
+    // Arabic script languages
+    if (/[\u0600-\u06ff\u0750-\u077f]/.test(dishName)) return 'ar'; // Arabic
+    if (/[\u0590-\u05ff]/.test(dishName)) return 'he'; // Hebrew
+    
+    // Cyrillic script languages
+    if (/[\u0400-\u04ff]/.test(dishName)) return 'ru'; // Russian/Cyrillic
+    
+    // Devanagari script
+    if (/[\u0900-\u097f]/.test(dishName)) return 'hi'; // Hindi
+    
+    // Thai
+    if (/[\u0e00-\u0e7f]/.test(dishName)) return 'th'; // Thai
+    
+    // Greek
+    if (/[\u0370-\u03ff]/.test(dishName)) return 'el'; // Greek
+    
+    // European languages with Latin script
+    // French - accents and common words
+    if (/[àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/i.test(dishName) || 
+        /\b(du|de|la|le|les|au|aux|avec|sur|dans|pour|et|à|chez|sous)\b/i.test(dishName)) {
+        return 'fr';
+    }
+    
+    // Spanish - accents and common words
+    if (/[ñáéíóúü]/i.test(dishName) || 
+        /\b(con|del|de|la|el|los|las|y|en|al|por|para|desde|hasta)\b/i.test(dishName)) {
+        return 'es';
+    }
+    
+    // Portuguese
+    if (/[ãõç]/i.test(dishName) || 
+        /\b(com|do|da|dos|das|no|na|nos|nas|para|por|em)\b/i.test(dishName)) {
+        return 'pt';
+    }
+    
+    // Italian
+    if (/\b(alla|con|di|al|del|della|dello|degli|delle|nel|nella|sui|sulle)\b/i.test(dishName)) {
+        return 'it';
+    }
+    
+    // German - umlauts and common words
+    if (/[äöüß]/i.test(dishName) || 
+        /\b(mit|und|der|die|das|von|zu|im|am|auf|für|bei|über)\b/i.test(dishName)) {
+        return 'de';
+    }
+    
+    // Dutch
+    if (/\b(met|van|de|het|een|in|op|aan|voor|bij|door)\b/i.test(dishName)) {
+        return 'nl';
+    }
+    
+    // Swedish/Norwegian/Danish
+    if (/[åøæ]/i.test(dishName) || 
+        /\b(med|och|på|av|för|till|från|eller|som)\b/i.test(dishName)) {
+        return 'sv'; // Using Swedish as representative of Scandinavian
+    }
+    
+    // Polish
+    if (/[ąćęłńóśźż]/i.test(dishName) || 
+        /\b(z|w|na|do|od|dla|przez|przy|pod)\b/i.test(dishName)) {
+        return 'pl';
+    }
+    
+    // Turkish
+    if (/[çğıöşü]/i.test(dishName) || 
+        /\b(ile|ve|bu|bir|için|gibi|kadar)\b/i.test(dishName)) {
+        return 'tr';
+    }
+    
+    // Vietnamese
+    if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(dishName)) {
+        return 'vi';
+    }
+    
+    // Default to English for unidentified Latin script
+    return 'en';
 };
 
 const handler: Handler = async (event: HandlerEvent) => {
@@ -229,7 +307,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     const dishName = event.queryStringParameters?.dishName;
     const language = event.queryStringParameters?.language || 'en';
     const restaurantId = event.queryStringParameters?.restaurantId;
-    const restaurantName = event.queryStringParameters?.restaurantName; // NEW: Get restaurant name
+    const restaurantName = event.queryStringParameters?.restaurantName;
 
     if (!dishName) {
         return { 
@@ -306,7 +384,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         if (bestMatch && bestScore >= FUZZY_THRESHOLD) {
             console.log(`✅ FOUND MATCH IN DB: "${bestMatch.name}" in ${language} (score: ${bestScore.toFixed(3)})`);
             
-            // NEW: Increment restaurant explanation count if we have a restaurant ID
+            // Increment restaurant explanation count if we have a restaurant ID
             if (restaurantId) {
                 try {
                     const { error: updateError } = await supabase
@@ -361,7 +439,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         const jsonText = response.text.trim();
         const dishExplanation: DishExplanation = JSON.parse(jsonText);
 
-        // 5. Save to database with restaurant link and name
+        // 5. Save to database with restaurant link and menu language detection
         console.log(`💾 Checking for duplicates before saving: "${dishName}" in ${language}`);
         
         const duplicateExists = allDishes?.some(dish => 
@@ -372,13 +450,13 @@ const handler: Handler = async (event: HandlerEvent) => {
             const insertData = { 
                 name: dishName,
                 language: language, // explanation language
-				menu_language: detectMenuLanguage(dishName), // NEW
+                menu_language: detectMenuLanguage(dishName), // detected menu language
                 explanation: dishExplanation.explanation,
                 tags: dishExplanation.tags || [],
                 allergens: dishExplanation.allergens || [],
                 cuisine: dishExplanation.cuisine || null,
                 restaurant_id: restaurantId ? parseInt(restaurantId) : null,
-                restaurant_name: restaurantName ? decodeURIComponent(restaurantName) : null // NEW: Store restaurant name
+                restaurant_name: restaurantName ? decodeURIComponent(restaurantName) : null
             };
 
             const { error: insertError } = await supabase
@@ -388,13 +466,13 @@ const handler: Handler = async (event: HandlerEvent) => {
             if (insertError) {
                 console.error("❌ Supabase insert error:", insertError);
             } else {
-                console.log(`✅ Successfully saved new dish to DB: "${dishName}" in ${language}${restaurantId ? ` linked to restaurant ${restaurantId}` : ''}`);
+                console.log(`✅ Successfully saved new dish to DB: "${dishName}" in ${language} (menu language: ${insertData.menu_language})${restaurantId ? ` linked to restaurant ${restaurantId}` : ''}`);
             }
         } else {
             console.log(`ℹ️ Similar dish already exists in database for ${language}, skipping insert`);
         }
 
-        // NEW: Increment restaurant explanation count for API responses too
+        // Increment restaurant explanation count for API responses too
         if (restaurantId) {
             try {
                 const { error: updateError } = await supabase
