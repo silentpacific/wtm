@@ -1736,8 +1736,32 @@ const handleSignUpFromModal = () => {
         onScanAttempt={handleScanAttempt}
       />
 	  
+	  {/* Section Separator */}
+		<div className="relative py-8">
+		  <div className="absolute inset-0 flex items-center">
+			<div className="w-full border-t-2 border-charcoal-200"></div>
+		  </div>
+		  <div className="relative flex justify-center">
+			<div className="bg-cream-50 px-6">
+			  <div className="w-12 h-1 bg-gradient-to-r from-coral-400 to-teal-400 rounded-full"></div>
+			</div>
+		  </div>
+		</div>
+
+
 	  <DemoSection selectedLanguage="en" />
       
+	  {/* Section Separator */}
+		<div className="relative py-8">
+		  <div className="absolute inset-0 flex items-center">
+			<div className="w-full border-t-2 border-charcoal-200"></div>
+		  </div>
+		  <div className="relative flex justify-center">
+			<div className="bg-cream-50 px-6">
+			  <div className="w-12 h-1 bg-gradient-to-r from-coral-400 to-teal-400 rounded-full"></div>
+			</div>
+		  </div>
+		</div>
       
       {/* 3. Pricing Section */}
       {!hasActivePaidSubscription() && (
