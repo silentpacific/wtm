@@ -110,11 +110,8 @@ const getLanguagePrompt = (dishName: string, language: string): string => {
 const cleanString = (str: string): string => {
     return str
         .trim()
-        .toLowerCase()
-        // Only remove punctuation that's clearly not part of words
-        .replace(/[.,!?;:"()[\]{}]/g, '')
-        // Keep apostrophes and hyphens as they're often part of dish names
-        // Keep accents and special characters for all languages
+        // .toLowerCase()  // Comment this out temporarily
+        .replace(/[.,!?;:"'()[\]{}]/g, '')  // Put the apostrophe back
         .replace(/\s+/g, ' ')
         .trim();
 };
