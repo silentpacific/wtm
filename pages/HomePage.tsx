@@ -1736,7 +1736,7 @@ const handleSignUpFromModal = () => {
         onScanAttempt={handleScanAttempt}
       />
 	  
-	  <DemoSection selectedLanguage={selectedLanguage} />
+	  <DemoSection selectedLanguage="en" />
       
       
       {/* 3. Pricing Section */}
