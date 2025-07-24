@@ -1737,7 +1737,7 @@ const handleSignUpFromModal = () => {
       />
 	  
 	  {/* Section Separator */}
-		<div className="relative py-8">
+		<div className="relative py-4">
 		  <div className="absolute inset-0 flex items-center">
 			<div className="w-full border-t-2 border-charcoal-200"></div>
 		  </div>
