@@ -257,7 +257,6 @@ const ScanLimitModal: React.FC<ScanLimitModalProps> = ({
 };
 
 
-
 const HeroSection: React.FC<{ 
     onImageSelect: (file: File) => void; 
     onBase64Select: (base64: string) => void;
@@ -650,9 +649,6 @@ const makeRequest = async (): Promise<DishExplanation> => {
     return await response.json();
 };
 
-
-
-
         // Auto-retry logic with friendly messages
         const startTime = Date.now();
         let retryCount = 0;
@@ -755,112 +751,8 @@ const attemptRequest = async (): Promise<void> => {
         attemptRequest();
     };
 	
-	// 3. Add Page Visibility API for Drop-off Tracking
 
-// Add this useEffect to track when users leave during loading
-useEffect(() => {
-    let scanningStartTime: number | null = null;
-    
-    // Track when scanning starts
-    if (isScanning && !scanningStartTime) {
-        scanningStartTime = Date.now();
-    }
-    
-    // Track when scanning completes
-    if (!isScanning && scanningStartTime) {
-        scanningStartTime = null;
-    }
-
-    const handleVisibilityChange = () => {
-        if (document.hidden) {
-            // User left the page/tab
-            if (isScanning && scanningStartTime) {
-                const timeSpent = Date.now() - scanningStartTime;
-                gtag('event', 'menu_scan_abandoned', {
-                    'abandonment_type': 'page_hidden',
-                    'time_spent_ms': timeSpent,
-                    'time_spent_seconds': Math.round(timeSpent / 1000 * 100) / 100,
-                    'user_type': user ? 'authenticated' : 'anonymous',
-                    'timestamp': Date.now()
-                });
-            }
-            
-            // Check if any dish explanations are loading
-            const loadingExplanations = Object.keys(explanations).filter(dishName => 
-                explanations[dishName][selectedLanguage]?.isLoading
-            );
-            
-            if (loadingExplanations.length > 0) {
-                gtag('event', 'dish_explanation_abandoned', {
-                    'abandonment_type': 'page_hidden',
-                    'loading_dishes_count': loadingExplanations.length,
-                    'loading_dishes': loadingExplanations.join(', '),
-                    'user_type': user ? 'authenticated' : 'anonymous',
-                    'timestamp': Date.now()
-                });
-            }
-        }
-    };
-
-    const handleBeforeUnload = () => {
-        // User is leaving the page entirely
-        if (isScanning && scanningStartTime) {
-            const timeSpent = Date.now() - scanningStartTime;
-            gtag('event', 'menu_scan_abandoned', {
-                'abandonment_type': 'page_unload',
-                'time_spent_ms': timeSpent,
-                'time_spent_seconds': Math.round(timeSpent / 1000 * 100) / 100,
-                'user_type': user ? 'authenticated' : 'anonymous',
-                'timestamp': Date.now()
-            });
-        }
-        
-        const loadingExplanations = Object.keys(explanations).filter(dishName => 
-            explanations[dishName][selectedLanguage]?.isLoading
-        );
-        
-        if (loadingExplanations.length > 0) {
-            gtag('event', 'dish_explanation_abandoned', {
-                'abandonment_type': 'page_unload',
-                'loading_dishes_count': loadingExplanations.length,
-                'user_type': user ? 'authenticated' : 'anonymous',
-                'timestamp': Date.now()
-            });
-        }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-}, [isScanning, explanations, selectedLanguage, user]); // ✅ Fixed dependencies
-
-// 4. Add User Engagement Tracking
-
-// Track how long users spend viewing menu results
-useEffect(() => {
-    if (scanResult && scanResult.length > 0) {
-        const viewStartTime = Date.now();
-        
-        return () => {
-            const viewTime = Date.now() - viewStartTime;
-            gtag('event', 'menu_results_viewed', {
-                'view_time_ms': viewTime,
-                'view_time_seconds': Math.round(viewTime / 1000 * 100) / 100,
-                'dishes_count': scanResult.reduce((total, section) => total + section.dishes.length, 0),
-                'sections_count': scanResult.length,
-                'user_type': user ? 'authenticated' : 'anonymous',
-                'restaurant_name': restaurantInfo?.name || 'unknown',
-                'timestamp': Date.now()
-            });
-        };
-    }
-}, [scanResult, restaurantInfo, user]); // ✅ Fixed dependencies
-
-    // Handle mobile accordion click
+// Handle mobile accordion click
     const handleMobileAccordionClick = (dishName: string) => {
         toggleDishExpansion(dishName);
         
@@ -1226,8 +1118,6 @@ interface PricingSectionProps {
   handlePurchase: (planType: 'daily' | 'weekly') => void;
 }
 
-
-
 // Update the PricingSection component in HomePage.tsx to have better anchor positioning
 
 const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, handlePurchase }) => {
@@ -1403,8 +1293,10 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
             </div>
           </div>
         </div>
-        
-        {/* Mobile Layout: Stacked Cards */}
+
+
+
+	{/* Mobile Layout: Stacked Cards */}
         <div className="lg:hidden space-y-6">
           
           {/* Try It Free Card */}
@@ -1540,8 +1432,6 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
   );
 };
 
-
-
 const ReviewsSection: React.FC = () => (
   <div className="py-12 sm:py-24 bg-teal border-y-4 border-charcoal">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1570,8 +1460,6 @@ const ReviewsSection: React.FC = () => (
   </div>
 );
 
-
-
 const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess }) => {
     const { user } = useAuth();
     const [isScanning, setIsScanning] = useState(false);
@@ -1587,68 +1475,69 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         id?: number;
     } | null>(null);
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+    
     const handlePurchase = useCallback(async (planType: 'daily' | 'weekly') => {
-  console.log('🔍 Starting purchase process...');
-  console.log('🔍 User object:', user);
-  console.log('🔍 User ID:', user?.id);
-  console.log('🔍 Plan type:', planType);
-  
-  if (!user) {
-    console.log('❌ No user found');
-    alert('Please sign up or log in to purchase a plan.');
-    return;
-  }
+      console.log('🔍 Starting purchase process...');
+      console.log('🔍 User object:', user);
+      console.log('🔍 User ID:', user?.id);
+      console.log('🔍 Plan type:', planType);
+      
+      if (!user) {
+        console.log('❌ No user found');
+        alert('Please sign up or log in to purchase a plan.');
+        return;
+      }
 
-  setLoadingPlan(planType);
+      setLoadingPlan(planType);
 
-  try {
-    const priceId = planType === 'daily' 
-         ? import.meta.env.VITE_STRIPE_DAILY_PRICE_ID
-         : import.meta.env.VITE_STRIPE_WEEKLY_PRICE_ID;
+      try {
+        const priceId = planType === 'daily' 
+             ? import.meta.env.VITE_STRIPE_DAILY_PRICE_ID
+             : import.meta.env.VITE_STRIPE_WEEKLY_PRICE_ID;
 
-    const requestBody = {
-      priceId,
-      userId: user.id,
-      planType,
+        const requestBody = {
+          priceId,
+          userId: user.id,
+          planType,
+        };
+
+        console.log('🔍 Sending request with:', requestBody);
+
+        const response = await fetch('/.netlify/functions/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        console.log('🔍 Response status:', response.status);
+        console.log('🔍 Response ok:', response.ok);
+
+        const data = await response.json();
+        console.log('🔍 Response data:', data);
+
+        if (!response.ok) {
+          console.log('❌ Response not ok, throwing error:', data.error);
+          throw new Error(data.error || 'Failed to create checkout session');
+        }
+
+        console.log('✅ Success! Redirecting to:', data.url);
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      } catch (error) {
+        console.error('❌ Error creating checkout session:', error);
+        console.error('❌ Error message:', error.message);
+        alert(`Failed to start checkout: ${error.message}`);
+      } finally {
+        setLoadingPlan(null);
+      }
+    }, [user]);
+
+    const handleSignUpFromModal = () => {
+        setShowLimitModal(false);
+        setShowLoginModal(true);
     };
-
-    console.log('🔍 Sending request with:', requestBody);
-
-    const response = await fetch('/.netlify/functions/create-checkout-session', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    console.log('🔍 Response status:', response.status);
-    console.log('🔍 Response ok:', response.ok);
-
-    const data = await response.json();
-    console.log('🔍 Response data:', data);
-
-    if (!response.ok) {
-      console.log('❌ Response not ok, throwing error:', data.error);
-      throw new Error(data.error || 'Failed to create checkout session');
-    }
-
-    console.log('✅ Success! Redirecting to:', data.url);
-    // Redirect to Stripe Checkout
-    window.location.href = data.url;
-  } catch (error) {
-    console.error('❌ Error creating checkout session:', error);
-    console.error('❌ Error message:', error.message);
-    alert(`Failed to start checkout: ${error.message}`);
-  } finally {
-    setLoadingPlan(null);
-  }
-}, [user]);
-
-const handleSignUpFromModal = () => {
-    setShowLimitModal(false);
-    setShowLoginModal(true);
-};
 
     // Check if user has active paid subscription - moved inside component
     const hasActivePaidSubscription = useCallback(() => {
@@ -1689,7 +1578,7 @@ const handleSignUpFromModal = () => {
     }, [user]);
 
     // Check if user can scan
-        const canScan = useCallback(async () => {
+    const canScan = useCallback(async () => {
         if (!user) {
             // Non-logged in users: use anonymous tracking
             return canAnonymousUserScan();
@@ -1704,7 +1593,7 @@ const handleSignUpFromModal = () => {
         }
     }, [user]);
 	
-	    // Updated: Check if user can explain dishes using new logic
+    // Updated: Check if user can explain dishes using new logic
     const canExplainDish = useCallback(async () => {
         if (!user) {
             // Non-logged in users: use anonymous tracking
@@ -1728,7 +1617,7 @@ const handleSignUpFromModal = () => {
         setScanResult(null);
         setScanError(null);
         setRestaurantInfo(null); // Reset restaurant info
-	window.scrollTo(0, 0);
+        window.scrollTo(0, 0);
     }, []);
 
     const handleScan = useCallback(async (base64Image: string) => {
@@ -1737,23 +1626,21 @@ const handleSignUpFromModal = () => {
             return;
         }
 
-		const scanStartTime = Date.now();
-			const sessionId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-			
-			setIsScanning(true);
-			setScanError(null);
-			setScanResult(null);
+        const scanStartTime = Date.now();
+        const sessionId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        
+        setIsScanning(true);
+        setScanError(null);
+        setScanResult(null);
 
+        // Track scan start
+        gtag('event', 'menu_scan_started', {
+            'session_id': sessionId,
+            'user_type': user ? 'authenticated' : 'anonymous',
+            'image_size_kb': Math.round(base64Image.length * 0.75 / 1024),
+            'timestamp': Date.now()
+        });
 
-			// Track scan start
-			gtag('event', 'menu_scan_started', {
-				'session_id': sessionId,
-				'user_type': user ? 'authenticated' : 'anonymous',
-				'image_size_kb': Math.round(base64Image.length * 0.75 / 1024),
-				'timestamp': Date.now()
-			});
-	
-	
         try {
             // Reset dish counter when starting new scan
             if (user) {
@@ -1782,12 +1669,12 @@ const handleSignUpFromModal = () => {
             });
 
             // Find or create restaurant record
-			let restaurantId = null;
-			if (menuAnalysis.restaurantName) {
-				const totalDishCount = menuAnalysis.sections.reduce(
-					(total, section) => total + section.dishes.length, 
-					0
-				);
+            let restaurantId = null;
+            if (menuAnalysis.restaurantName) {
+                const totalDishCount = menuAnalysis.sections.reduce(
+                    (total, section) => total + section.dishes.length, 
+                    0
+                );
                 
                 restaurantId = await findOrCreateRestaurant(
                     menuAnalysis.restaurantName,
@@ -1798,22 +1685,22 @@ const handleSignUpFromModal = () => {
                 console.log(`Restaurant ID: ${restaurantId}, Dishes: ${totalDishCount}`);
             }
 
-			// Enhanced tracking for successful menu scan
-			gtag('event', 'menu_scan_complete', {
-				'session_id': sessionId,
-				'scan_success': true,
-				'processing_time_ms': scanTime,
-				'processing_time_seconds': Math.round(scanTime / 1000 * 100) / 100, // 2 decimal places
-				'dishes_detected': menuAnalysis.sections.reduce((total, section) => total + section.dishes.length, 0),
-				'sections_detected': menuAnalysis.sections.length,
-				'restaurant_name': menuAnalysis.restaurantName || 'unknown',
-				'detected_cuisine': menuAnalysis.detectedCuisine || 'unknown',
-				'location_city': userLocation.city || 'unknown',
-				'location_country': userLocation.country || 'unknown',
-				'user_type': user ? 'authenticated' : 'anonymous',
-				'image_size_kb': Math.round(base64Image.length * 0.75 / 1024),
-				'timestamp': Date.now()
-			});
+            // Enhanced tracking for successful menu scan
+            gtag('event', 'menu_scan_complete', {
+                'session_id': sessionId,
+                'scan_success': true,
+                'processing_time_ms': scanTime,
+                'processing_time_seconds': Math.round(scanTime / 1000 * 100) / 100, // 2 decimal places
+                'dishes_detected': menuAnalysis.sections.reduce((total, section) => total + section.dishes.length, 0),
+                'sections_detected': menuAnalysis.sections.length,
+                'restaurant_name': menuAnalysis.restaurantName || 'unknown',
+                'detected_cuisine': menuAnalysis.detectedCuisine || 'unknown',
+                'location_city': userLocation.city || 'unknown',
+                'location_country': userLocation.country || 'unknown',
+                'user_type': user ? 'authenticated' : 'anonymous',
+                'image_size_kb': Math.round(base64Image.length * 0.75 / 1024),
+                'timestamp': Date.now()
+            });
 
             setScanResult(menuAnalysis.sections);
             
@@ -1828,48 +1715,48 @@ const handleSignUpFromModal = () => {
                     });
                 }
 
-				// Update scan count after successful scan
-				if (user) {
-					await incrementUserMenuScan(user.id);
-					setUserProfile(prev => prev ? { 
-						...prev, 
-						scans_used: prev.scans_used + 1,
-						current_menu_dish_explanations: 0
-					} : null);
-				} else {
-					incrementAnonymousScan();
-				}
-				
-				onScanSuccess();
-			}
-			} catch (err) {
-				const scanTime = Date.now() - scanStartTime;
-				const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-				
-				// Enhanced tracking for failed menu scan
-				gtag('event', 'menu_scan_complete', {
-					'session_id': sessionId,
-					'scan_success': false,
-					'processing_time_ms': scanTime,
-					'processing_time_seconds': Math.round(scanTime / 1000 * 100) / 100,
-					'error_message': errorMessage,
-					'error_type': errorMessage.includes('timeout') ? 'timeout' : 
-								 errorMessage.includes('network') ? 'network' : 'other',
-					'dishes_detected': 0,
-					'sections_detected': 0,
-					'restaurant_name': 'error',
-					'detected_cuisine': 'error',
-					'user_type': user ? 'authenticated' : 'anonymous',
-					'image_size_kb': Math.round(base64Image.length * 0.75 / 1024),
-					'timestamp': Date.now()
-				});
-				
-				console.error(err);
-				setScanError(errorMessage);
-			} finally {
-				setIsScanning(false);
-			}
-		}, [canScan, user, userProfile, onScanSuccess]);
+                // Update scan count after successful scan
+                if (user) {
+                    await incrementUserMenuScan(user.id);
+                    setUserProfile(prev => prev ? { 
+                        ...prev, 
+                        scans_used: prev.scans_used + 1,
+                        current_menu_dish_explanations: 0
+                    } : null);
+                } else {
+                    incrementAnonymousScan();
+                }
+                
+                onScanSuccess();
+            }
+        } catch (err) {
+            const scanTime = Date.now() - scanStartTime;
+            const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+            
+            // Enhanced tracking for failed menu scan
+            gtag('event', 'menu_scan_complete', {
+                'session_id': sessionId,
+                'scan_success': false,
+                'processing_time_ms': scanTime,
+                'processing_time_seconds': Math.round(scanTime / 1000 * 100) / 100,
+                'error_message': errorMessage,
+                'error_type': errorMessage.includes('timeout') ? 'timeout' : 
+                             errorMessage.includes('network') ? 'network' : 'other',
+                'dishes_detected': 0,
+                'sections_detected': 0,
+                'restaurant_name': 'error',
+                'detected_cuisine': 'error',
+                'user_type': user ? 'authenticated' : 'anonymous',
+                'image_size_kb': Math.round(base64Image.length * 0.75 / 1024),
+                'timestamp': Date.now()
+            });
+            
+            console.error(err);
+            setScanError(errorMessage);
+        } finally {
+            setIsScanning(false);
+        }
+    }, [canScan, user, userProfile, onScanSuccess]);
 
     const handleFileSelect = useCallback(async (file: File) => {
       // Track file upload method and details
@@ -1885,136 +1772,208 @@ const handleSignUpFromModal = () => {
       handleScan(base64);
     }, [handleScan]);
 
-
     const handleBase64Select = useCallback((base64: string) => {
       handleScan(base64);
     }, [handleScan]);
 
+    // Add Page Visibility API for Drop-off Tracking - FIXED useEffect
+    useEffect(() => {
+        let scanningStartTime: number | null = null;
+        
+        // Track when scanning starts
+        if (isScanning && !scanningStartTime) {
+            scanningStartTime = Date.now();
+        }
+        
+        // Track when scanning completes
+        if (!isScanning && scanningStartTime) {
+            scanningStartTime = null;
+        }
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                // User left the page/tab
+                if (isScanning && scanningStartTime) {
+                    const timeSpent = Date.now() - scanningStartTime;
+                    gtag('event', 'menu_scan_abandoned', {
+                        'abandonment_type': 'page_hidden',
+                        'time_spent_ms': timeSpent,
+                        'time_spent_seconds': Math.round(timeSpent / 1000 * 100) / 100,
+                        'user_type': user ? 'authenticated' : 'anonymous',
+                        'timestamp': Date.now()
+                    });
+                }
+            }
+        };
+
+        const handleBeforeUnload = () => {
+            // User is leaving the page entirely
+            if (isScanning && scanningStartTime) {
+                const timeSpent = Date.now() - scanningStartTime;
+                gtag('event', 'menu_scan_abandoned', {
+                    'abandonment_type': 'page_unload',
+                    'time_spent_ms': timeSpent,
+                    'time_spent_seconds': Math.round(timeSpent / 1000 * 100) / 100,
+                    'user_type': user ? 'authenticated' : 'anonymous',
+                    'timestamp': Date.now()
+                });
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [isScanning, user]); // ✅ FIXED: Only include necessary dependencies
+
+    // Track how long users spend viewing menu results - FIXED useEffect
+    useEffect(() => {
+        if (scanResult && scanResult.length > 0) {
+            const viewStartTime = Date.now();
+            
+            return () => {
+                const viewTime = Date.now() - viewStartTime;
+                gtag('event', 'menu_results_viewed', {
+                    'view_time_ms': viewTime,
+                    'view_time_seconds': Math.round(viewTime / 1000 * 100) / 100,
+                    'dishes_count': scanResult.reduce((total, section) => total + section.dishes.length, 0),
+                    'sections_count': scanResult.length,
+                    'user_type': user ? 'authenticated' : 'anonymous',
+                    'restaurant_name': restaurantInfo?.name || 'unknown',
+                    'timestamp': Date.now()
+                });
+            };
+        }
+    }, [scanResult, restaurantInfo, user]); // ✅ FIXED: Only include necessary dependencies
+
     return (
-  <div>
-    {isScanning && (
-      <div className="text-center py-28 flex flex-col items-center">
-        <div className="inline-block animate-spin rounded-full h-20 w-20 border-t-8 border-b-8 border-coral"></div>
-        <p className="mt-6 text-2xl text-charcoal font-bold">Analyzing your menu...</p>
-        <p className="text-lg text-charcoal/70">this might take a moment!</p>
-      </div>
-    )}
+      <div>
+        {isScanning && (
+          <div className="text-center py-28 flex flex-col items-center">
+            <div className="inline-block animate-spin rounded-full h-20 w-20 border-t-8 border-b-8 border-coral"></div>
+            <p className="mt-6 text-2xl text-charcoal font-bold">Analyzing your menu...</p>
+            <p className="text-lg text-charcoal/70">this might take a moment!</p>
+          </div>
+        )}
 
-    {scanError && (
-      <div className="py-28 max-w-2xl mx-auto px-4">
-        <div
-          className="bg-red-100 border-4 border-charcoal text-charcoal p-6 rounded-2xl relative shadow-[8px_8px_0px_#292524]"
-          role="alert"
-        >
-          <strong className="font-black text-2xl block">Whoops! Scan Failed!</strong>
-          <span className="block mt-2">{scanError}</span>
-          <button
-            onClick={() => setScanError(null)}
-            className="absolute -top-3 -right-3 bg-coral rounded-full p-2 border-2 border-charcoal"
-          >
-            <svg
-              className="fill-current h-6 w-6 text-white"
-              role="button"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
+        {scanError && (
+          <div className="py-28 max-w-2xl mx-auto px-4">
+            <div
+              className="bg-red-100 border-4 border-charcoal text-charcoal p-6 rounded-2xl relative shadow-[8px_8px_0px_#292524]"
+              role="alert"
             >
-              <title>Close</title>
-              <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    )}
+              <strong className="font-black text-2xl block">Whoops! Scan Failed!</strong>
+              <span className="block mt-2">{scanError}</span>
+              <button
+                onClick={() => setScanError(null)}
+                className="absolute -top-3 -right-3 bg-coral rounded-full p-2 border-2 border-charcoal"
+              >
+                <svg
+                  className="fill-current h-6 w-6 text-white"
+                  role="button"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                >
+                  <title>Close</title>
+                  <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
 
-{!isScanning && !scanError && (
-  scanResult ? (
-    <>
-      <MenuResults
-        menuSections={scanResult}
-        restaurantInfo={restaurantInfo || undefined}
-        onExplanationSuccess={onExplanationSuccess}
-        userProfile={userProfile}
-        user={user}
-      />
-      <div className="text-center pb-12 sm:pb-16">
-        <button
-          onClick={handleResetScan}
-          className="px-10 py-4 bg-coral text-white font-bold rounded-full border-4 border-charcoal shadow-[6px_6px_0px_#292524] hover:shadow-[8px_8px_0px_#292524] active:shadow-none active:translate-x-1.5 active:translate-y-1.5 transition-all text-xl"
-        >
-          Scan Another Menu!
-        </button>
-      </div>
-    </>
-  ) : (
-    <>
-      {/* 1. Hero Section */}
-      <HeroSection
-        onImageSelect={handleFileSelect}
-        onBase64Select={handleBase64Select}
-        canScan={canScan()}
-        onScanAttempt={handleScanAttempt}
-      />
-	  
-		{/* Section Separator - No extra padding */}
-		<div className="relative">  {/* Removed py-8 */}
-		  <div className="absolute inset-0 flex items-center">
-			<div className="w-full border-t-2 border-charcoal-200"></div>
-		  </div>
-		  <div className="relative flex justify-center">
-			<div className="bg-cream-50 px-6">
-			  <div className="w-12 h-1 bg-gradient-to-r from-coral-400 to-teal-400 rounded-full"></div>
-			</div>
-		  </div>
-		</div>
+        {!isScanning && !scanError && (
+          scanResult ? (
+            <>
+              <MenuResults
+                menuSections={scanResult}
+                restaurantInfo={restaurantInfo || undefined}
+                onExplanationSuccess={onExplanationSuccess}
+                userProfile={userProfile}
+                user={user}
+              />
+              <div className="text-center pb-12 sm:pb-16">
+                <button
+                  onClick={handleResetScan}
+                  className="px-10 py-4 bg-coral text-white font-bold rounded-full border-4 border-charcoal shadow-[6px_6px_0px_#292524] hover:shadow-[8px_8px_0px_#292524] active:shadow-none active:translate-x-1.5 active:translate-y-1.5 transition-all text-xl"
+                >
+                  Scan Another Menu!
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* 1. Hero Section */}
+              <HeroSection
+                onImageSelect={handleFileSelect}
+                onBase64Select={handleBase64Select}
+                canScan={canScan()}
+                onScanAttempt={handleScanAttempt}
+              />
+              
+                {/* Section Separator - No extra padding */}
+                <div className="relative">  {/* Removed py-8 */}
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t-2 border-charcoal-200"></div>
+                  </div>
+                  <div className="relative flex justify-center">
+                    <div className="bg-cream-50 px-6">
+                      <div className="w-12 h-1 bg-gradient-to-r from-coral-400 to-teal-400 rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
 
+              <DemoSection selectedLanguage="en" />
+              
+                {/* Section Separator - No extra padding */}
+                <div className="relative">  {/* Removed py-8 */}
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t-2 border-charcoal-200"></div>
+                  </div>
+                  <div className="relative flex justify-center">	
+				  
+				  <div className="bg-cream-50 px-6">
+                     <div className="w-12 h-1 bg-gradient-to-r from-coral-400 to-teal-400 rounded-full"></div>
+                   </div>
+                 </div>
+               </div>
 
-	  <DemoSection selectedLanguage="en" />
-      
-		{/* Section Separator - No extra padding */}
-		<div className="relative">  {/* Removed py-8 */}
-		  <div className="absolute inset-0 flex items-center">
-			<div className="w-full border-t-2 border-charcoal-200"></div>
-		  </div>
-		  <div className="relative flex justify-center">
-			<div className="bg-cream-50 px-6">
-			  <div className="w-12 h-1 bg-gradient-to-r from-coral-400 to-teal-400 rounded-full"></div>
-			</div>
-		  </div>
-		</div>
+             
+             {/* 3. Pricing Section */}
+             {!hasActivePaidSubscription() && (
+               <PricingSection
+                 user={user}
+                 loadingPlan={loadingPlan}
+                 handlePurchase={handlePurchase}
+               />
+             )}
+             
+             {/* 4. Reviews Section */}
+             <ReviewsSection />
+           </>
+         )
+       )}
 
-      
-      {/* 3. Pricing Section */}
-      {!hasActivePaidSubscription() && (
-        <PricingSection
-          user={user}
-          loadingPlan={loadingPlan}
-          handlePurchase={handlePurchase}
-        />
-      )}
-      
-      {/* 4. Reviews Section */}
-      <ReviewsSection />
-    </>
-  )
-)}
+       <ScanLimitModal
+         isOpen={showLimitModal}
+         onClose={() => setShowLimitModal(false)}
+         userProfile={userProfile}
+         isLoggedIn={!!user}
+         onPurchase={handlePurchase}
+         onSignUp={handleSignUpFromModal}
+         loadingPlan={loadingPlan}
+       />
 
-    <ScanLimitModal
-      isOpen={showLimitModal}
-      onClose={() => setShowLimitModal(false)}
-      userProfile={userProfile}
-      isLoggedIn={!!user}
-      onPurchase={handlePurchase}
-      onSignUp={handleSignUpFromModal}
-      loadingPlan={loadingPlan}
-    />
-
-    <LoginModal
-      isOpen={showLoginModal}
-      onClose={() => setShowLoginModal(false)}
-    />
-  </div>
-);
+       <LoginModal
+         isOpen={showLoginModal}
+         onClose={() => setShowLoginModal(false)}
+       />
+     </div>
+   );
 };
 
-
 export default HomePage;
+	
