@@ -346,6 +346,8 @@ const HeroSection: React.FC<{
     );
 };
 
+// COMPLETE MenuResults component - Replace your entire MenuResults component with this
+
 const MenuResults: React.FC<{ 
     menuSections: MenuSection[]; 
     restaurantInfo?: { 
@@ -398,44 +400,7 @@ const MenuResults: React.FC<{
         });
     };
 
-    // Enhanced dish name component with cursor hints
-    const DishNameWithHints: React.FC<{ 
-        dishName: string; 
-        onClick: () => void; 
-        isLoading: boolean;
-        isFirstDish: boolean;
-        showHint: boolean;
-    }> = ({ dishName, onClick, isLoading, isFirstDish, showHint }) => {
-        return (
-            <div className="relative group">
-                <button 
-                    onClick={onClick}
-                    disabled={isLoading}
-                    className={`text-xl font-medium text-charcoal tracking-tight text-left hover:text-coral transition-all duration-200 w-full disabled:hover:text-charcoal disabled:cursor-default relative ${
-                        showHint && isFirstDish ? 'animate-pulse' : ''
-                    }`}
-                    aria-label={`Get explanation for ${dishName}`}
-                >
-                    {dishName}
-                    
-                    {/* Subtle hover background effect */}
-                    <div className="absolute inset-0 bg-coral/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 -z-10 -mx-2 -my-1"></div>
-                    
-                    {/* Pointing finger emoji (desktop hover only) */}
-                    <span className="hidden md:inline absolute -right-8 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-coral text-lg">
-                        👈
-                    </span>
-                </button>
-                
-                {/* Ripple effect on click */}
-                <div className="absolute inset-0 rounded-lg pointer-events-none -mx-2 -my-1">
-                    <div className="absolute inset-0 bg-coral/20 rounded-lg scale-0 group-active:scale-100 transition-transform duration-150"></div>
-                </div>
-            </div>
-        );
-    };
-
-    // Your existing dedicated retry function
+    // Dedicated retry function
     const handleRetryDish = (dishName: string) => {
         setExplanations(prev => ({
             ...prev,
@@ -450,7 +415,7 @@ const MenuResults: React.FC<{
         }, 50);
     };
 
-    // Your existing translations object (keeping it the same)
+    // Translations object
     const translations = {
         en: {
             pageTitle: "Your Menu",
@@ -520,258 +485,239 @@ const MenuResults: React.FC<{
         { code: 'fr', name: 'Français' },
     ];
 
-const handleDishClick = async (dishName: string) => {
-    if (!explanations[dishName]) {
-        explanations[dishName] = {};
-    }
-    
-    // Check for successful data OR currently loading
-    const currentExplanation = explanations[dishName][selectedLanguage];
-    if (currentExplanation?.data || currentExplanation?.isLoading) {
-        return;
-    }
-    
-    // Check if user can explain more dishes before making API call
-    let canExplain;
-    if (user) {
-        try {
-            const counters = await getUserCounters(user.id);
-            canExplain = canUserExplainDish(counters);
-        } catch (error) {
-            console.error('Error checking user dish explanation capability:', error);
-            canExplain = false;
+    const handleDishClick = async (dishName: string) => {
+        if (!explanations[dishName]) {
+            explanations[dishName] = {};
         }
-    } else {
-        canExplain = canAnonymousUserExplainDish();
-    }
-    
-    if (!canExplain) {
-        // Get appropriate error message based on user type
-        let errorMessage;
+        
+        // Check for successful data OR currently loading
+        const currentExplanation = explanations[dishName][selectedLanguage];
+        if (currentExplanation?.data || currentExplanation?.isLoading) {
+            return;
+        }
+        
+        // Check if user can explain more dishes before making API call
+        let canExplain;
         if (user) {
             try {
                 const counters = await getUserCounters(user.id);
-                const hasUnlimited = counters.subscription_type !== 'free' && 
-                    counters.subscription_status === 'active' &&
-                    counters.subscription_expires_at &&
-                    new Date() < new Date(counters.subscription_expires_at) &&
-                    ['daily', 'weekly'].includes(counters.subscription_type.toLowerCase());
-                
-                if (hasUnlimited) {
-                    errorMessage = "Error checking explanation limit. Please try again.";
-                } else {
-                    errorMessage = t.dishLimitReached;
-                }
+                canExplain = canUserExplainDish(counters);
             } catch (error) {
-                errorMessage = "Error checking explanation limit. Please try again.";
+                console.error('Error checking user dish explanation capability:', error);
+                canExplain = false;
             }
         } else {
-            errorMessage = t.dishLimitReached;
+            canExplain = canAnonymousUserExplainDish();
         }
         
-        setExplanations(prev => ({
-            ...prev,
-            [dishName]: {
-                ...prev[dishName],
-                [selectedLanguage]: { 
-                    data: null, 
-                    isLoading: false, 
-                    error: errorMessage
+        if (!canExplain) {
+            // Get appropriate error message based on user type
+            let errorMessage;
+            if (user) {
+                try {
+                    const counters = await getUserCounters(user.id);
+                    const hasUnlimited = counters.subscription_type !== 'free' && 
+                        counters.subscription_status === 'active' &&
+                        counters.subscription_expires_at &&
+                        new Date() < new Date(counters.subscription_expires_at) &&
+                        ['daily', 'weekly'].includes(counters.subscription_type.toLowerCase());
+                    
+                    if (hasUnlimited) {
+                        errorMessage = "Error checking explanation limit. Please try again.";
+                    } else {
+                        errorMessage = t.dishLimitReached;
+                    }
+                } catch (error) {
+                    errorMessage = "Error checking explanation limit. Please try again.";
                 }
-            }
-        }));
-        return;
-    }
-    
-    // Helper function to make the secure API request
-    const makeRequest = async (): Promise<DishExplanation> => {
-        // Prepare request headers
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json'
-        };
-
-        // Add authorization header if user is logged in
-        if (user) {
-            // Get the current session to access the JWT token
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.access_token) {
-                headers['Authorization'] = `Bearer ${session.access_token}`;
-            }
-        }
-
-        // Prepare request body (no more query parameters!)
-        const requestBody = {
-            dishName,
-            language: selectedLanguage,
-            ...(restaurantInfo?.id && { restaurantId: restaurantInfo.id.toString() }),
-            ...(restaurantInfo?.name && { restaurantName: restaurantInfo.name })
-        };
-
-        console.log('🔐 Making secure API request:', {
-            url: '/.netlify/functions/getDishExplanation',
-            method: 'POST',
-            hasAuth: !!headers['Authorization'],
-            body: requestBody
-        });
-
-        const response = await fetch('/.netlify/functions/getDishExplanation', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(requestBody)
-        });
-        
-        if (!response.ok) {
-            if (response.status === 429) {
-                throw new Error('RATE_LIMIT');
-            } else if (response.status === 401) {
-                throw new Error('Authentication failed. Please try logging in again.');
-            } else if (response.status === 403) {
-                throw new Error('Access denied. Please check your permissions.');
             } else {
-                const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
-                throw new Error(errorData.error || `Request failed`);
-            }
-        }
-        
-        return await response.json();
-    };
-
-    // Auto-retry logic with friendly messages (keeping your existing implementation)
-    const startTime = Date.now();
-    let retryCount = 0;
-    const maxRetries = 2;
-    const retryDelays = [3000, 5000];
-
-    setExplanations(prev => ({
-        ...prev,
-        [dishName]: {
-            ...prev[dishName],
-            [selectedLanguage]: { data: null, isLoading: true, error: null }
-        }
-    }));
-
-    const attemptRequest = async (): Promise<void> => {
-        try {
-            const data = await makeRequest();
-            const loadTime = Date.now() - startTime;
-            const dataSource = 'api';
-            
-            // Track successful dish explanation
-            gtag('event', 'dish_explanation_success', {
-                'dish_name': dishName,
-                'language': selectedLanguage,
-                'load_time_ms': loadTime,
-                'source': dataSource,
-                'restaurant_name': restaurantInfo?.name || 'unknown',
-                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
-                'retry_count': retryCount,
-                'user_type': user ? 'authenticated' : 'anonymous'
-            });
-            
-            // Update user-specific counters
-            try {
-                if (user) {
-                    await incrementUserDishExplanation(user.id);
-                } else {
-                    incrementAnonymousExplanation();
-                }
-                
-                // Call the global counter increment callback
-                onExplanationSuccess();
-            } catch (error) {
-                console.error('Error updating explanation counter:', error);
+                errorMessage = t.dishLimitReached;
             }
             
             setExplanations(prev => ({
                 ...prev,
                 [dishName]: {
                     ...prev[dishName],
-                    [selectedLanguage]: { data, isLoading: false, error: null }
+                    [selectedLanguage]: { 
+                        data: null, 
+                        isLoading: false, 
+                        error: errorMessage
+                    }
                 }
             }));
+            return;
+        }
+        
+        // Helper function to make the secure API request
+        const makeRequest = async (): Promise<DishExplanation> => {
+            // Prepare request headers
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json'
+            };
 
-        } catch (err) {
-            if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
-                // Show friendly message for rate limit
-                const isFirstRetry = retryCount === 0;
-                const message = isFirstRetry ? t.serversBusy : t.stillTrying;
-                
-                setExplanations(prev => ({
-                    ...prev,
-                    [dishName]: {
-                        ...prev[dishName],
-                        [selectedLanguage]: { data: null, isLoading: true, error: message }
-                    }
-                }));
-
-                // Wait and retry
-                const delay = retryDelays[retryCount];
-                retryCount++;
-                
-                setTimeout(() => {
-                    // Clear the message and show loading again
-                    setExplanations(prev => ({
-                        ...prev,
-                        [dishName]: {
-                            ...prev[dishName],
-                            [selectedLanguage]: { data: null, isLoading: true, error: null }
-                        }
-                    }));
-                    
-                    attemptRequest();
-                }, delay);
-
-            } else {
-                // Final error
-                const loadTime = Date.now() - startTime;
-                let errorMessage = t.finalError;
-                
-                if (err instanceof Error && err.message !== 'RATE_LIMIT') {
-                    errorMessage = err.message;
+            // Add authorization header if user is logged in
+            if (user) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                    headers['Authorization'] = `Bearer ${session.access_token}`;
                 }
+            }
+
+            // Prepare request body
+            const requestBody = {
+                dishName,
+                language: selectedLanguage,
+                ...(restaurantInfo?.id && { restaurantId: restaurantInfo.id.toString() }),
+                ...(restaurantInfo?.name && { restaurantName: restaurantInfo.name })
+            };
+
+            const response = await fetch('/.netlify/functions/getDishExplanation', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (!response.ok) {
+                if (response.status === 429) {
+                    throw new Error('RATE_LIMIT');
+                } else if (response.status === 401) {
+                    throw new Error('Authentication failed. Please try logging in again.');
+                } else if (response.status === 403) {
+                    throw new Error('Access denied. Please check your permissions.');
+                } else {
+                    const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
+                    throw new Error(errorData.error || `Request failed`);
+                }
+            }
+            
+            return await response.json();
+        };
+
+        // Auto-retry logic with friendly messages
+        const startTime = Date.now();
+        let retryCount = 0;
+        const maxRetries = 2;
+        const retryDelays = [3000, 5000];
+
+        setExplanations(prev => ({
+            ...prev,
+            [dishName]: {
+                ...prev[dishName],
+                [selectedLanguage]: { data: null, isLoading: true, error: null }
+            }
+        }));
+
+        const attemptRequest = async (): Promise<void> => {
+            try {
+                const data = await makeRequest();
+                const loadTime = Date.now() - startTime;
+                const dataSource = 'api';
                 
-                // Track failed dish explanation
-                gtag('event', 'dish_explanation_error', {
+                // Track successful dish explanation
+                gtag('event', 'dish_explanation_success', {
                     'dish_name': dishName,
                     'language': selectedLanguage,
                     'load_time_ms': loadTime,
-                    'error_message': errorMessage,
-                    'error_type': err instanceof Error && err.message === 'RATE_LIMIT' ? 'rate_limit_final' : 'other',
+                    'source': dataSource,
                     'restaurant_name': restaurantInfo?.name || 'unknown',
                     'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
                     'retry_count': retryCount,
                     'user_type': user ? 'authenticated' : 'anonymous'
                 });
                 
+                // Update user-specific counters
+                try {
+                    if (user) {
+                        await incrementUserDishExplanation(user.id);
+                    } else {
+                        incrementAnonymousExplanation();
+                    }
+                    
+                    onExplanationSuccess();
+                } catch (error) {
+                    console.error('Error updating explanation counter:', error);
+                }
+                
                 setExplanations(prev => ({
                     ...prev,
                     [dishName]: {
                         ...prev[dishName],
-                        [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+                        [selectedLanguage]: { data, isLoading: false, error: null }
                     }
                 }));
+
+            } catch (err) {
+                if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
+                    const isFirstRetry = retryCount === 0;
+                    const message = isFirstRetry ? t.serversBusy : t.stillTrying;
+                    
+                    setExplanations(prev => ({
+                        ...prev,
+                        [dishName]: {
+                            ...prev[dishName],
+                            [selectedLanguage]: { data: null, isLoading: true, error: message }
+                        }
+                    }));
+
+                    const delay = retryDelays[retryCount];
+                    retryCount++;
+                    
+                    setTimeout(() => {
+                        setExplanations(prev => ({
+                            ...prev,
+                            [dishName]: {
+                                ...prev[dishName],
+                                [selectedLanguage]: { data: null, isLoading: true, error: null }
+                            }
+                        }));
+                        
+                        attemptRequest();
+                    }, delay);
+
+                } else {
+                    const loadTime = Date.now() - startTime;
+                    let errorMessage = t.finalError;
+                    
+                    if (err instanceof Error && err.message !== 'RATE_LIMIT') {
+                        errorMessage = err.message;
+                    }
+                    
+                    gtag('event', 'dish_explanation_error', {
+                        'dish_name': dishName,
+                        'language': selectedLanguage,
+                        'load_time_ms': loadTime,
+                        'error_message': errorMessage,
+                        'error_type': err instanceof Error && err.message === 'RATE_LIMIT' ? 'rate_limit_final' : 'other',
+                        'restaurant_name': restaurantInfo?.name || 'unknown',
+                        'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+                        'retry_count': retryCount,
+                        'user_type': user ? 'authenticated' : 'anonymous'
+                    });
+                    
+                    setExplanations(prev => ({
+                        ...prev,
+                        [dishName]: {
+                            ...prev[dishName],
+                            [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+                        }
+                    }));
+                }
             }
-        }
+        };
+
+        attemptRequest();
     };
-
-    // Start the initial request
-    attemptRequest();
-};
-
-
 
     // Handle mobile accordion click
     const handleMobileAccordionClick = (dishName: string) => {
-        // Toggle accordion expansion
         toggleDishExpansion(dishName);
         
-        // Fetch explanation if not already fetched/loading and accordion is being expanded
         if (!expandedDishes.has(dishName) && !explanations[dishName]?.[selectedLanguage]) {
             handleDishClick(dishName);
         }
     };
 
-    // Render explanation content (shared between desktop and mobile)
+    // Render explanation content
     const renderExplanationContent = (dish: any) => {
         const dishExplanation = explanations[dish.name]?.[selectedLanguage];
         
@@ -813,13 +759,9 @@ const handleDishClick = async (dishName: string) => {
                         </div>
                     </div>
                     
-                    {/* Show retry button for final errors AND non-friendly errors (but not limit errors) */}
                     {!isLimitError && (isFinalError || (!isFriendlyMessage && !isFinalError)) && (
                         <button
-                            onClick={() => {
-                                console.log(`🖱️ Try Again clicked for: ${dish.name}`);
-                                handleRetryDish(dish.name);
-                            }}
+                            onClick={() => handleRetryDish(dish.name)}
                             className="text-sm px-3 py-1 bg-coral text-white rounded-full hover:bg-coral/80 transition-colors font-medium"
                         >
                             Try Again
@@ -829,13 +771,11 @@ const handleDishClick = async (dishName: string) => {
             );
         }
         
-        // ... rest of the function for successful data display
         if (dishExplanation?.data) {
             return (
                 <div className="space-y-4">
                     <p className="font-medium text-lg">{dishExplanation.data.explanation}</p>
                     
-                    {/* Tags Section */}
                     {dishExplanation.data.tags && dishExplanation.data.tags.length > 0 && (
                         <div className="space-y-2">
                             <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">
@@ -849,7 +789,6 @@ const handleDishClick = async (dishName: string) => {
                         </div>
                     )}
 
-                    {/* Allergens Section */}
                     {dishExplanation.data.allergens && dishExplanation.data.allergens.length > 0 && (
                         <div className="space-y-2">
                             <p className="text-xs font-bold text-red-700 uppercase tracking-wide">
@@ -869,20 +808,16 @@ const handleDishClick = async (dishName: string) => {
         return null;
     };
 
-
-
-
-
     return (
         <div className="py-12 sm:py-16">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 
-                {/* 1. PAGE TITLE - Large and prominent */}
+                {/* Page title */}
                 <h2 className="font-black text-5xl text-charcoal text-center mb-8 tracking-tighter">
                     {t.pageTitle}
                 </h2>
 
-                {/* 2. RESTAURANT INFO - Medium weight, attractive card */}
+                {/* Restaurant info */}
                 {restaurantInfo && (restaurantInfo.name || restaurantInfo.cuisine) && (
                     <div className="bg-white border-4 border-charcoal rounded-2xl p-6 mb-6 shadow-[6px_6px_0px_#292524]">
                         <div className="text-center">
@@ -907,7 +842,7 @@ const handleDishClick = async (dishName: string) => {
                     </div>
                 )}
 
-                {/* 3. LANGUAGE FILTER - Clean grey pills, centered */}
+                {/* Language selector */}
                 <div className="flex justify-center mb-6">
                     <div className="flex gap-2">
                         {languageOptions.map((option) => (
@@ -926,7 +861,7 @@ const handleDishClick = async (dishName: string) => {
                     </div>
                 </div>
 
-                {/* 4. ALLERGEN WARNING - Medium red warning box */}
+                {/* Allergen warning */}
                 <div className="bg-red-50 border-4 border-red-200 rounded-2xl p-4 mb-8 shadow-sm">
                     <div className="flex items-start justify-center gap-3 text-red-700">
                         <span className="text-2xl mt-0.5">⚠️</span>
@@ -936,7 +871,7 @@ const handleDishClick = async (dishName: string) => {
                     </div>
                 </div>
 
-                {/* 5. MENU CONTENT - Desktop Table / Mobile Accordion */}
+                {/* Menu content */}
                 <div className="bg-white rounded-2xl shadow-[8px_8px_0px_#292524] p-6 sm:p-8 border-4 border-charcoal space-y-10">
                     {menuSections.length > 0 ? (
                         menuSections.map((section, sectionIndex) => (
@@ -947,66 +882,105 @@ const handleDishClick = async (dishName: string) => {
                                     </h3>
                                 )}
                                 
-                                {/* DESKTOP TABLE LAYOUT (≥768px) */}
+                                {/* DESKTOP TABLE LAYOUT with animated hints */}
                                 <div className="hidden md:block overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="border-b-2 border-charcoal/50">
-                                                <th className="p-4 text-lg font-bold text-charcoal w-1/2">{t.dishName}</th>
+                                                <th className="p-4 text-lg font-bold text-charcoal w-1/2">
+                                                    {t.dishName}
+                                                    {!hasAnyExplanations && (
+                                                        <span className="text-sm font-normal text-coral ml-2 animate-pulse">
+                                                            (hover to see hints)
+                                                        </span>
+                                                    )}
+                                                </th>
                                                 <th className="p-4 text-lg font-bold text-charcoal w-1/2">{t.explanation}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {section.dishes.map((dish, dishIndex) => (
-                                                <tr key={dishIndex} className="border-b-2 border-charcoal/10 last:border-b-0">
-                                                    <td className="p-4 align-top">
-                                                        <button 
-                                                          onClick={() => handleDishClick(dish.name)}
-                                                          className="text-xl font-medium text-charcoal tracking-tight text-left hover:text-coral transition-colors w-full disabled:hover:text-charcoal disabled:cursor-default"
-                                                          aria-label={`Get explanation for ${dish.name}`}
-                                                          disabled={!!explanations[dish.name]?.[selectedLanguage]?.isLoading}
-                                                        >
-                                                            {dish.name}
-                                                        </button>
-                                                    </td>
-                                                    <td className="p-4 align-top text-charcoal/90">
-                                                        {renderExplanationContent(dish)}
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {section.dishes.map((dish, dishIndex) => {
+                                                const globalDishIndex = sectionIndex * 1000 + dishIndex;
+                                                const isFirstDish = globalDishIndex === 0;
+                                                const isLoading = !!explanations[dish.name]?.[selectedLanguage]?.isLoading;
+                                                
+                                                return (
+                                                    <tr key={dishIndex} className="border-b-2 border-charcoal/10 last:border-b-0">
+                                                        <td className="p-4 align-top">
+                                                            {/* Enhanced dish name button with all animations */}
+                                                            <div className="relative group">
+                                                                <button 
+                                                                    onClick={() => handleDishClick(dish.name)}
+                                                                    disabled={isLoading}
+                                                                    className={`text-xl font-medium text-charcoal tracking-tight text-left hover:text-coral transition-all duration-200 w-full disabled:hover:text-charcoal disabled:cursor-default relative ${
+                                                                        !hasAnyExplanations && isFirstDish ? 'animate-pulse' : ''
+                                                                    }`}
+                                                                    aria-label={`Get explanation for ${dish.name}`}
+                                                                >
+                                                                    {dish.name}
+                                                                    
+                                                                    {/* Subtle hover background effect */}
+                                                                    <div className="absolute inset-0 bg-coral/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 -z-10 -mx-2 -my-1"></div>
+                                                                    
+                                                                    {/* Pointing finger emoji (desktop hover only) */}
+                                                                    <span className="absolute -right-8 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-coral text-lg pointer-events-none">
+                                                                        👈
+                                                                    </span>
+                                                                </button>
+                                                                
+                                                                {/* Ripple effect on click */}
+                                                                <div className="absolute inset-0 rounded-lg pointer-events-none -mx-2 -my-1">
+                                                                    <div className="absolute inset-0 bg-coral/20 rounded-lg scale-0 group-active:scale-100 transition-transform duration-150"></div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4 align-top text-charcoal/90">
+                                                            {renderExplanationContent(dish)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
 
-                                {/* MOBILE ACCORDION LAYOUT (<768px) */}
+                                {/* MOBILE ACCORDION LAYOUT with hints */}
                                 <div className="md:hidden space-y-3">
                                     {section.dishes.map((dish, dishIndex) => {
+                                        const globalDishIndex = sectionIndex * 1000 + dishIndex;
+                                        const isFirstDish = globalDishIndex === 0;
                                         const isExpanded = expandedDishes.has(dish.name);
                                         const dishExplanation = explanations[dish.name]?.[selectedLanguage];
                                         const isLoading = dishExplanation?.isLoading;
                                         
                                         return (
                                             <div key={dishIndex} className="border-2 border-charcoal/20 rounded-xl overflow-hidden">
-                                                {/* Accordion Header */}
                                                 <button
                                                     onClick={() => handleMobileAccordionClick(dish.name)}
-                                                    className="w-full p-4 text-left bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
+                                                    className="w-full p-4 text-left bg-white hover:bg-gray-50 transition-colors flex items-center justify-between group"
                                                     aria-expanded={isExpanded}
-                                                    aria-label={`${isExpanded ? 'Collapse' : 'Expand'} explanation for ${dish.name}`}
                                                 >
                                                     <div className="flex-1">
-                                                        <span className="text-lg font-medium text-charcoal tracking-tight">
+                                                        <span className="text-lg font-medium text-charcoal tracking-tight group-hover:text-coral transition-colors">
                                                             {dish.name}
                                                         </span>
+                                                        {/* Mobile hint for first dish */}
+                                                        {!hasAnyExplanations && isFirstDish && (
+                                                            <span className="block text-sm text-coral font-medium animate-pulse mt-1">
+                                                                👆 Tap to explain this dish
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                    <div className="ml-4 flex-shrink-0">
+                                                    <div className="ml-4 flex-shrink-0 flex items-center">
+                                                        {isLoading && (
+                                                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-coral mr-2"></div>
+                                                        )}
                                                         <span className={`text-xl transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
                                                             ▼
                                                         </span>
                                                     </div>
                                                 </button>
                                                 
-                                                {/* Accordion Content */}
                                                 {isExpanded && (
                                                     <div className="p-4 bg-gray-50 border-t-2 border-charcoal/10 text-charcoal/90">
                                                         {renderExplanationContent(dish)}
@@ -1019,7 +993,9 @@ const handleDishClick = async (dishName: string) => {
                             </div>
                         ))
                     ) : (
-                        <p className="text-center text-xl text-charcoal/70 font-medium">Could not find any dishes on the menu. Please try another image.</p>
+                        <p className="text-center text-xl text-charcoal/70 font-medium">
+                            Could not find any dishes on the menu. Please try another image.
+                        </p>
                     )}
                 </div>
             </div>
