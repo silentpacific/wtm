@@ -78,6 +78,11 @@ const DemoSection: React.FC<DemoSectionProps> = ({ selectedLanguage = 'en' }) =>
   const [loadingDishes, setLoadingDishes] = useState<Set<string>>(new Set());
   const [explanations, setExplanations] = useState<ExplanationState>({});
   const [currentLanguage, setCurrentLanguage] = useState(selectedLanguage);
+  
+  // Add this useEffect to reset visual state when language changes
+useEffect(() => {
+  setClickedDishes(new Set());
+}, [currentLanguage]);
 
   // Fetch dish explanation from database
   const fetchDishFromDatabase = async (dishName: string, language: string): Promise<DishExplanation> => {
