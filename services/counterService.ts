@@ -1,4 +1,4 @@
-// services/counterService.ts - COMPLETE VERSION with all required functions
+// services/counterService.ts - DEFENSIVE VERSION with extensive null checks
 
 import { supabase } from './supabaseClient';
 
@@ -18,42 +18,59 @@ export interface GlobalCounters {
   total_dishes_explained: number;
 }
 
-// Helper function to check if subscription is expired
-const isSubscriptionExpired = (expiresAt: string | null): boolean => {
+// Helper function to safely check if subscription is expired
+const isSubscriptionExpired = (expiresAt: string | null | undefined): boolean => {
   if (!expiresAt) return true;
   
-  const now = new Date();
-  const expiry = new Date(expiresAt);
-  
-  return now >= expiry;
+  try {
+    const now = new Date();
+    const expiry = new Date(expiresAt);
+    
+    // Check if date is valid
+    if (isNaN(expiry.getTime())) return true;
+    
+    return now >= expiry;
+  } catch (error) {
+    console.error('Error checking subscription expiry:', error);
+    return true; // Assume expired if we can't parse
+  }
 };
 
 // Function to handle expired subscription cleanup
 const handleExpiredSubscription = async (userId: string): Promise<void> => {
-  console.log('🔄 Handling expired subscription for user:', userId);
-  
-  const { error } = await supabase
-    .from('user_profiles')
-    .update({
-      subscription_type: 'free',
-      subscription_status: 'inactive',
-      subscription_expires_at: null,
-      scans_used: 0, // Reset to give them fresh free tier limits
-      current_menu_dish_explanations: 0,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', userId);
+  try {
+    console.log('🔄 Handling expired subscription for user:', userId);
+    
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({
+        subscription_type: 'free',
+        subscription_status: 'inactive',
+        subscription_expires_at: null,
+        scans_used: 0,
+        current_menu_dish_explanations: 0,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
 
-  if (error) {
-    console.error('❌ Error handling expired subscription:', error);
+    if (error) {
+      console.error('❌ Error handling expired subscription:', error);
+      throw error;
+    }
+    
+    console.log('✅ Successfully reset expired user to free tier');
+  } catch (error) {
+    console.error('❌ Error in handleExpiredSubscription:', error);
     throw error;
   }
-  
-  console.log('✅ Successfully reset expired user to free tier');
 };
 
 export const getUserCounters = async (userId: string): Promise<UserCounters> => {
   try {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
     // Get user profile from database
     const { data: profile, error } = await supabase
       .from('user_profiles')
@@ -70,32 +87,37 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
       throw new Error('User profile not found');
     }
 
-    // Check if subscription is expired and handle it
+    // Safely check if subscription is expired
     const subscriptionExpired = isSubscriptionExpired(profile.subscription_expires_at);
     
     if (subscriptionExpired && profile.subscription_type !== 'free') {
       console.log('⏰ Subscription expired, resetting user to free tier...');
       
-      // Reset the user to free tier
-      await handleExpiredSubscription(userId);
-      
-      // Return fresh free tier data
-      return {
-        scans_used: 0,
-        scans_limit: 5,
-        current_menu_dish_explanations: 0,
-        subscription_type: 'free',
-        subscription_status: 'inactive',
-        subscription_expires_at: null,
-        lifetime_menus_scanned: profile.lifetime_menus_scanned || 0,
-        lifetime_dishes_explained: profile.lifetime_dishes_explained || 0,
-      };
+      try {
+        // Reset the user to free tier
+        await handleExpiredSubscription(userId);
+        
+        // Return fresh free tier data
+        return {
+          scans_used: 0,
+          scans_limit: 5,
+          current_menu_dish_explanations: 0,
+          subscription_type: 'free',
+          subscription_status: 'inactive',
+          subscription_expires_at: null,
+          lifetime_menus_scanned: Number(profile.lifetime_menus_scanned) || 0,
+          lifetime_dishes_explained: Number(profile.lifetime_dishes_explained) || 0,
+        };
+      } catch (resetError) {
+        console.error('❌ Error resetting expired subscription:', resetError);
+        // Continue with expired data rather than crashing
+      }
     }
 
     // Calculate dynamic scan limits based on ACTIVE subscription
     let scanLimit = 5; // Default free tier
-    if (!subscriptionExpired) {
-      switch (profile.subscription_type?.toLowerCase()) {
+    if (!subscriptionExpired && profile.subscription_type) {
+      switch (profile.subscription_type.toLowerCase()) {
         case 'daily':
           scanLimit = 10;
           break;
@@ -108,27 +130,40 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
     }
 
     return {
-      scans_used: profile.scans_used || 0,
+      scans_used: Number(profile.scans_used) || 0,
       scans_limit: scanLimit,
-      current_menu_dish_explanations: profile.current_menu_dish_explanations || 0,
+      current_menu_dish_explanations: Number(profile.current_menu_dish_explanations) || 0,
       subscription_type: subscriptionExpired ? 'free' : (profile.subscription_type || 'free'),
       subscription_status: subscriptionExpired ? 'inactive' : (profile.subscription_status || 'inactive'),
       subscription_expires_at: subscriptionExpired ? null : profile.subscription_expires_at,
-      lifetime_menus_scanned: profile.lifetime_menus_scanned || 0,
-      lifetime_dishes_explained: profile.lifetime_dishes_explained || 0,
+      lifetime_menus_scanned: Number(profile.lifetime_menus_scanned) || 0,
+      lifetime_dishes_explained: Number(profile.lifetime_dishes_explained) || 0,
     };
 
   } catch (error) {
     console.error('❌ Error in getUserCounters:', error);
-    throw error;
+    
+    // Return safe defaults instead of crashing
+    return {
+      scans_used: 0,
+      scans_limit: 5,
+      current_menu_dish_explanations: 0,
+      subscription_type: 'free',
+      subscription_status: 'inactive',
+      subscription_expires_at: null,
+      lifetime_menus_scanned: 0,
+      lifetime_dishes_explained: 0,
+    };
   }
 };
 
 // Function to check if user can scan (with expiration check)
 export const canUserScan = async (userId: string): Promise<boolean> => {
   try {
+    if (!userId) return false;
+    
     const counters = await getUserCounters(userId);
-    return counters.scans_used < counters.scans_limit;
+    return (counters.scans_used || 0) < (counters.scans_limit || 5);
   } catch (error) {
     console.error('❌ Error checking if user can scan:', error);
     return false;
@@ -138,15 +173,14 @@ export const canUserScan = async (userId: string): Promise<boolean> => {
 // Function to check if user has unlimited dish explanations (with expiration check)
 export const hasUnlimitedDishExplanations = async (userId: string): Promise<boolean> => {
   try {
+    if (!userId) return false;
+    
     const counters = await getUserCounters(userId);
     
     // Only paid users with active subscriptions get unlimited explanations
     if (counters.subscription_status === 'active' && counters.subscription_expires_at) {
-      const now = new Date();
-      const expiresAt = new Date(counters.subscription_expires_at);
-      
-      if (now < expiresAt) {
-        return ['daily', 'weekly'].includes(counters.subscription_type.toLowerCase());
+      if (!isSubscriptionExpired(counters.subscription_expires_at)) {
+        return ['daily', 'weekly'].includes((counters.subscription_type || '').toLowerCase());
       }
     }
     
@@ -160,6 +194,8 @@ export const hasUnlimitedDishExplanations = async (userId: string): Promise<bool
 // Function to check if user can explain a dish (with expiration check)
 export const canUserExplainDish = async (userId: string): Promise<boolean> => {
   try {
+    if (!userId) return false;
+    
     const counters = await getUserCounters(userId);
     
     // Check if user has unlimited dish explanations (paid + active subscription)
@@ -170,10 +206,56 @@ export const canUserExplainDish = async (userId: string): Promise<boolean> => {
     }
     
     // Free users: limited to 5 explanations per menu
-    return counters.current_menu_dish_explanations < 5;
+    return (counters.current_menu_dish_explanations || 0) < 5;
   } catch (error) {
     console.error('❌ Error checking if user can explain dish:', error);
     return false;
+  }
+};
+
+// Function to get global counters with safe defaults
+export const getGlobalCounters = async (): Promise<GlobalCounters> => {
+  try {
+    const { data, error } = await supabase
+      .from('global_counters')
+      .select('counter_type, count')
+      .in('counter_type', ['total_menus_scanned', 'total_dishes_explained']);
+
+    if (error) {
+      console.error('❌ Error fetching global counters:', error);
+      // Return defaults on error instead of throwing
+      return {
+        total_menus_scanned: 0,
+        total_dishes_explained: 0
+      };
+    }
+
+    // Convert array to object with default values
+    const counters: GlobalCounters = {
+      total_menus_scanned: 0,
+      total_dishes_explained: 0
+    };
+
+    if (data && Array.isArray(data)) {
+      data.forEach(row => {
+        if (row && row.counter_type && typeof row.count === 'number') {
+          if (row.counter_type === 'total_menus_scanned') {
+            counters.total_menus_scanned = row.count;
+          } else if (row.counter_type === 'total_dishes_explained') {
+            counters.total_dishes_explained = row.count;
+          }
+        }
+      });
+    }
+
+    return counters;
+  } catch (error) {
+    console.error('❌ Error in getGlobalCounters:', error);
+    // Return safe defaults on error
+    return {
+      total_menus_scanned: 0,
+      total_dishes_explained: 0
+    };
   }
 };
 
@@ -214,87 +296,72 @@ export const incrementDishExplanations = async (): Promise<void> => {
   }
 };
 
-// Function to get global counters
-export const getGlobalCounters = async (): Promise<GlobalCounters> => {
+// Safe function to set up real-time counter updates
+export const setupRealtimeCounters = (callback: (counters: GlobalCounters) => void) => {
   try {
-    const { data, error } = await supabase
-      .from('global_counters')
-      .select('counter_type, count')
-      .in('counter_type', ['total_menus_scanned', 'total_dishes_explained']);
-
-    if (error) {
-      console.error('❌ Error fetching global counters:', error);
-      throw error;
-    }
-
-    // Convert array to object with default values
-    const counters: GlobalCounters = {
-      total_menus_scanned: 0,
-      total_dishes_explained: 0
-    };
-
-    if (data) {
-      data.forEach(row => {
-        if (row.counter_type === 'total_menus_scanned') {
-          counters.total_menus_scanned = row.count || 0;
-        } else if (row.counter_type === 'total_dishes_explained') {
-          counters.total_dishes_explained = row.count || 0;
+    const subscription = supabase
+      .channel('global_counters_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'global_counters'
+        },
+        async () => {
+          try {
+            // When counters change, fetch latest and call callback
+            const updatedCounters = await getGlobalCounters();
+            if (callback && typeof callback === 'function') {
+              callback(updatedCounters);
+            }
+          } catch (error) {
+            console.error('❌ Error updating real-time counters:', error);
+          }
         }
-      });
-    }
+      )
+      .subscribe();
 
-    return counters;
+    return subscription;
   } catch (error) {
-    console.error('❌ Error in getGlobalCounters:', error);
-    // Return defaults on error
+    console.error('❌ Error setting up real-time counters:', error);
+    // Return a mock subscription object
     return {
-      total_menus_scanned: 0,
-      total_dishes_explained: 0
+      unsubscribe: () => console.log('Mock unsubscribe called')
     };
   }
 };
 
-// Function to set up real-time counter updates
-export const setupRealtimeCounters = (callback: (counters: GlobalCounters) => void) => {
-  const subscription = supabase
-    .channel('global_counters_realtime')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'global_counters'
-      },
-      async () => {
-        // When counters change, fetch latest and call callback
-        try {
-          const updatedCounters = await getGlobalCounters();
-          callback(updatedCounters);
-        } catch (error) {
-          console.error('❌ Error updating real-time counters:', error);
-        }
-      }
-    )
-    .subscribe();
-
-  return subscription;
-};
-
-// Function to subscribe to real-time counter updates
+// Safe function to subscribe to real-time counter updates
 export const subscribeToCounters = (callback: () => void) => {
-  // Subscribe to global_counters table changes
-  const subscription = supabase
-    .channel('global_counters_changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'global_counters'
-      },
-      callback
-    )
-    .subscribe();
+  try {
+    const subscription = supabase
+      .channel('global_counters_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'global_counters'
+        },
+        () => {
+          try {
+            if (callback && typeof callback === 'function') {
+              callback();
+            }
+          } catch (error) {
+            console.error('❌ Error in subscription callback:', error);
+          }
+        }
+      )
+      .subscribe();
 
-  return subscription;
+    return subscription;
+  } catch (error) {
+    console.error('❌ Error setting up counter subscription:', error);
+    // Return a mock subscription object
+    return {
+      unsubscribe: () => console.log('Mock unsubscribe called')
+    };
+  }
 };
