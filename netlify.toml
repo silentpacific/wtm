@@ -6,6 +6,7 @@
   NPM_CONFIG_FUND = "false"
   NPM_CONFIG_AUDIT = "false"
   NODE_OPTIONS = "--max-old-space-size=4096"
+  SCHEDULED_FUNCTIONS_ENABLED = "true
 
 [functions]
   directory = "netlify/functions"
@@ -30,3 +31,11 @@
   from = "/*"
   to = "/index.html"
   status = 200
+  
+  
+  [[build.processing.schedule]]
+  cron = "0 * * * *"  # Every hour
+  command = "/.netlify/functions/cleanup-expired-subscriptions"
+  
+  [[plugins]]
+  package = "@netlify/plugin-scheduled-functions"

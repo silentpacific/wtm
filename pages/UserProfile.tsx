@@ -37,20 +37,30 @@ const UserProfile: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [message, setMessage] = useState('');
 
-  // Helper function to check if user has unlimited dish explanations
+  // NEW: Helper function to check if subscription is expired
+  const isSubscriptionExpired = (expiresAt: string | null): boolean => {
+    if (!expiresAt) return true;
+    
+    const now = new Date();
+    const expiry = new Date(expiresAt);
+    
+    return now >= expiry;
+  };
+
+  // FIXED: Helper function to check if user has unlimited dish explanations
   const hasUnlimitedDishExplanations = () => {
     if (!userCounters?.subscription_expires_at || !userCounters?.subscription_status) {
       return false;
     }
     
+    // NEW: Check expiration first
+    if (isSubscriptionExpired(userCounters.subscription_expires_at)) {
+      return false;
+    }
+    
     // Check if subscription is active and not expired
     if (userCounters.subscription_status === 'active') {
-      const now = new Date();
-      const expiresAt = new Date(userCounters.subscription_expires_at);
-      
-      if (now < expiresAt) {
-        return ['daily', 'weekly'].includes(userCounters.subscription_type.toLowerCase());
-      }
+      return ['daily', 'weekly'].includes(userCounters.subscription_type.toLowerCase());
     }
     
     return false;
@@ -82,11 +92,11 @@ const UserProfile: React.FC = () => {
         setFullName(profileData.full_name || '');
       }
 
-      // Load dynamic user counters (this will show correct scan limits)
+      // FIXED: Load dynamic user counters with expiration handling
       if (user) {
         const counters = await getUserCounters(user.id);
         setUserCounters(counters);
-        console.log('📊 UserProfile loaded dynamic counters:', counters);
+        console.log('📊 UserProfile loaded dynamic counters with expiration check:', counters);
       }
 
       // Load user orders
@@ -182,8 +192,13 @@ const UserProfile: React.FC = () => {
     }).format(amount / 100); // Stripe amounts are in cents
   };
 
-  // Function to get display text for subscription type
-  const getSubscriptionDisplayText = (subType: string) => {
+  // FIXED: Function to get display text for subscription type with expiration
+  const getSubscriptionDisplayText = (subType: string, expiresAt: string | null) => {
+    // Check if expired first
+    if (isSubscriptionExpired(expiresAt)) {
+      return 'Free (Expired)';
+    }
+    
     switch (subType.toLowerCase()) {
       case 'daily':
         return 'Daily';
@@ -289,22 +304,33 @@ const UserProfile: React.FC = () => {
             )}
           </div>
 
-          {/* Account Stats - FIXED to use dynamic counters */}
+          {/* Account Stats - FIXED with expiration handling */}
           <div className="bg-white rounded-2xl p-6 border-4 border-charcoal shadow-[8px_8px_0px_#292524]">
             <h2 className="text-2xl font-black text-charcoal mb-6">Account Stats</h2>
             
             {profile && userCounters && (
               <div className="space-y-4">
-                <div className="p-4 bg-yellow/20 rounded-lg border border-yellow/40">
+                {/* FIXED: Subscription status with expiration check */}
+                <div className={`p-4 rounded-lg border ${
+                  isSubscriptionExpired(userCounters.subscription_expires_at) 
+                    ? 'bg-red-50 border-red-200' 
+                    : 'bg-yellow/20 border-yellow/40'
+                }`}>
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-charcoal">Subscription</span>
                     <span className="font-black text-lg capitalize">
-                      {getSubscriptionDisplayText(userCounters.subscription_type)}
+                      {getSubscriptionDisplayText(userCounters.subscription_type, userCounters.subscription_expires_at)}
                     </span>
                   </div>
+                  {/* NEW: Show expiration warning if expired */}
+                  {isSubscriptionExpired(userCounters.subscription_expires_at) && userCounters.subscription_expires_at && (
+                    <div className="mt-2 text-sm text-red-600">
+                      Expired on {formatDate(userCounters.subscription_expires_at)}
+                    </div>
+                  )}
                 </div>
 
-                {/* FIXED: Now shows dynamic scan limits (10 for daily, 70 for weekly, 5 for free) */}
+                {/* Scans Used */}
                 <div className="p-4 bg-coral/20 rounded-lg border border-coral/40">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-charcoal">Scans Used</span>
@@ -314,13 +340,13 @@ const UserProfile: React.FC = () => {
                   </div>
                 </div>
 
-                {/* FIXED: Shows unlimited for paid users, with limit for free users */}
+                {/* FIXED: Dish explanations with expiration check */}
                 <div className="p-4 bg-green-100 rounded-lg border border-green-300">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-charcoal">Dish Explanations</span>
                     <span className="font-black text-lg">
                       {hasUnlimitedDishExplanations() ? 
-                        userCounters.current_menu_dish_explanations : 
+                        `${userCounters.current_menu_dish_explanations} (Unlimited)` : 
                         `${userCounters.current_menu_dish_explanations} / 5`
                       }
                     </span>
@@ -334,14 +360,37 @@ const UserProfile: React.FC = () => {
                   </div>
                 </div>
 
-                {/* NEW: Show subscription expiry for paid users */}
+                {/* FIXED: Show subscription expiry with status */}
                 {userCounters.subscription_expires_at && userCounters.subscription_type !== 'free' && (
-                  <div className="p-4 bg-purple/20 rounded-lg border border-purple-400">
+                  <div className={`p-4 rounded-lg border ${
+                    isSubscriptionExpired(userCounters.subscription_expires_at)
+                      ? 'bg-red-50 border-red-200'
+                      : 'bg-purple/20 border-purple-400'
+                  }`}>
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-charcoal">Plan Expires</span>
+                      <span className="font-bold text-charcoal">
+                        {isSubscriptionExpired(userCounters.subscription_expires_at) ? 'Plan Expired' : 'Plan Expires'}
+                      </span>
                       <span className="font-medium text-sm">
                         {formatDate(userCounters.subscription_expires_at)}
                       </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* NEW: Renewal call-to-action for expired users */}
+                {isSubscriptionExpired(userCounters.subscription_expires_at) && userCounters.subscription_expires_at && (
+                  <div className="p-4 bg-coral/10 rounded-lg border border-coral/30">
+                    <div className="text-center">
+                      <p className="text-sm text-charcoal/70 mb-3">
+                        Your subscription has expired. Renew to continue enjoying unlimited dish explanations!
+                      </p>
+                      <a
+                        href="/#pricing"
+                        className="inline-block px-4 py-2 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 transition-colors shadow-[2px_2px_0px_#292524] hover:shadow-[4px_4px_0px_#292524] text-sm"
+                      >
+                        Renew Subscription
+                      </a>
                     </div>
                   </div>
                 )}
@@ -350,7 +399,7 @@ const UserProfile: React.FC = () => {
           </div>
         </div>
 
-        {/* Order History */}
+        {/* Order History - Same as before */}
         <div className="mt-8 bg-white rounded-2xl p-6 border-4 border-charcoal shadow-[8px_8px_0px_#292524]">
           <h2 className="text-2xl font-black text-charcoal mb-6">Order History</h2>
           
@@ -401,7 +450,7 @@ const UserProfile: React.FC = () => {
         </div>
       </div>
     </div>
-  );  // ✅ Make sure this closing is correct
+  );
 };
 
 export default UserProfile;
