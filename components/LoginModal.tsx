@@ -18,59 +18,67 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   
   const { signIn, signUp, resetPassword } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage('');
-    
-    try {
-      if (isResetPassword) {
-        // Password Reset
-        const { error } = await resetPassword(email);
-        if (error) throw error;
-        
-        setMessage('Password reset email sent! Check your inbox for instructions.');
-        setMessageType('success');
-        setIsResetPassword(false);
-        
-		} else {
-		  // Sign Up
-		  if (password !== confirmPassword) {
-			throw new Error('Passwords do not match');
-		  }
-		  
-		  if (password.length < 6) {
-			throw new Error('Password must be at least 6 characters long');
-		  }
-				
-		  const { error } = await signUp(email, password);
-		  if (error) throw error;
-		  
-		  // User is now automatically logged in, close modal
-		  handleClose();
-		}
-    } catch (error: any) {
-      let errorMessage = error.message;
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setMessage('');
+  
+  try {
+    if (isResetPassword) {
+      // Password Reset
+      const { error } = await resetPassword(email);
+      if (error) throw error;
       
-      // Handle specific error types with user-friendly messages
-      if (errorMessage.includes('Invalid login credentials')) {
-        errorMessage = 'Invalid email or password. Please try again.';
-      } else if (errorMessage.includes('Email not confirmed')) {
-        errorMessage = 'Please check your email and click the confirmation link before signing in.';
-      } else if (errorMessage.includes('User already registered')) {
-        errorMessage = 'An account with this email already exists. Try signing in instead.';
-      } else if (errorMessage.includes('Password should be at least')) {
-        errorMessage = 'Password must be at least 6 characters long.';
-      } else if (errorMessage.includes('Unable to validate email address')) {
-        errorMessage = 'Please enter a valid email address.';
+      setMessage('Password reset email sent! Check your inbox for instructions.');
+      setMessageType('success');
+      setIsResetPassword(false);
+      
+    } else if (isLogin) {
+      // FIXED: Add the missing Sign In logic
+      const { error } = await signIn(email, password);
+      if (error) throw error;
+      
+      // User is now logged in, close modal
+      handleClose();
+      
+    } else {
+      // Sign Up
+      if (password !== confirmPassword) {
+        throw new Error('Passwords do not match');
       }
       
-      setMessage(errorMessage);
-      setMessageType('error');
-    } finally {
-      setLoading(false);
+      if (password.length < 6) {
+        throw new Error('Password must be at least 6 characters long');
+      }
+            
+      const { error } = await signUp(email, password);
+      if (error) throw error;
+      
+      // User is now automatically logged in, close modal
+      handleClose();
     }
-  };
+  } catch (error: any) {
+    let errorMessage = error.message;
+    
+    // Handle specific error types with user-friendly messages
+    if (errorMessage.includes('Invalid login credentials')) {
+      errorMessage = 'Invalid email or password. Please try again.';
+    } else if (errorMessage.includes('Email not confirmed')) {
+      errorMessage = 'Please check your email and click the confirmation link before signing in.';
+    } else if (errorMessage.includes('User already registered')) {
+      errorMessage = 'An account with this email already exists. Try signing in instead.';
+    } else if (errorMessage.includes('Password should be at least')) {
+      errorMessage = 'Password must be at least 6 characters long.';
+    } else if (errorMessage.includes('Unable to validate email address')) {
+      errorMessage = 'Please enter a valid email address.';
+    }
+    
+    setMessage(errorMessage);
+    setMessageType('error');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
