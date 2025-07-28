@@ -391,17 +391,17 @@ const UserProfile: React.FC = () => {
           )}
         </div>
 		
-		{/* NEW: Share Widget */}
+        {/* Share Widget */}
         <div className="mt-8">
           <ShareWidget 
             location="profile" 
             size="medium"
             userType="authenticated"
           />
-		
+        </div>
       </div>
     </div>
-  );
+  );  // ✅ Make sure this closing is correct
 };
 
 export default UserProfile;
