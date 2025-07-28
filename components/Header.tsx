@@ -13,11 +13,22 @@ interface HeaderProps {
   }; // For anonymous users
 }
 
+// Helper function to check if subscription is expired
+const checkSubscriptionExpiry = (counters: UserCounters | null): boolean => {
+  if (!counters?.subscription_expires_at) return false;
+  
+  const now = new Date();
+  const expiresAt = new Date(counters.subscription_expires_at);
+  
+  return now >= expiresAt;
+};
+
 const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) => {
   const { user, loading, signOut } = useAuth();
   const location = useLocation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showExpiryWarning, setShowExpiryWarning] = useState(false);
   const [userCounters, setUserCounters] = useState<UserCounters>({
     scans_used: 0,
     scans_limit: 5,
@@ -64,6 +75,13 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
     setIsLoadingCounters(true);
     try {
       const counters = await getUserCounters(user.id);
+      
+      // Check if subscription just expired and show notification
+      if (checkSubscriptionExpiry(counters) && counters.subscription_type !== 'free') {
+        console.log('⚠️ Subscription expired, showing user notification');
+        setShowExpiryWarning(true);
+      }
+      
       setUserCounters(counters);
       console.log('📊 Header counters updated:', counters);
     } catch (error) {
@@ -105,14 +123,6 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
   useEffect(() => {
     if (user) {
       loadUserCounters();
-    } else {
-      // Reset counters when user logs out
-      setUserCounters({
-        scans_used: 0,
-        scans_limit: 5,
-        current_menu_dish_explanations: 0,
-        subscription_type: 'free'
-      });
     }
   }, [user, loadUserCounters]);
 
@@ -190,6 +200,28 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
 
   return (
     <>
+      {/* Expiration Warning - Fixed positioned at top */}
+      {showExpiryWarning && (
+        <div className="fixed top-20 right-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded shadow-lg z-50">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <span className="text-lg">⚠️</span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm">
+                Your subscription has expired. You've been moved back to the free tier with 5 fresh scans.
+              </p>
+              <button
+                onClick={() => setShowExpiryWarning(false)}
+                className="mt-2 text-xs underline hover:no-underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="bg-cream/80 backdrop-blur-sm border-b-4 border-charcoal fixed top-0 left-0 right-0 z-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           {/* Main header row */}
