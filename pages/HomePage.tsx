@@ -762,7 +762,7 @@ const attemptRequest = async (): Promise<void> => {
         }
     };
 
-    // Render explanation content
+// Render explanation content
     const renderExplanationContent = (dish: any) => {
         const dishExplanation = explanations[dish.name]?.[selectedLanguage];
         
@@ -780,17 +780,13 @@ const attemptRequest = async (): Promise<void> => {
                                      dishExplanation.error.includes('👨‍🍳');
             const isFinalError = dishExplanation.error.includes('😅');
             const isLimitError = dishExplanation.error.includes('limit') || dishExplanation.error.includes('límite') || dishExplanation.error.includes('限制') || dishExplanation.error.includes('limite');
-            
             return (
                 <div className="space-y-2">
                     <div className={`p-3 rounded-lg border-2 ${
-                        isLimitError 
-                            ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
-                            : isFriendlyMessage 
-                            ? 'bg-orange-50 border-orange-200 text-orange-800' 
-                            : isFinalError
-                            ? 'bg-red-50 border-red-200 text-red-700'
-                            : 'bg-red-50 border-red-200 text-red-700'
+                        isLimitError ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+                        isFriendlyMessage ? 'bg-orange-50 border-orange-200 text-orange-800' :
+                        isFinalError ? 'bg-red-50 border-red-200 text-red-700' :
+                        'bg-red-50 border-red-200 text-red-700'
                     }`}>
                         <div className="flex items-start space-x-2">
                             <span className="text-lg flex-shrink-0">
@@ -803,7 +799,6 @@ const attemptRequest = async (): Promise<void> => {
                             </div>
                         </div>
                     </div>
-                    
                     {!isLimitError && (isFinalError || (!isFriendlyMessage && !isFinalError)) && (
                         <button
                             onClick={() => handleRetryDish(dish.name)}
@@ -820,7 +815,6 @@ const attemptRequest = async (): Promise<void> => {
             return (
                 <div className="space-y-4">
                     <p className="font-medium text-lg">{dishExplanation.data.explanation}</p>
-                    
                     {dishExplanation.data.tags && dishExplanation.data.tags.length > 0 && (
                         <div className="space-y-2">
                             <p className="text-xs font-bold text-charcoal/70 uppercase tracking-wide">
@@ -833,7 +827,6 @@ const attemptRequest = async (): Promise<void> => {
                             </div>
                         </div>
                     )}
-
                     {dishExplanation.data.allergens && dishExplanation.data.allergens.length > 0 && (
                         <div className="space-y-2">
                             <p className="text-xs font-bold text-red-700 uppercase tracking-wide">
@@ -849,7 +842,6 @@ const attemptRequest = async (): Promise<void> => {
                 </div>
             );
         }
-        
         return null;
     };
 
