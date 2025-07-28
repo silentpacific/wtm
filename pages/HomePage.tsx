@@ -1054,7 +1054,7 @@ const attemptRequest = async (): Promise<void> => {
             </div>
         </div>
     );
-};
+);
 
 
 interface PricingTierProps {
