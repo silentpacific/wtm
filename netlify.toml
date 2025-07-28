@@ -6,7 +6,7 @@
   NPM_CONFIG_FUND = "false"
   NPM_CONFIG_AUDIT = "false"
   NODE_OPTIONS = "--max-old-space-size=4096"
-  SCHEDULED_FUNCTIONS_ENABLED = "true
+  SCHEDULED_FUNCTIONS_ENABLED = "true"
 
 [functions]
   directory = "netlify/functions"
