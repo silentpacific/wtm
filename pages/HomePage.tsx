@@ -9,6 +9,7 @@ import { LanguageSelector } from '../components/LanguageSelector';
 import { getUserLocation, findOrCreateRestaurant } from '../services/restaurantService';
 import { LoginModal } from '../components/LoginModal';
 import DemoSection from '../components/DemoSection';
+import ShareWidget from '../components/ShareWidget';
 
 import { 
   incrementUserMenuScan, 
@@ -1042,6 +1043,14 @@ const attemptRequest = async (): Promise<void> => {
                         </p>
                     )}
                 </div>
+			{/* NEW: Share Widget */}
+            <div className="mt-8">
+                <ShareWidget 
+                    location="post-scan" 
+                    size="large" 
+                    orientation="vertical"
+                    userType={user ? 'authenticated' : 'anonymous'}
+                />
             </div>
         </div>
     );

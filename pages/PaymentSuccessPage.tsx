@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import ShareWidget from '../components/ShareWidget';
+
 
 const PaymentSuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -75,6 +77,16 @@ const PaymentSuccessPage: React.FC = () => {
               <li>🌍 All languages supported</li>
               <li>⚡ Priority support</li>
             </ul>
+          </div>
+		  
+		{/* NEW: Share Widget */}
+          <div className="mb-6">
+            <ShareWidget 
+              location="payment-success" 
+              size="medium"
+              orientation="vertical"
+              userType="authenticated"
+            />
           </div>
 
           {/* Action Buttons */}

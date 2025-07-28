@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { getUserCounters, UserCounters } from '../services/counterService';
+import ShareWidget from '../components/ShareWidget';
 
 interface UserProfile {
   id: string;
@@ -389,6 +390,15 @@ const UserProfile: React.FC = () => {
             </div>
           )}
         </div>
+		
+		{/* NEW: Share Widget */}
+        <div className="mt-8">
+          <ShareWidget 
+            location="profile" 
+            size="medium"
+            userType="authenticated"
+          />
+		
       </div>
     </div>
   );
