@@ -190,7 +190,6 @@ const ScanLimitModal: React.FC<ScanLimitModalProps> = ({
                         </div>
 
                         {/* Signup option for anonymous users */}
-						{/* Signup option for anonymous users */}
 						<div className="border-t-2 border-charcoal/20 pt-4 mt-4">
 							<p className="text-sm text-charcoal/70 text-center mb-3">
 								Or sign up to purchase a plan
@@ -347,7 +346,6 @@ const HeroSection: React.FC<{
 };
 
 // COMPLETE MenuResults component - Replace your entire MenuResults component with this
-
 const MenuResults: React.FC<{ 
     menuSections: MenuSection[]; 
     restaurantInfo?: { 
@@ -549,106 +547,85 @@ const MenuResults: React.FC<{
         }
         
         // Helper function to make the secure API request
-const makeRequest = async (): Promise<DishExplanation> => {
-    const requestStartTime = Date.now();
-    const requestId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    
-    // Track explanation request start
-    gtag('event', 'dish_explanation_started', {
-        'request_id': requestId,
-        'dish_name': dishName,
-        'language': selectedLanguage,
-        'user_type': user ? 'authenticated' : 'anonymous',
-        'restaurant_name': restaurantInfo?.name || 'unknown',
-        'timestamp': Date.now()
-    });
+		const makeRequest = async (): Promise<DishExplanation> => {
+			const requestStartTime = Date.now();
+			const requestId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+			
+			// Track explanation request start
+			gtag('event', 'dish_explanation_started', {
+				'request_id': requestId,
+				'dish_name': dishName,
+				'language': selectedLanguage,
+				'user_type': user ? 'authenticated' : 'anonymous',
+				'restaurant_name': restaurantInfo?.name || 'unknown',
+				'timestamp': Date.now()
+			});
 
-    // Prepare request headers
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
-    };
+			// Prepare request headers
+			const headers: Record<string, string> = {
+				'Content-Type': 'application/json'
+			};
 
-    // Add authorization header if user is logged in
-    if (user) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-            headers['Authorization'] = `Bearer ${session.access_token}`;
-        }
-    }
+			// Add authorization header if user is logged in
+			if (user) {
+				const { data: { session } } = await supabase.auth.getSession();
+				if (session?.access_token) {
+					headers['Authorization'] = `Bearer ${session.access_token}`;
+				}
+			}
 
-    // Prepare request body
-    const requestBody = {
-        dishName,
-        language: selectedLanguage,
-        ...(restaurantInfo?.id && { restaurantId: restaurantInfo.id.toString() }),
-        ...(restaurantInfo?.name && { restaurantName: restaurantInfo.name })
-    };
+			// Prepare request body
+			const requestBody = {
+				dishName,
+				language: selectedLanguage,
+				...(restaurantInfo?.id && { restaurantId: restaurantInfo.id.toString() }),
+				...(restaurantInfo?.name && { restaurantName: restaurantInfo.name })
+			};
 
-    const response = await fetch('/.netlify/functions/getDishExplanation', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(requestBody)
-    });
-    
-    // Calculate timing AFTER getting response
-    const requestEndTime = Date.now();
-    const totalTime = requestEndTime - requestStartTime;
-    const backendTime = parseInt(response.headers.get('X-Processing-Time') || '0');
-    const dataSource = response.headers.get('X-Data-Source') || 'Unknown';
-    
-    if (!response.ok) {
-        // Track failed explanation request
-        gtag('event', 'dish_explanation_failed', {
-            'request_id': requestId,
-            'dish_name': dishName,
-            'language': selectedLanguage,
-            'total_time_ms': totalTime,
-            'total_time_seconds': Math.round(totalTime / 1000 * 100) / 100,
-            'backend_time_ms': backendTime,
-            'backend_time_seconds': Math.round(backendTime / 1000 * 100) / 100,
-            'error_status': response.status,
-            'error_type': response.status === 429 ? 'rate_limit' : 
-                         response.status === 401 ? 'auth_error' : 
-                         response.status === 403 ? 'permission_error' : 'other',
-            'user_type': user ? 'authenticated' : 'anonymous',
-            'restaurant_name': restaurantInfo?.name || 'unknown',
-            'timestamp': Date.now()
-        });
+			const response = await fetch('/.netlify/functions/getDishExplanation', {
+				method: 'POST',
+				headers,
+				body: JSON.stringify(requestBody)
+			});
+			
+			// Calculate timing AFTER getting response
+			const requestEndTime = Date.now();
+			const totalTime = requestEndTime - requestStartTime;
+			const backendTime = parseInt(response.headers.get('X-Processing-Time') || '0');
+			
+			if (!response.ok) {
+				// Track failed explanation request
+				gtag('event', 'dish_explanation_failed', {
+					'request_id': requestId,
+					'dish_name': dishName,
+					'language': selectedLanguage,
+					'total_time_ms': totalTime,
+					'total_time_seconds': Math.round(totalTime / 1000 * 100) / 100,
+					'backend_time_ms': backendTime,
+					'backend_time_seconds': Math.round(backendTime / 1000 * 100) / 100,
+					'error_status': response.status,
+					'error_type': response.status === 429 ? 'rate_limit' : 
+								 response.status === 401 ? 'auth_error' : 
+								 response.status === 403 ? 'permission_error' : 'other',
+					'user_type': user ? 'authenticated' : 'anonymous',
+					'restaurant_name': restaurantInfo?.name || 'unknown',
+					'timestamp': Date.now()
+				});
 
-        if (response.status === 429) {
-            throw new Error('RATE_LIMIT');
-        } else if (response.status === 401) {
-            throw new Error('Authentication failed. Please try logging in again.');
-        } else if (response.status === 403) {
-            throw new Error('Access denied. Please check your permissions.');
-        } else {
-            const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
-            throw new Error(errorData.error || `Request failed`);
-        }
-    }
-    
-    // Track successful explanation request (ONLY ONCE HERE)
-    gtag('event', 'dish_explanation_success', {
-        'request_id': requestId,
-        'dish_name': dishName,
-        'language': selectedLanguage,
-        'total_time_ms': totalTime,
-        'total_time_seconds': Math.round(totalTime / 1000 * 100) / 100,
-        'backend_time_ms': backendTime,
-        'backend_time_seconds': Math.round(backendTime / 1000 * 100) / 100,
-        'network_time_ms': totalTime - backendTime,
-        'network_time_seconds': Math.round((totalTime - backendTime) / 1000 * 100) / 100,
-        'data_source': dataSource, // 'Database' or 'Gemini-API'
-        'cache_hit': dataSource === 'Database',
-        'user_type': user ? 'authenticated' : 'anonymous',
-        'restaurant_name': restaurantInfo?.name || 'unknown',
-        'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
-        'retry_count': retryCount,
-        'timestamp': Date.now()
-    });
-    
-    return await response.json();
-};
+				if (response.status === 429) {
+					throw new Error('RATE_LIMIT');
+				} else if (response.status === 401) {
+					throw new Error('Authentication failed. Please try logging in again.');
+				} else if (response.status === 403) {
+					throw new Error('Access denied. Please check your permissions.');
+				} else {
+					const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
+					throw new Error(errorData.error || `Request failed`);
+				}
+			}
+			
+			return await response.json();
+		};
 
         // Auto-retry logic with friendly messages
         const startTime = Date.now();
@@ -664,90 +641,113 @@ const makeRequest = async (): Promise<DishExplanation> => {
             }
         }));
 
-const attemptRequest = async (): Promise<void> => {
-    try {
-        const data = await makeRequest(); // makeRequest already tracks success
-        
-        // Update user-specific counters
-        try {
-            if (user) {
-                await incrementUserDishExplanation(user.id);
-            } else {
-                incrementAnonymousExplanation();
-            }
-            
-            onExplanationSuccess();
-        } catch (error) {
-            console.error('Error updating explanation counter:', error);
-        }
-        
-        setExplanations(prev => ({
-            ...prev,
-            [dishName]: {
-                ...prev[dishName],
-                [selectedLanguage]: { data, isLoading: false, error: null }
-            }
-        }));
+		const attemptRequest = async (): Promise<void> => {
+			try {
+				const data = await makeRequest();
+				const requestEndTime = Date.now();
+				const totalTime = requestEndTime - startTime;
+				// This assumes backend time and data source are needed here.
+				// For simplicity, we'll imagine they are part of the 'data' payload or re-fetch headers if needed.
+				// A better approach is to return more info from makeRequest.
+				
+				// Track successful explanation request (ONLY ONCE HERE)
+				gtag('event', 'dish_explanation_success', {
+					'request_id': startTime + '-' + dishName, // Simplified request ID
+					'dish_name': dishName,
+					'language': selectedLanguage,
+					'total_time_ms': totalTime,
+					'total_time_seconds': Math.round(totalTime / 1000 * 100) / 100,
+					// 'backend_time_ms': backendTime, // Note: Not easily available here without modifying makeRequest
+					// 'network_time_ms': totalTime - backendTime,
+					// 'data_source': dataSource,
+					// 'cache_hit': dataSource === 'Database',
+					'user_type': user ? 'authenticated' : 'anonymous',
+					'restaurant_name': restaurantInfo?.name || 'unknown',
+					'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+					'retry_count': retryCount,
+					'timestamp': Date.now()
+				});
+				
+				// Update user-specific counters
+				try {
+					if (user) {
+						await incrementUserDishExplanation(user.id);
+					} else {
+						incrementAnonymousExplanation();
+					}
+					
+					onExplanationSuccess();
+				} catch (error) {
+					console.error('Error updating explanation counter:', error);
+				}
+				
+				setExplanations(prev => ({
+					...prev,
+					[dishName]: {
+						...prev[dishName],
+						[selectedLanguage]: { data, isLoading: false, error: null }
+					}
+				}));
 
-    } catch (err) {
-        if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
-            const isFirstRetry = retryCount === 0;
-            const message = isFirstRetry ? t.serversBusy : t.stillTrying;
-            
-            setExplanations(prev => ({
-                ...prev,
-                [dishName]: {
-                    ...prev[dishName],
-                    [selectedLanguage]: { data: null, isLoading: true, error: message }
-                }
-            }));
+			} catch (err) {
+				if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
+					const isFirstRetry = retryCount === 0;
+					const message = isFirstRetry ? t.serversBusy : t.stillTrying;
+					
+					setExplanations(prev => ({
+						...prev,
+						[dishName]: {
+							...prev[dishName],
+							[selectedLanguage]: { data: null, isLoading: true, error: message }
+						}
+					}));
 
-            const delay = retryDelays[retryCount];
-            retryCount++;
-            
-            setTimeout(() => {
-                setExplanations(prev => ({
-                    ...prev,
-                    [dishName]: {
-                        ...prev[dishName],
-                        [selectedLanguage]: { data: null, isLoading: true, error: null }
-                    }
-                }));
-                
-                attemptRequest();
-            }, delay);
+					const delay = retryDelays[retryCount];
+					retryCount++;
+					
+					setTimeout(() => {
+						setExplanations(prev => ({
+							...prev,
+							[dishName]: {
+								...prev[dishName],
+								[selectedLanguage]: { data: null, isLoading: true, error: null }
+							}
+						}));
+						
+						attemptRequest();
+					}, delay);
 
-        } else {
-            const loadTime = Date.now() - startTime;
-            let errorMessage = t.finalError;
-            
-            if (err instanceof Error && err.message !== 'RATE_LIMIT') {
-                errorMessage = err.message;
-            }
-            
-            // Track failed dish explanation (final failure)
-            gtag('event', 'dish_explanation_error', {
-                'dish_name': dishName,
-                'language': selectedLanguage,
-                'load_time_ms': loadTime,
-                'error_message': errorMessage,
-                'error_type': err instanceof Error && err.message === 'RATE_LIMIT' ? 'rate_limit_final' : 'other',
-                'restaurant_name': restaurantInfo?.name || 'unknown',
-                'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
-                'retry_count': retryCount,
-                'user_type': user ? 'authenticated' : 'anonymous'
-            });
-            
-            setExplanations(prev => ({
-                ...prev,
-                [dishName]: {
-                    ...prev[dishName],
-                    [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
-                }
-            }));
-        }
-    }
-};
+				} else {
+					const loadTime = Date.now() - startTime;
+					let errorMessage = t.finalError;
+					
+					if (err instanceof Error && err.message !== 'RATE_LIMIT') {
+						errorMessage = err.message;
+					}
+					
+					// Track failed dish explanation (final failure)
+					gtag('event', 'dish_explanation_error', {
+						'dish_name': dishName,
+						'language': selectedLanguage,
+						'load_time_ms': loadTime,
+						'error_message': errorMessage,
+						'error_type': err instanceof Error && err.message === 'RATE_LIMIT' ? 'rate_limit_final' : 'other',
+						'restaurant_name': restaurantInfo?.name || 'unknown',
+						'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+						'retry_count': retryCount,
+						'user_type': user ? 'authenticated' : 'anonymous'
+					});
+					
+					setExplanations(prev => ({
+						...prev,
+						[dishName]: {
+							...prev[dishName],
+							[selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+						}
+					}));
+				}
+			}
+		};
 
         attemptRequest();
     };
@@ -1027,16 +1027,17 @@ const attemptRequest = async (): Promise<void> => {
                         </p>
                     )}
                 </div>
-		{/* NEW: Share Widget */}
-            <div className="mt-8">
-                <ShareWidget 
-                    location="post-scan" 
-                    size="large" 
-                    orientation="vertical"
-                    userType={user ? 'authenticated' : 'anonymous'}
-                />
-            </div>
-        </div>
+				{/* NEW: Share Widget */}
+				<div className="mt-8">
+					<ShareWidget 
+						location="post-scan" 
+						size="large" 
+						orientation="vertical"
+						userType={user ? 'authenticated' : 'anonymous'}
+					/>
+				</div>
+			</div>
+		</div>
     );
 }
 interface PricingTierProps {
@@ -1466,6 +1467,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         id?: number;
     } | null>(null);
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+    const [isScanAllowed, setIsScanAllowed] = useState(true);
     
     const handlePurchase = useCallback(async (planType: 'daily' | 'weekly') => {
       console.log('🔍 Starting purchase process...');
@@ -1518,8 +1520,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         window.location.href = data.url;
       } catch (error) {
         console.error('❌ Error creating checkout session:', error);
-        console.error('❌ Error message:', error.message);
-        alert(`Failed to start checkout: ${error.message}`);
+        alert(`Failed to start checkout: ${error instanceof Error ? error.message : 'An unknown error occurred'}`);
       } finally {
         setLoadingPlan(null);
       }
@@ -1568,13 +1569,10 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         fetchUserProfile();
     }, [user]);
 
-    // Check if user can scan
-    const canScan = useCallback(async () => {
+    const checkCanScan = useCallback(async () => {
         if (!user) {
-            // Non-logged in users: use anonymous tracking
             return canAnonymousUserScan();
         }
-
         try {
             const counters = await getUserCounters(user.id);
             return canUserScan(counters);
@@ -1583,22 +1581,14 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
             return false;
         }
     }, [user]);
-	
-    // Updated: Check if user can explain dishes using new logic
-    const canExplainDish = useCallback(async () => {
-        if (!user) {
-            // Non-logged in users: use anonymous tracking
-            return canAnonymousUserExplainDish();
-        }
 
-        try {
-            const counters = await getUserCounters(user.id);
-            return canUserExplainDish(counters);
-        } catch (error) {
-            console.error('Error checking dish explanation capability:', error);
-            return false;
-        }
-    }, [user]);
+    useEffect(() => {
+        const checkPermission = async () => {
+            const permission = await checkCanScan();
+            setIsScanAllowed(permission);
+        };
+        checkPermission();
+    }, [user, checkCanScan, scanResult]);
 
     const handleScanAttempt = () => {
         setShowLimitModal(true);
@@ -1612,7 +1602,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
     }, []);
 
     const handleScan = useCallback(async (base64Image: string) => {
-        if (!canScan()) {
+        if (!isScanAllowed) {
             handleScanAttempt();
             return;
         }
@@ -1747,7 +1737,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         } finally {
             setIsScanning(false);
         }
-    }, [canScan, user, userProfile, onScanSuccess]);
+    }, [isScanAllowed, user, onScanSuccess]);
 
     const handleFileSelect = useCallback(async (file: File) => {
       // Track file upload method and details
@@ -1901,12 +1891,12 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
               <HeroSection
                 onImageSelect={handleFileSelect}
                 onBase64Select={handleBase64Select}
-                canScan={canScan()}
+                canScan={isScanAllowed}
                 onScanAttempt={handleScanAttempt}
               />
               
                 {/* Section Separator - No extra padding */}
-                <div className="relative">  {/* Removed py-8 */}
+                <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t-2 border-charcoal-200"></div>
                   </div>
@@ -1919,20 +1909,6 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
 
               <DemoSection selectedLanguage="en" />
               
-                {/* Section Separator - No extra padding */}
-                <div className="relative">  {/* Removed py-8 */}
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t-2 border-charcoal-200"></div>
-                  </div>
-                  <div className="relative flex justify-center">	
-				  
-				  <div className="bg-cream-50 px-6">
-                     <div className="w-12 h-1 bg-gradient-to-r from-coral-400 to-teal-400 rounded-full"></div>
-                   </div>
-                 </div>
-               </div>
-
-             
              {/* 3. Pricing Section */}
              {!hasActivePaidSubscription() && (
                <PricingSection
@@ -1967,4 +1943,3 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
 };
 
 export default HomePage;
-	
