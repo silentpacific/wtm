@@ -989,7 +989,7 @@ const attemptRequest = async (): Promise<void> => {
                                     </table>
                                 </div>
 
-                                {/* MOBILE ACCORDION LAYOUT with hints */}
+								{/* MOBILE ACCORDION LAYOUT with hints */}
                                 <div className="md:hidden space-y-3">
                                     {section.dishes.map((dish, dishIndex) => {
                                         const globalDishIndex = sectionIndex * 1000 + dishIndex;
@@ -997,14 +997,9 @@ const attemptRequest = async (): Promise<void> => {
                                         const isExpanded = expandedDishes.has(dish.name);
                                         const dishExplanation = explanations[dish.name]?.[selectedLanguage];
                                         const isLoading = dishExplanation?.isLoading;
-                                        
                                         return (
                                             <div key={dishIndex} className="border-2 border-charcoal/20 rounded-xl overflow-hidden">
-                                                <button
-                                                    onClick={() => handleMobileAccordionClick(dish.name)}
-                                                    className="w-full p-4 text-left bg-white hover:bg-gray-50 transition-colors flex items-center justify-between group"
-                                                    aria-expanded={isExpanded}
-                                                >
+                                                <button onClick={() => handleMobileAccordionClick(dish.name)} className="w-full p-4 text-left bg-white hover:bg-gray-50 transition-colors flex items-center justify-between group" aria-expanded={isExpanded} >
                                                     <div className="flex-1">
                                                         <span className="text-lg font-medium text-charcoal tracking-tight group-hover:text-coral transition-colors">
                                                             {dish.name}
@@ -1020,12 +1015,9 @@ const attemptRequest = async (): Promise<void> => {
                                                         {isLoading && (
                                                             <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-coral mr-2"></div>
                                                         )}
-                                                        <span className={`text-xl transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-                                                            ▼
-                                                        </span>
+                                                        <span className={`text-xl transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}> ▼ </span>
                                                     </div>
                                                 </button>
-                                                
                                                 {isExpanded && (
                                                     <div className="p-4 bg-gray-50 border-t-2 border-charcoal/10 text-charcoal/90">
                                                         {renderExplanationContent(dish)}
@@ -1054,7 +1046,7 @@ const attemptRequest = async (): Promise<void> => {
             </div>
         </div>
     );
-};  // ✅ FIXED: Removed the extra ` );` line
+};
 
 
 interface PricingTierProps {
