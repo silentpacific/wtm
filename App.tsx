@@ -122,11 +122,11 @@ const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
               <div className="space-y-3">
                 <div className="bg-white border-4 border-charcoal rounded-2xl px-4 py-3 shadow-[4px_4px_0px_#292524]">
                   <p className="text-sm font-bold text-charcoal/80">Menus Scanned:</p>
-                  <p className="text-2xl font-black text-charcoal">{globalCounters.menus_scanned.toLocaleString()}</p>
+                  <p className="text-2xl font-black text-charcoal">{(globalCounters.total_menus_scanned || 0).toLocaleString()}</p>
                 </div>
                 <div className="bg-white border-4 border-charcoal rounded-2xl px-4 py-3 shadow-[4px_4px_0px_#292524]">
                   <p className="text-sm font-bold text-charcoal/80">Dishes Analyzed:</p>
-                  <p className="text-2xl font-black text-charcoal">{globalCounters.dish_explanations.toLocaleString()}</p>
+                  <p className="text-2xl font-black text-charcoal">{(globalCounters.total_dishes_explained || 0).toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -232,11 +232,11 @@ const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
               <div className="space-y-2">
                 <p className="text-charcoal/80">
                   <span className="font-bold">Menus Scanned:</span> 
-                  <span className="font-black text-charcoal ml-1">{globalCounters.menus_scanned.toLocaleString()}+</span>
+                  <span className="font-black text-charcoal ml-1">{(globalCounters.total_menus_scanned || 0).toLocaleString()}+</span>
                 </p>
                 <p className="text-charcoal/80">
                   <span className="font-bold">Dishes Analyzed:</span> 
-                  <span className="font-black text-charcoal ml-1">{globalCounters.dish_explanations.toLocaleString()}+</span>
+                  <span className="font-black text-charcoal ml-1">{(globalCounters.total_dishes_explained || 0).toLocaleString()}+</span>
                 </p>
               </div>
             </div>
