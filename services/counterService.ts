@@ -1,4 +1,4 @@
-// services/counterService.ts - FIXED VERSION with expiration handling
+// services/counterService.ts - COMPLETE VERSION with all required functions
 
 import { supabase } from './supabaseClient';
 
@@ -13,7 +13,7 @@ export interface UserCounters {
   lifetime_dishes_explained: number;
 }
 
-// NEW: Helper function to check if subscription is expired
+// Helper function to check if subscription is expired
 const isSubscriptionExpired = (expiresAt: string | null): boolean => {
   if (!expiresAt) return true;
   
@@ -23,7 +23,7 @@ const isSubscriptionExpired = (expiresAt: string | null): boolean => {
   return now >= expiry;
 };
 
-// NEW: Function to handle expired subscription cleanup
+// Function to handle expired subscription cleanup
 const handleExpiredSubscription = async (userId: string): Promise<void> => {
   console.log('🔄 Handling expired subscription for user:', userId);
   
@@ -65,7 +65,7 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
       throw new Error('User profile not found');
     }
 
-    // NEW: Check if subscription is expired and handle it
+    // Check if subscription is expired and handle it
     const subscriptionExpired = isSubscriptionExpired(profile.subscription_expires_at);
     
     if (subscriptionExpired && profile.subscription_type !== 'free') {
@@ -119,7 +119,7 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
   }
 };
 
-// NEW: Function to check if user can scan (with expiration check)
+// Function to check if user can scan (with expiration check)
 export const canUserScan = async (userId: string): Promise<boolean> => {
   try {
     const counters = await getUserCounters(userId);
@@ -130,7 +130,7 @@ export const canUserScan = async (userId: string): Promise<boolean> => {
   }
 };
 
-// NEW: Function to check if user has unlimited dish explanations (with expiration check)
+// Function to check if user has unlimited dish explanations (with expiration check)
 export const hasUnlimitedDishExplanations = async (userId: string): Promise<boolean> => {
   try {
     const counters = await getUserCounters(userId);
@@ -152,7 +152,27 @@ export const hasUnlimitedDishExplanations = async (userId: string): Promise<bool
   }
 };
 
-// Rest of your existing functions (incrementMenuScans, etc.) remain the same...
+// Function to check if user can explain a dish (with expiration check)
+export const canUserExplainDish = async (userId: string): Promise<boolean> => {
+  try {
+    const counters = await getUserCounters(userId);
+    
+    // Check if user has unlimited dish explanations (paid + active subscription)
+    const hasUnlimited = await hasUnlimitedDishExplanations(userId);
+    
+    if (hasUnlimited) {
+      return true; // Unlimited explanations for paid users
+    }
+    
+    // Free users: limited to 5 explanations per menu
+    return counters.current_menu_dish_explanations < 5;
+  } catch (error) {
+    console.error('❌ Error checking if user can explain dish:', error);
+    return false;
+  }
+};
+
+// Global counter functions
 export const incrementMenuScans = async (): Promise<void> => {
   try {
     const { error } = await supabase.rpc('increment_global_counter', {
@@ -187,4 +207,23 @@ export const incrementDishExplanations = async (): Promise<void> => {
     console.error('❌ Error in incrementDishExplanations:', error);
     throw error;
   }
+};
+
+// Function to subscribe to real-time counter updates
+export const subscribeToCounters = (callback: () => void) => {
+  // Subscribe to global_counters table changes
+  const subscription = supabase
+    .channel('global_counters_changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'global_counters'
+      },
+      callback
+    )
+    .subscribe();
+
+  return subscription;
 };
