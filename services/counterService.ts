@@ -10,12 +10,12 @@ export interface UserCounters {
   subscription_status: string;
   subscription_expires_at: string | null;
   lifetime_menus_scanned: number;
-  lifetime_dishes_explained: number;
+  lifetime_dish_explanations: number;
 }
 
 export interface GlobalCounters {
   menus_scanned: number;
-  dishes_explained: number;
+  dishes_explanations: number;
 }
 
 // Helper function to safely check if subscription is expired
@@ -106,7 +106,7 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
           subscription_status: 'inactive',
           subscription_expires_at: null,
           lifetime_menus_scanned: Number(profile.lifetime_menus_scanned) || 0,
-          lifetime_dishes_explained: Number(profile.lifetime_dishes_explained) || 0,
+          lifetime_dish_explanations: Number(profile.lifetime_dish_explanations) || 0,
         };
       } catch (resetError) {
         console.error('❌ Error resetting expired subscription:', resetError);
@@ -137,7 +137,7 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
       subscription_status: subscriptionExpired ? 'inactive' : (profile.subscription_status || 'inactive'),
       subscription_expires_at: subscriptionExpired ? null : profile.subscription_expires_at,
       lifetime_menus_scanned: Number(profile.lifetime_menus_scanned) || 0,
-      lifetime_dishes_explained: Number(profile.lifetime_dishes_explained) || 0,
+      lifetime_dish_explanations: Number(profile.lifetime_dish_explanations) || 0,
     };
 
   } catch (error) {
@@ -152,7 +152,7 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
       subscription_status: 'inactive',
       subscription_expires_at: null,
       lifetime_menus_scanned: 0,
-      lifetime_dishes_explained: 0,
+      lifetime_dish_explanations: 0,
     };
   }
 };
@@ -219,21 +219,21 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
     const { data, error } = await supabase
       .from('global_counters')
       .select('counter_type, count')
-      .in('counter_type', ['menus_scanned', 'dishes_explained']);
+      .in('counter_type', ['menus_scanned', 'dish_explanations']);
 
     if (error) {
       console.error('❌ Error fetching global counters:', error);
       // Return defaults on error instead of throwing
       return {
         menus_scanned: 152,
-        dishes_explained: 524
+        dish_explanations: 524
       };
     }
 
     // Convert array to object with default values
     const counters: GlobalCounters = {
       menus_scanned: 0,
-      dishes_explained: 0
+      dish_explanations: 0
     };
 
     if (data && Array.isArray(data)) {
@@ -241,8 +241,8 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
         if (row && row.counter_type && typeof row.count === 'number') {
           if (row.counter_type === 'menus_scanned') {
             counters.menus_scanned = row.count;
-          } else if (row.counter_type === 'dishes_explained') {
-            counters.dishes_explained = row.count;
+          } else if (row.counter_type === 'dish_explanations') {
+            counters.dish_explanations = row.count;
           }
         }
       });
@@ -250,14 +250,14 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
 
      return {
       menus_scanned: counters.menus_scanned || 152,  // Use your real count
-      dish_explanations: counters.dishes_explained || 500  // Use your real count
+      dish_explanations: counters.dish_explanations || 500  // Use your real count
     };
   } catch (error) {
     console.error('❌ Error in getGlobalCounters:', error);
     // Return safe defaults on error
     return {
       menus_scanned: 152,
-      dishes_explained:524
+      dish_explanations:524
     };
   }
 };
@@ -284,7 +284,7 @@ export const incrementMenuScans = async (): Promise<void> => {
 export const incrementDishExplanations = async (): Promise<void> => {
   try {
     const { error } = await supabase.rpc('increment_global_counter', {
-      counter_name: 'dishes_explained'
+      counter_name: 'dish_explanations'
     });
     
     if (error) {
