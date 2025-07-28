@@ -13,6 +13,11 @@ export interface UserCounters {
   lifetime_dishes_explained: number;
 }
 
+export interface GlobalCounters {
+  total_menus_scanned: number;
+  total_dishes_explained: number;
+}
+
 // Helper function to check if subscription is expired
 const isSubscriptionExpired = (expiresAt: string | null): boolean => {
   if (!expiresAt) return true;
@@ -207,6 +212,72 @@ export const incrementDishExplanations = async (): Promise<void> => {
     console.error('❌ Error in incrementDishExplanations:', error);
     throw error;
   }
+};
+
+// Function to get global counters
+export const getGlobalCounters = async (): Promise<GlobalCounters> => {
+  try {
+    const { data, error } = await supabase
+      .from('global_counters')
+      .select('counter_type, count')
+      .in('counter_type', ['total_menus_scanned', 'total_dishes_explained']);
+
+    if (error) {
+      console.error('❌ Error fetching global counters:', error);
+      throw error;
+    }
+
+    // Convert array to object with default values
+    const counters: GlobalCounters = {
+      total_menus_scanned: 0,
+      total_dishes_explained: 0
+    };
+
+    if (data) {
+      data.forEach(row => {
+        if (row.counter_type === 'total_menus_scanned') {
+          counters.total_menus_scanned = row.count || 0;
+        } else if (row.counter_type === 'total_dishes_explained') {
+          counters.total_dishes_explained = row.count || 0;
+        }
+      });
+    }
+
+    return counters;
+  } catch (error) {
+    console.error('❌ Error in getGlobalCounters:', error);
+    // Return defaults on error
+    return {
+      total_menus_scanned: 0,
+      total_dishes_explained: 0
+    };
+  }
+};
+
+// Function to set up real-time counter updates
+export const setupRealtimeCounters = (callback: (counters: GlobalCounters) => void) => {
+  const subscription = supabase
+    .channel('global_counters_realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'global_counters'
+      },
+      async () => {
+        // When counters change, fetch latest and call callback
+        try {
+          const updatedCounters = await getGlobalCounters();
+          callback(updatedCounters);
+        } catch (error) {
+          console.error('❌ Error updating real-time counters:', error);
+        }
+      }
+    )
+    .subscribe();
+
+  return subscription;
 };
 
 // Function to subscribe to real-time counter updates
