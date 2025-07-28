@@ -1043,7 +1043,7 @@ const attemptRequest = async (): Promise<void> => {
                         </p>
                     )}
                 </div>
-			{/* NEW: Share Widget */}
+		{/* NEW: Share Widget */}
             <div className="mt-8">
                 <ShareWidget 
                     location="post-scan" 
@@ -1054,7 +1054,7 @@ const attemptRequest = async (): Promise<void> => {
             </div>
         </div>
     );
-);
+};  // ✅ FIXED: Removed the extra ` );` line
 
 
 interface PricingTierProps {
