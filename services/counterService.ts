@@ -15,7 +15,7 @@ export interface UserCounters {
 
 export interface GlobalCounters {
   menus_scanned: number;
-  dishes_explanations: number;
+  dish_explanations: number;
 }
 
 // Helper function to safely check if subscription is expired
