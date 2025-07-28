@@ -14,8 +14,8 @@ export interface UserCounters {
 }
 
 export interface GlobalCounters {
-  total_menus_scanned: number;
-  total_dishes_explained: number;
+  menus_scanned: number;
+  dishes_explained: number;
 }
 
 // Helper function to safely check if subscription is expired
@@ -219,45 +219,45 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
     const { data, error } = await supabase
       .from('global_counters')
       .select('counter_type, count')
-      .in('counter_type', ['total_menus_scanned', 'total_dishes_explained']);
+      .in('counter_type', ['menus_scanned', 'dishes_explained']);
 
     if (error) {
       console.error('❌ Error fetching global counters:', error);
       // Return defaults on error instead of throwing
       return {
-        total_menus_scanned: 0,
-        total_dishes_explained: 0
+        menus_scanned: 152,
+        dishes_explained: 524
       };
     }
 
     // Convert array to object with default values
     const counters: GlobalCounters = {
-      total_menus_scanned: 0,
-      total_dishes_explained: 0
+      menus_scanned: 0,
+      dishes_explained: 0
     };
 
     if (data && Array.isArray(data)) {
       data.forEach(row => {
         if (row && row.counter_type && typeof row.count === 'number') {
-          if (row.counter_type === 'total_menus_scanned') {
-            counters.total_menus_scanned = row.count;
-          } else if (row.counter_type === 'total_dishes_explained') {
-            counters.total_dishes_explained = row.count;
+          if (row.counter_type === 'menus_scanned') {
+            counters.menus_scanned = row.count;
+          } else if (row.counter_type === 'dishes_explained') {
+            counters.dishes_explained = row.count;
           }
         }
       });
     }
 
      return {
-      menus_scanned: counters.total_menus_scanned || 152,  // Use your real count
-      dish_explanations: counters.total_dishes_explained || 500  // Use your real count
+      menus_scanned: counters.menus_scanned || 152,  // Use your real count
+      dish_explanations: counters.dishes_explained || 500  // Use your real count
     };
   } catch (error) {
     console.error('❌ Error in getGlobalCounters:', error);
     // Return safe defaults on error
     return {
-      total_menus_scanned: 152,
-      total_dishes_explained:526
+      menus_scanned: 152,
+      dishes_explained:524
     };
   }
 };
@@ -266,7 +266,7 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
 export const incrementMenuScans = async (): Promise<void> => {
   try {
     const { error } = await supabase.rpc('increment_global_counter', {
-      counter_name: 'total_menus_scanned'
+      counter_name: 'menus_scanned'
     });
     
     if (error) {
@@ -284,7 +284,7 @@ export const incrementMenuScans = async (): Promise<void> => {
 export const incrementDishExplanations = async (): Promise<void> => {
   try {
     const { error } = await supabase.rpc('increment_global_counter', {
-      counter_name: 'total_dishes_explained'
+      counter_name: 'dishes_explained'
     });
     
     if (error) {
