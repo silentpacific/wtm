@@ -226,12 +226,26 @@ export const handler: Handler = async (event: HandlerEvent) => {
                 .insert(insertData);
                 
             if (insertError) {
-                console.error("❌ [Extension] Supabase insert error:", insertError);
-                return {
-                    statusCode: 500,
-                    headers: corsHeaders,
-                    body: JSON.stringify({ error: 'Failed to save dish' })
-                };
+                // Check if it's a unique constraint violation
+                if (insertError.code === '23505') {
+                    console.log(`ℹ️ [Extension] Dish already exists (unique constraint): "${dishName}"`);
+                    return {
+                        statusCode: 200,
+                        headers: corsHeaders,
+                        body: JSON.stringify({ 
+                            success: true, 
+                            dishExists: true,
+                            message: 'Dish already exists (unique constraint)'
+                        })
+                    };
+                } else {
+                    console.error("❌ [Extension] Supabase insert error:", insertError);
+                    return {
+                        statusCode: 500,
+                        headers: corsHeaders,
+                        body: JSON.stringify({ error: 'Failed to save dish: ' + insertError.message })
+                    };
+                }
             } else {
                 console.log(`✅ [Extension] Successfully saved new dish: "${dishName}"`);
             }
