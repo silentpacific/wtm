@@ -182,6 +182,8 @@ export const handler: Handler = async (event: HandlerEvent) => {
     }
 
     const { dishName, language } = requestBody;
+    
+    console.log(`🌍 [Extension] Request received - Dish: "${dishName}", Language: "${language}"`);
 
     // Validate required fields
     if (!dishName) {
@@ -196,7 +198,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
     const supportedLanguages = ['en', 'es', 'zh', 'fr'];
     const selectedLanguage = language && supportedLanguages.includes(language) ? language : 'en';
     
-    console.log(`🌍 [Extension] Using language: ${selectedLanguage}`);
+    console.log(`🌍 [Extension] Using language: ${selectedLanguage} (requested: ${language})`);
 
     if (!geminiApiKey) {
         return { 
@@ -207,12 +209,14 @@ export const handler: Handler = async (event: HandlerEvent) => {
     }
 
     try {
-        console.log(`🔍 [Extension] Processing dish explanation request: "${dishName}"`);
+        console.log(`🔍 [Extension] Processing dish explanation request: "${dishName}" in ${selectedLanguage}`);
         
-        // Call Gemini API directly (no database caching for extension to keep it simple)
+        // Call Gemini AI directly (no database caching for extension to keep it simple)
         const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-        const prompt = getLanguagePrompt(dishName);
+        const prompt = getLanguagePrompt(dishName, selectedLanguage);
         const textPart = { text: prompt };
+
+        console.log(`🤖 [Extension] Calling Gemini AI with ${selectedLanguage} prompt`);
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -226,7 +230,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
         const jsonText = response.text.trim();
         const dishExplanation = JSON.parse(jsonText);
 
-        console.log(`✅ [Extension] Successfully explained: "${dishName}"`);
+        console.log(`✅ [Extension] Successfully explained: "${dishName}" in ${selectedLanguage}`);
         
         return {
             statusCode: 200,
@@ -234,6 +238,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
                 ...corsHeaders,
                 'Content-Type': 'application/json',
                 'X-Data-Source': 'Gemini-API-Extension',
+                'X-Language': selectedLanguage,
                 'X-Processing-Time': (Date.now() - startTime).toString()
             },
             body: JSON.stringify(dishExplanation)
@@ -246,7 +251,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
             statusCode: 500,
             headers: corsHeaders,
             body: JSON.stringify({ 
-                error: `Failed to get explanation for "${dishName}". Reason: ${errorMessage}` 
+                error: `Failed to get explanation for "${dishName}" in ${selectedLanguage}. Reason: ${errorMessage}` 
             })
         };
     }
