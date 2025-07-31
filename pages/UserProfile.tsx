@@ -196,14 +196,14 @@ const UserProfile: React.FC = () => {
   const getSubscriptionDisplayText = (subType: string, expiresAt: string | null) => {
     // Check if expired first
     if (isSubscriptionExpired(expiresAt)) {
-      return 'Free (Expired)';
+      return 'Free';
     }
     
     switch (subType.toLowerCase()) {
       case 'daily':
-        return 'Daily';
+        return 'Daily Pass';
       case 'weekly':
-        return 'Weekly';
+        return 'Weekly Pass';
       case 'free':
       default:
         return 'Free';
