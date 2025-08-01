@@ -1,0 +1,44 @@
+# artillery-payment-test.yml
+config:
+  target: 'https://whatthemenu.com'
+  phases:
+    - duration: 60
+      arrivalRate: 10  # 10 users per second
+    - duration: 120
+      arrivalRate: 20  # Ramp up to 20 users/sec
+  environments:
+    production:
+      target: 'https://whatthemenu.com'
+
+scenarios:
+  - name: "Payment Flow Test"
+    weight: 100
+    flow:
+      # Test payment creation
+      - post:
+          url: "/.netlify/functions/create-checkout-session"
+          headers:
+            Content-Type: "application/json"
+          json:
+            planType: "daily"
+            email: "test{{ $randomString() }}@example.com"
+          expect:
+            - statusCode: 200
+            - hasProperty: "sessionUrl"
+
+      # Test webhook handling (simulate Stripe)
+      - post:
+          url: "/.netlify/functions/stripe-webhook"
+          headers:
+            Content-Type: "application/json"
+            Stripe-Signature: "test-signature"
+          json:
+            type: "checkout.session.completed"
+            data:
+              object:
+                customer_email: "test@example.com"
+                payment_status: "paid"
+          expect:
+            - statusCode: 200
+
+# Run with: artillery run artillery-payment-test.yml

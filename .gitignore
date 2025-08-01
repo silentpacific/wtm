@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Testing outputs
+testing/results/
+testing/logs/
+
+# Environment files
+.env.local
+.env.test

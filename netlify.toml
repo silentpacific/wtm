@@ -1,4 +1,4 @@
-# netlify.toml - Fixed version
+# netlify.toml - Complete optimized version
 
 [build]
   publish = "dist"
@@ -9,6 +9,24 @@
   NODE_OPTIONS = "--max-old-space-size=4096"
   NPM_CONFIG_FUND = "false"
   NPM_CONFIG_AUDIT = "false"
+
+# Function-specific settings
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["sharp", "canvas"]
+
+# Specific function timeouts for heavy operations
+[functions."getDishExplanation"]
+  timeout = 30
+
+[functions."stripe-webhook"]
+  timeout = 10
+
+[functions."contact-submit"]
+  timeout = 10
+
+[functions."create-checkout-session"]
+  timeout = 15
 
 # Redirects for SPA routing and API proxy
 [[redirects]]
@@ -21,14 +39,170 @@
   to = "/index.html"
   status = 200
 
-# Function-specific settings
-[functions]
-  node_bundler = "esbuild"
+# Security headers for all pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=*, microphone=(), geolocation=(), payment=()"
+    Content-Security-Policy = '''
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.clarity.ms https://cdnjs.cloudflare.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: https: blob:;
+      connect-src 'self' https://api.stripe.com https://*.supabase.co https://generativelanguage.googleapis.com https://www.google-analytics.com https://www.clarity.ms;
+      frame-src https://js.stripe.com;
+      media-src 'self' blob:;
+    '''
 
-# Headers for CORS
+# CORS headers for API functions
 [[headers]]
   for = "/.netlify/functions/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Content-Type"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS, PUT, DELETE"
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    X-Content-Type-Options = "nosniff"
+
+# Static asset caching with versioning
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Content-Type-Options = "nosniff"
+
+# Image optimization and caching
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+    Vary = "Accept"
+
+[[headers]]
+  for = "*.jpeg"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+    Vary = "Accept"
+
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+    Vary = "Accept"
+
+[[headers]]
+  for = "*.gif"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+    Vary = "Accept"
+
+[[headers]]
+  for = "*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+    Vary = "Accept"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+    Content-Type = "image/svg+xml"
+
+# Font caching
+[[headers]]
+  for = "*.woff2"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "font/woff2"
+
+[[headers]]
+  for = "*.woff"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "font/woff"
+
+# JavaScript and CSS caching
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/javascript"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "text/css"
+
+# HTML caching (shorter for dynamic content)
+[[headers]]
+  for = "*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+    Content-Type = "text/html; charset=utf-8"
+
+# Manifest and service worker
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type = "application/manifest+json"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Content-Type = "application/javascript"
+
+# Robots and sitemap
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type = "text/plain"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type = "application/xml"
+
+# Error pages
+[[headers]]
+  for = "/404.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+    Content-Type = "text/html; charset=utf-8"
+
+# Processing settings for build optimization
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
+
+[build.processing.images]
+  compress = true
+
+# Environment-specific settings
+[context.production.environment]
+  NODE_ENV = "production"
+
+[context.deploy-preview.environment]
+  NODE_ENV = "development"
+
+[context.branch-deploy.environment]
+  NODE_ENV = "development"
