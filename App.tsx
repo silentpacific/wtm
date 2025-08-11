@@ -20,6 +20,7 @@ import {
 import { getAnonymousUsage } from './services/anonymousUsageTracking';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
+import { RestaurantAuthProvider } from './contexts/RestaurantAuthContext';
 
 
 const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
@@ -420,6 +421,13 @@ const AppContent: FC = () => {
           <Route path="/refund-policy" element={<RefundsPolicyPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
+		  
+		  {/* NEW: Add restaurant routes here */}
+		  <Route path="/restaurants/*" element={
+			<RestaurantAuthProvider>
+			  <RestaurantRoutes />
+			</RestaurantAuthProvider>
+		  } />
         </Routes>
       </main>
       <Footer globalCounters={globalCounters} />

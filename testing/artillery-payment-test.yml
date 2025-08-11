@@ -1,6 +1,6 @@
 # artillery-payment-test.yml
 config:
-  target: 'https://whatthemenu.com'
+  target: 'https://whatthemenu.com'  # Change to your actual domain
   phases:
     - duration: 60
       arrivalRate: 10  # 10 users per second
