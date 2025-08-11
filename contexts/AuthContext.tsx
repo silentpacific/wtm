@@ -191,3 +191,13 @@ const signUp = async (email: string, password: string) => {
     </AuthContext.Provider>
   );
 };
+
+// Add to existing AuthContext.tsx
+interface RestaurantAuthContextType {
+  restaurantUser: RestaurantAccount | null;
+  restaurantLogin: (email: string, password: string) => Promise<any>;
+  restaurantSignUp: (data: RestaurantSignUpData) => Promise<any>;
+  restaurantSignOut: () => Promise<void>;
+}
+
+// Extend existing context or create separate RestaurantAuthContext
