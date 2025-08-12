@@ -1,9 +1,10 @@
-// Updated index.tsx - Fixed to use BrowserRouter for clean URLs
+// Updated index.tsx - Added CSS import
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom'; // Changed from HashRouter
+import { BrowserRouter } from 'react-router-dom';
 import { initErrorTracking } from './services/errorTracking';
 import App from './App';
+import './index.css'; // Add this line for Tailwind CSS
 
 // Initialize error tracking FIRST
 initErrorTracking();

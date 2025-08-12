@@ -89,7 +89,7 @@ const handler: Handler = async (event, context) => {
     // Send notification email to admin
     const adminTemplate = emailTemplates.contactConfirmation(name, email, message, submission.id);
     const adminEmailData = {
-      to: ['support@whatthemenu.com'],
+      to: ['hello@whatthemenu.com'],
       subject: `New Contact Form Submission from ${name}`,
       html: `
         <h2>New Contact Form Submission</h2>
@@ -136,7 +136,7 @@ Submitted at: ${new Date(submission.created_at).toLocaleString()}
       await emailService.logEmailSend(
         supabase, 
         'contact_admin_notification', 
-        'support@whatthemenu.com', 
+        'hello@whatthemenu.com', 
         adminEmailResult.value.success,
         adminEmailResult.value.id,
         adminEmailResult.value.error

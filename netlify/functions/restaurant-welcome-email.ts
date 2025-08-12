@@ -81,7 +81,7 @@ const getRestaurantWelcomeEmailHtml = (restaurantName: string, contactPerson?: s
                 <h3 style="color: #1f2937;">Need Help?</h3>
                 <p>Our team is here to help you succeed:</p>
                 <ul>
-                    <li><strong>Email support:</strong> restaurants@whatthemenu.com</li>
+                    <li><strong>Email support:</strong> hello@whatthemenu.com</li>
                     <li><strong>Setup assistance:</strong> We'll help you upload your first menu</li>
                     <li><strong>Best practices:</strong> Tips for maximizing international customer engagement</li>
                 </ul>
@@ -98,7 +98,7 @@ const getRestaurantWelcomeEmailHtml = (restaurantName: string, contactPerson?: s
             <div class="footer">
                 <p class="small-text" style="margin: 0;">
                     You're receiving this email because you signed up for WhatTheMenu's restaurant platform.<br>
-                    Questions? Reply to this email or contact restaurants@whatthemenu.com
+                    Questions? Reply to this email or contact hello@whatthemenu.com
                 </p>
                 <p class="small-text" style="margin: 10px 0 0 0;">
                     <a href="https://whatthemenu.com/restaurants" style="color: #6b7280;">Restaurant Platform</a> • 
@@ -144,7 +144,7 @@ WHAT YOU'LL GET:
 💡 PRO TIP: Target tourist areas and international customers. Many Adelaide restaurants see a 20-30% increase in international orders after implementing QR menu translations!
 
 NEED HELP?
-• Email support: restaurants@whatthemenu.com
+• Email support: hello@whatthemenu.com
 • Setup assistance: We'll help you upload your first menu
 • Best practices: Tips for maximizing international customer engagement
 
@@ -156,7 +156,7 @@ Adelaide, Australia
 
 ---
 You're receiving this email because you signed up for WhatTheMenu's restaurant platform.
-Questions? Reply to this email or contact restaurants@whatthemenu.com
+Questions? Reply to this email or contact hello@whatthemenu.com
 
 Restaurant Platform: https://whatthemenu.com/restaurants
 Terms: https://whatthemenu.com/terms
@@ -213,7 +213,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
       subject: `Welcome to WhatTheMenu - ${restaurantName}!`,
       html: htmlContent,
       text: textContent,
-      from: 'WhatTheMenu Restaurant Team <restaurants@whatthemenu.com>',
+      from: 'WhatTheMenu Restaurant Team <hello@whatthemenu.com>',
       emailType: 'restaurant_welcome',
       recipientId: restaurantId
     });

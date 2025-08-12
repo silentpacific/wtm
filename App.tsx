@@ -1,5 +1,4 @@
-// Updated App.tsx - Added anonymous counter tracking for Header
-
+// Updated App.tsx - Added RestaurantRoutes import
 import React, { useState, useCallback, useEffect, type FC } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
@@ -21,7 +20,7 @@ import { getAnonymousUsage } from './services/anonymousUsageTracking';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
 import { RestaurantAuthProvider } from './contexts/RestaurantAuthContext';
-
+import RestaurantRoutes from './components/RestaurantRoutes';
 
 const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
   const [aboutExpanded, setAboutExpanded] = useState(false);
@@ -314,9 +313,11 @@ const AppContent: FC = () => {
 
   // Track page views
   useEffect(() => {
-    gtag('config', 'G-36SHN00S7N', {
-      page_path: location.pathname
-    });
+    if (typeof gtag !== 'undefined') {
+      gtag('config', 'G-36SHN00S7N', {
+        page_path: location.pathname
+      });
+    }
   }, [location]);
 
   // Load initial global counters and set up subscriptions
@@ -422,7 +423,7 @@ const AppContent: FC = () => {
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
 		  
-		  {/* NEW: Add restaurant routes here */}
+		  {/* Restaurant routes */}
 		  <Route path="/restaurants/*" element={
 			<RestaurantAuthProvider>
 			  <RestaurantRoutes />
