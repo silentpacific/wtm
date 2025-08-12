@@ -1,5 +1,5 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
-import { sendEmail } from "./shared/emailService";
+import { EmailService } from "./shared/emailService";
 
 interface RestaurantWelcomeEmailRequest {
   restaurantId: string;
@@ -203,19 +203,20 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
     console.log(`🏪 Sending restaurant welcome email to: ${email} for ${restaurantName}`);
 
+    // Initialize email service
+    const emailService = new EmailService(process.env.RESEND_API_KEY!);
+
     // Prepare email content
     const htmlContent = getRestaurantWelcomeEmailHtml(restaurantName, contactPerson);
     const textContent = getRestaurantWelcomeEmailText(restaurantName, contactPerson);
 
     // Send welcome email
-    const emailResult = await sendEmail({
-      to: email,
+    const emailResult = await emailService.sendEmail({
+      to: [email],
       subject: `Welcome to WhatTheMenu - ${restaurantName}!`,
       html: htmlContent,
       text: textContent,
-      from: 'WhatTheMenu Restaurant Team <hello@whatthemenu.com>',
-      emailType: 'restaurant_welcome',
-      recipientId: restaurantId
+      from: 'WhatTheMenu Restaurant Team <hello@whatthemenu.com>'
     });
 
     if (!emailResult.success) {
@@ -230,7 +231,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
       };
     }
 
-    console.log(`✅ Restaurant welcome email sent successfully to ${email} (${emailResult.messageId})`);
+    console.log(`✅ Restaurant welcome email sent successfully to ${email} (${emailResult.id})`);
 
     return {
       statusCode: 200,
@@ -238,7 +239,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
       body: JSON.stringify({
         success: true,
         message: 'Restaurant welcome email sent successfully',
-        messageId: emailResult.messageId
+        messageId: emailResult.id
       })
     };
 
