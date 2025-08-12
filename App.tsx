@@ -335,15 +335,18 @@ const AppContent: FC = () => {
     loadCounters();
 
     // Subscribe to the manual updates from the counter service
+    // TEMPORARILY DISABLE REAL-TIME SUBSCRIPTIONS TO FIX CRASHES
+    // TODO: Re-enable once Supabase connection is stable
+    /*
     const { unsubscribe } = subscribeToCounters((updatedCounters) => {
       console.log('✅ Global counters updated via subscription:', updatedCounters);
       setGlobalCounters(updatedCounters);
     });
 
-    // Unsubscribe when the component unmounts to prevent memory leaks
     return () => {
       unsubscribe();
     };
+    */
   }, []);
 
   // Callbacks to increment global counters and trigger header updates

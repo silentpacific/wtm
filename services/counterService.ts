@@ -335,8 +335,8 @@ export const setupRealtimeCounters = (callback: (counters: GlobalCounters) => vo
   }
 };
 
-// Safe function to subscribe to real-time counter updates
-export const subscribeToCounters = (callback: () => void) => {
+// Fixed subscribeToCounters function
+export const subscribeToCounters = (callback: (counters: GlobalCounters) => void) => {
   try {
     const subscription = supabase
       .channel('global_counters_changes')
@@ -347,10 +347,11 @@ export const subscribeToCounters = (callback: () => void) => {
           schema: 'public',
           table: 'global_counters'
         },
-        () => {
+        async () => {
           try {
             if (callback && typeof callback === 'function') {
-              callback();
+              const updatedCounters = await getGlobalCounters();
+              callback(updatedCounters);
             }
           } catch (error) {
             console.error('❌ Error in subscription callback:', error);
@@ -359,10 +360,21 @@ export const subscribeToCounters = (callback: () => void) => {
       )
       .subscribe();
 
-    return subscription;
+    // Return proper unsubscribe function
+    return {
+      unsubscribe: () => {
+        try {
+          if (subscription && typeof subscription.unsubscribe === 'function') {
+            subscription.unsubscribe();
+          }
+        } catch (error) {
+          console.error('❌ Error unsubscribing:', error);
+        }
+      }
+    };
   } catch (error) {
     console.error('❌ Error setting up counter subscription:', error);
-    // Return a mock subscription object
+    // Return safe mock subscription
     return {
       unsubscribe: () => console.log('Mock unsubscribe called')
     };
