@@ -1,4 +1,4 @@
-// Updated App.tsx - Added RestaurantRoutes import
+// Updated App.tsx - Fixed header/footer conflicts and real-time subscriptions
 import React, { useState, useCallback, useEffect, type FC } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
@@ -10,11 +10,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
 import { 
   getGlobalCounters, 
-  setupRealtimeCounters,
   GlobalCounters, 
   incrementMenuScans, 
-  incrementDishExplanations,
-  subscribeToCounters
+  incrementDishExplanations
 } from './services/counterService';
 import { getAnonymousUsage } from './services/anonymousUsageTracking';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
@@ -256,6 +254,10 @@ const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
 
 const AppContent: FC = () => {
   const location = useLocation();
+  
+  // Check if we're on restaurant pages
+  const isRestaurantPage = location.pathname.startsWith('/restaurants');
+  
   const [globalCounters, setGlobalCounters] = useState<GlobalCounters>({
     menus_scanned: 0,
     dish_explanations: 0
@@ -306,7 +308,7 @@ const AppContent: FC = () => {
     };
   }, []);
 
-  // Scroll to top on route changes - THIS IS THE FIX FOR ISSUE #3
+  // Scroll to top on route changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
@@ -320,7 +322,7 @@ const AppContent: FC = () => {
     }
   }, [location]);
 
-  // Load initial global counters and set up subscriptions
+  // Load initial global counters (real-time disabled temporarily)
   useEffect(() => {
     const loadCounters = async () => {
       try {
@@ -334,8 +336,7 @@ const AppContent: FC = () => {
 
     loadCounters();
 
-    // Subscribe to the manual updates from the counter service
-    // TEMPORARILY DISABLE REAL-TIME SUBSCRIPTIONS TO FIX CRASHES
+    // TEMPORARILY DISABLE REAL-TIME SUBSCRIPTIONS TO PREVENT CRASHES
     // TODO: Re-enable once Supabase connection is stable
     /*
     const { unsubscribe } = subscribeToCounters((updatedCounters) => {
@@ -402,12 +403,17 @@ const AppContent: FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-cream text-charcoal font-sans">
-      <Header 
-        onCounterUpdate={counterUpdateTrigger} 
-        anonymousCounters={anonymousCounters}
-      />
+      {/* Only show consumer header on non-restaurant pages */}
+      {!isRestaurantPage && (
+        <Header 
+          onCounterUpdate={counterUpdateTrigger} 
+          anonymousCounters={anonymousCounters}
+        />
+      )}
+      
       <main className="flex-grow">
         <Routes>
+          {/* Consumer routes */}
           <Route 
             path="/" 
             element={
@@ -434,7 +440,9 @@ const AppContent: FC = () => {
 		  } />
         </Routes>
       </main>
-      <Footer globalCounters={globalCounters} />
+      
+      {/* Only show consumer footer on non-restaurant pages */}
+      {!isRestaurantPage && <Footer globalCounters={globalCounters} />}
     </div>
   );
 };
