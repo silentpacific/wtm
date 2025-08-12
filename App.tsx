@@ -322,7 +322,7 @@ const AppContent: FC = () => {
     }
   }, [location]);
 
-  // Load initial global counters (real-time disabled temporarily)
+// Load initial global counters and restore real-time subscriptions
   useEffect(() => {
     const loadCounters = async () => {
       try {
@@ -336,18 +336,27 @@ const AppContent: FC = () => {
 
     loadCounters();
 
-    // TEMPORARILY DISABLE REAL-TIME SUBSCRIPTIONS TO PREVENT CRASHES
-    // TODO: Re-enable once Supabase connection is stable
-    /*
-    const { unsubscribe } = subscribeToCounters((updatedCounters) => {
-      console.log('✅ Global counters updated via subscription:', updatedCounters);
-      setGlobalCounters(updatedCounters);
-    });
+    // RESTORED: Real-time subscriptions with proper error handling
+    try {
+      const { unsubscribe } = subscribeToCounters((updatedCounters) => {
+        console.log('✅ Global counters updated via subscription:', updatedCounters);
+        setGlobalCounters(updatedCounters);
+      });
 
-    return () => {
-      unsubscribe();
-    };
-    */
+      // Return cleanup function
+      return () => {
+        try {
+          if (unsubscribe && typeof unsubscribe === 'function') {
+            unsubscribe();
+          }
+        } catch (error) {
+          console.error('Error during subscription cleanup:', error);
+        }
+      };
+    } catch (subscriptionError) {
+      console.error('Error setting up real-time subscription:', subscriptionError);
+      // Continue without real-time if subscription fails
+    }
   }, []);
 
   // Callbacks to increment global counters and trigger header updates
