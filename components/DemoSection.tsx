@@ -103,14 +103,16 @@ const fetchDishFromDatabase = async (dishName: string, language: string): Promis
     throw new Error('No dishes found in database for this language');
   }
 
-  // Find the specific dish by name and restaurant
+  // Find the specific dish by name and restaurant (use correct restaurant name)
   const matchingDish = allDishes.find((dish: any) => 
     dish.name === dishName && 
-    (dish.restaurant_name === 'Brasserie Française' || dish.restaurant_name === 'Brasserie FranÃ§aise')
+    dish.restaurant_name === 'Brasserie Française'  // Correct name without accent
   );
 
   if (!matchingDish) {
     console.error('❌ Demo: No data found for dish');
+    console.log('Looking for:', dishName, 'at restaurant: Brasserie Française');
+    console.log('Available dishes:', allDishes.map((d: any) => `${d.name} at ${d.restaurant_name}`));
     throw new Error('Dish explanation not found in database');
   }
 
