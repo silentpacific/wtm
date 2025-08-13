@@ -12,13 +12,15 @@ import {
   getGlobalCounters, 
   GlobalCounters, 
   incrementMenuScans, 
-  incrementDishExplanations
+  incrementDishExplanations,
+  subscribeToCounters  // ← ADD THIS LINE
 } from './services/counterService';
 import { getAnonymousUsage } from './services/anonymousUsageTracking';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
 import { RestaurantAuthProvider } from './contexts/RestaurantAuthContext';
 import RestaurantRoutes from './components/RestaurantRoutes';
+
 
 const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
   const [aboutExpanded, setAboutExpanded] = useState(false);
