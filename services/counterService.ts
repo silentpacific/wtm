@@ -213,13 +213,11 @@ export const canUserExplainDish = async (userId: string): Promise<boolean> => {
   }
 };
 
-// Function to get global counters with safe defaults
+// Function to get global counters with safe defaults - FIXED VERSION
 export const getGlobalCounters = async (): Promise<GlobalCounters> => {
   try {
-    const { data, error } = await supabase
-      .from('global_counters')
-      .select('counter_type, count')
-      .in('counter_type', ['menus_scanned', 'dish_explanations']);
+    // Use the RPC function instead of direct table access
+    const { data, error } = await supabase.rpc('get_public_global_counters');
 
     if (error) {
       console.error('❌ Error fetching global counters:', error);
@@ -248,16 +246,16 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
       });
     }
 
-     return {
+    return {
       menus_scanned: counters.menus_scanned || 152,  // Use your real count
-      dish_explanations: counters.dish_explanations || 500  // Use your real count
+      dish_explanations: counters.dish_explanations || 524  // Use your real count
     };
   } catch (error) {
     console.error('❌ Error in getGlobalCounters:', error);
     // Return safe defaults on error
     return {
       menus_scanned: 152,
-      dish_explanations:524
+      dish_explanations: 524
     };
   }
 };
