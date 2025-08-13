@@ -158,59 +158,123 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
     return () => subscription.unsubscribe();
   }, []);
 
-  // Restaurant Sign Up - Updated to use server function
-  const signUp = async (data: RestaurantSignUpData) => {
-    try {
-      // Call the server function for restaurant signup
-      const response = await fetch('/.netlify/functions/restaurant-signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: data.email.trim().toLowerCase(),
-          password: data.password,
-          restaurantName: data.restaurantName,
-          contactPerson: data.contactPerson,
-          phone: data.phone,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          country: data.country || 'Australia'
-        }),
-      });
+// Restaurant Sign Up - Using direct Supabase calls
+const signUp = async (data: RestaurantSignUpData) => {
+  try {
+    console.log('Creating restaurant account with direct Supabase...');
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create restaurant account');
+    // Step 1: Create Supabase auth user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email.trim().toLowerCase(),
+      password: data.password,
+      options: {
+        data: {
+          user_type: 'restaurant',
+          restaurant_name: data.restaurantName,
+        }
       }
+    });
 
-      // Now sign them in with the created credentials
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: data.email.trim().toLowerCase(),
-        password: data.password
-      });
-
-      if (signInError) {
-        console.log('Auto sign-in failed:', signInError);
-        // Account was created successfully, but auto sign-in failed
-        // User can manually sign in
-        return { 
-          data: { user: result.user }, 
-          error: null,
-          message: 'Account created! Please sign in with your credentials.'
-        };
-      }
-
-      console.log('✅ Restaurant account created and signed in successfully');
-      return { data: signInData, error: null };
-
-    } catch (error: any) {
-      console.error('Restaurant signup error:', error);
-      throw error;
+    if (authError) {
+      throw new Error(authError.message);
     }
-  };
+
+    if (!authData.user) {
+      throw new Error('Failed to create user account');
+    }
+
+    console.log('Auth user created:', authData.user.id);
+
+    // Step 2: Generate unique slug
+    const generateSlug = (restaurantName: string): string => {
+      return restaurantName
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim()
+        .substring(0, 50);
+    };
+
+    let baseSlug = generateSlug(data.restaurantName);
+    let slug = baseSlug;
+    let counter = 1;
+    
+    // Check for unique slug
+    while (true) {
+      const { data: existingRestaurant } = await supabase
+        .from('restaurant_accounts')
+        .select('slug')
+        .eq('slug', slug)
+        .single();
+
+      if (!existingRestaurant) {
+        break; // Slug is unique
+      }
+      
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    console.log('Generated unique slug:', slug);
+
+    // Step 3: Create restaurant account record
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 7);
+
+    const restaurantData = {
+      id: authData.user.id,
+      email: data.email.trim().toLowerCase(),
+      restaurant_name: data.restaurantName,
+      slug: slug,
+      contact_person: data.contactPerson || null,
+      phone: data.phone || null,
+      address: data.address || null,
+      city: data.city || null,
+      state: data.state || null,
+      country: data.country || 'Australia',
+      subscription_status: 'trial' as const,
+      trial_ends_at: trialEndDate.toISOString(),
+      page_views: 0,
+      total_dish_clicks: 0,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data: restaurant, error: restaurantError } = await supabase
+      .from('restaurant_accounts')
+      .insert(restaurantData)
+      .select()
+      .single();
+
+    if (restaurantError) {
+      console.error('Restaurant creation error:', restaurantError);
+      throw new Error('Failed to create restaurant account: ' + restaurantError.message);
+    }
+
+    console.log('Restaurant account created successfully!');
+
+    // Step 4: Send welcome email (optional - won't block signup)
+    try {
+      await sendRestaurantWelcomeEmail(
+        restaurant.id,
+        restaurant.email,
+        restaurant.restaurant_name,
+        restaurant.contact_person
+      );
+    } catch (emailError) {
+      console.warn('Welcome email failed, but signup completed');
+    }
+
+    console.log('✅ Restaurant account created and signed in successfully');
+    return { data: authData, error: null };
+
+  } catch (error: any) {
+    console.error('Restaurant signup error:', error);
+    throw error;
+  }
+};
 
   // Restaurant Sign In
   const signIn = async (email: string, password: string) => {
