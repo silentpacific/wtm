@@ -44,11 +44,12 @@ interface RestaurantSignUpData {
 interface RestaurantAuthContextType {
   user: User | null;
   session: Session | null;
-  restaurantAccount: RestaurantAccount | null;
+  restaurant: RestaurantAccount | null; // Changed from restaurantAccount to restaurant
   loading: boolean;
   signUp: (data: RestaurantSignUpData) => Promise<any>;
   signIn: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<void>;
+  logout: () => Promise<void>; // Added logout alias
   resetPassword: (email: string) => Promise<any>;
   updateRestaurantProfile: (updates: Partial<RestaurantAccount>) => Promise<any>;
   refreshRestaurantAccount: () => Promise<void>;
@@ -57,42 +58,6 @@ interface RestaurantAuthContextType {
 const RestaurantAuthContext = createContext<RestaurantAuthContextType>({} as RestaurantAuthContextType);
 
 export const useRestaurantAuth = () => useContext(RestaurantAuthContext);
-
-// Generate a unique slug from restaurant name
-const generateSlug = (restaurantName: string): string => {
-  return restaurantName
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single
-    .trim()
-    .substring(0, 50); // Limit length
-};
-
-// Check if slug is available
-const isSlugAvailable = async (slug: string): Promise<boolean> => {
-  const { data, error } = await supabase
-    .from('restaurant_accounts')
-    .select('slug')
-    .eq('slug', slug)
-    .single();
-  
-  return !data; // If no data found, slug is available
-};
-
-// Generate unique slug
-const generateUniqueSlug = async (restaurantName: string): Promise<string> => {
-  let baseSlug = generateSlug(restaurantName);
-  let slug = baseSlug;
-  let counter = 1;
-  
-  while (!(await isSlugAvailable(slug))) {
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-  
-  return slug;
-};
 
 // Function to send restaurant welcome email
 const sendRestaurantWelcomeEmail = async (restaurantId: string, email: string, restaurantName: string, contactPerson?: string) => {
@@ -128,7 +93,7 @@ const sendRestaurantWelcomeEmail = async (restaurantId: string, email: string, r
 export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [restaurantAccount, setRestaurantAccount] = useState<RestaurantAccount | null>(null);
+  const [restaurant, setRestaurant] = useState<RestaurantAccount | null>(null); // Changed variable name
   const [loading, setLoading] = useState(true);
 
   // Fetch restaurant account data
@@ -160,7 +125,7 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
       
       if (session?.user) {
         const account = await fetchRestaurantAccount(session.user.id);
-        setRestaurantAccount(account);
+        setRestaurant(account);
       }
       
       setLoading(false);
@@ -175,9 +140,9 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
         
         if (session?.user) {
           const account = await fetchRestaurantAccount(session.user.id);
-          setRestaurantAccount(account);
+          setRestaurant(account);
         } else {
-          setRestaurantAccount(null);
+          setRestaurant(null);
         }
         
         setLoading(false);
@@ -193,63 +158,35 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
     return () => subscription.unsubscribe();
   }, []);
 
-  // Restaurant Sign Up
+  // Restaurant Sign Up - Updated to use server function
   const signUp = async (data: RestaurantSignUpData) => {
     try {
-      // First, create the auth account
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: data.email.trim().toLowerCase(),
-        password: data.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/restaurants/dashboard`,
-          data: {
-            source: 'restaurant_signup',
-            restaurant_name: data.restaurantName,
-            timestamp: new Date().toISOString()
-          }
-        }
+      // Call the server function for restaurant signup
+      const response = await fetch('/.netlify/functions/restaurant-signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email.trim().toLowerCase(),
+          password: data.password,
+          restaurantName: data.restaurantName,
+          contactPerson: data.contactPerson,
+          phone: data.phone,
+          address: data.address,
+          city: data.city,
+          state: data.state,
+          country: data.country || 'Australia'
+        }),
       });
 
-      if (signUpError) throw signUpError;
+      const result = await response.json();
 
-      if (!signUpData.user) {
-        throw new Error('Failed to create user account');
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create restaurant account');
       }
 
-      // Generate unique slug
-      const slug = await generateUniqueSlug(data.restaurantName);
-
-      // Create restaurant account record
-      const restaurantData = {
-        id: signUpData.user.id,
-        email: data.email.trim().toLowerCase(),
-        restaurant_name: data.restaurantName,
-        slug: slug,
-        contact_person: data.contactPerson || null,
-        phone: data.phone || null,
-        address: data.address || null,
-        city: data.city || null,
-        state: data.state || null,
-        country: data.country || 'Australia',
-        subscription_status: 'trial' as const,
-        trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-        page_views: 0,
-        total_dish_clicks: 0,
-        is_active: true
-      };
-
-      const { data: restaurantAccount, error: restaurantError } = await supabase
-        .from('restaurant_accounts')
-        .insert(restaurantData)
-        .select()
-        .single();
-
-      if (restaurantError) {
-        console.error('Error creating restaurant account:', restaurantError);
-        throw new Error('Failed to create restaurant account');
-      }
-
-      // Immediately sign them in (no email verification required for restaurants)
+      // Now sign them in with the created credentials
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: data.email.trim().toLowerCase(),
         password: data.password
@@ -257,24 +194,18 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
 
       if (signInError) {
         console.log('Auto sign-in failed:', signInError);
-        return { data: signUpData, error: null };
+        // Account was created successfully, but auto sign-in failed
+        // User can manually sign in
+        return { 
+          data: { user: result.user }, 
+          error: null,
+          message: 'Account created! Please sign in with your credentials.'
+        };
       }
 
-      // Send welcome email (don't await to avoid blocking)
-      sendRestaurantWelcomeEmail(
-        signUpData.user.id, 
-        data.email, 
-        data.restaurantName,
-        data.contactPerson
-      ).then(success => {
-        if (success) {
-          console.log('✅ Restaurant welcome email sent');
-        } else {
-          console.log('❌ Failed to send restaurant welcome email');
-        }
-      });
-
+      console.log('✅ Restaurant account created and signed in successfully');
       return { data: signInData, error: null };
+
     } catch (error: any) {
       console.error('Restaurant signup error:', error);
       throw error;
@@ -317,7 +248,7 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
 
   // Update Restaurant Profile
   const updateRestaurantProfile = async (updates: Partial<RestaurantAccount>) => {
-    if (!user || !restaurantAccount) {
+    if (!user || !restaurant) {
       throw new Error('No authenticated restaurant user');
     }
 
@@ -334,7 +265,7 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
 
       if (error) throw error;
 
-      setRestaurantAccount(data);
+      setRestaurant(data);
       return { data, error: null };
     } catch (error: any) {
       console.error('Error updating restaurant profile:', error);
@@ -347,23 +278,27 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
     if (!user) return;
 
     const account = await fetchRestaurantAccount(user.id);
-    setRestaurantAccount(account);
+    setRestaurant(account);
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setRestaurantAccount(null);
+    setRestaurant(null);
   };
+
+  // Logout alias for signOut
+  const logout = signOut;
 
   return (
     <RestaurantAuthContext.Provider value={{
       user,
       session,
-      restaurantAccount,
+      restaurant, // Changed from restaurantAccount to restaurant
       loading,
       signUp,
       signIn,
       signOut,
+      logout, // Added logout alias
       resetPassword,
       updateRestaurantProfile,
       refreshRestaurantAccount
