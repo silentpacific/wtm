@@ -119,8 +119,23 @@ const corsHeaders = {
 // Language-specific prompts (keeping your existing implementation)
 const getLanguagePrompt = (dishName: string, language: string): string => {
     const baseInstructions = {
-        en: `You are a culinary expert. Explain the dish "${decodeURIComponent(dishName)}". 
-        Provide a concise explanation suitable for a tourist in under 300 characters. 
+        en: `You are a culinary expert. Analyze the text "${decodeURIComponent(dishName)}".
+        
+        FIRST: Determine if this is actually a food dish or menu item. If it appears to be:
+        - A person's name (e.g., "John Smith", "Association Football Player")
+        - A sport or activity (e.g., "Football", "Basketball", "Swimming") 
+        - A non-food item (e.g., "Table", "Chair", "Menu")
+        - A random word or phrase that isn't food
+        
+        Then respond with this exact JSON format:
+        {
+            "explanation": "I can only explain food dishes and menu items. This appears to be [what it actually is] rather than a food item.",
+            "tags": [],
+            "allergens": [],
+            "cuisine": "Not applicable"
+        }
+        
+        IF IT IS A FOOD DISH: Provide a concise explanation suitable for a tourist in under 300 characters. 
         
         For tags, include: dietary restrictions (Vegetarian, Vegan, Gluten-Free, Dairy-Free), cooking methods (Grilled, Fried, Steamed, Raw), and flavor profiles (Spicy, Sweet, Savory, Mild, Hot).
         
@@ -132,8 +147,23 @@ const getLanguagePrompt = (dishName: string, language: string): string => {
         
         Respond in the requested JSON format.`,
         
-        es: `Eres un experto culinario. Explica el plato "${decodeURIComponent(dishName)}". 
-        Proporciona una explicación concisa adecuada para un turista en menos de 300 caracteres. 
+        es: `Eres un experto culinario. Analiza el texto "${decodeURIComponent(dishName)}".
+        
+        PRIMERO: Determina si esto es realmente un plato de comida o elemento del menú. Si parece ser:
+        - El nombre de una persona (ej., "John Smith", "Jugador de Fútbol")
+        - Un deporte o actividad (ej., "Fútbol", "Baloncesto", "Natación")
+        - Un elemento que no es comida (ej., "Mesa", "Silla", "Menú")
+        - Una palabra o frase aleatoria que no es comida
+        
+        Entonces responde con este formato JSON exacto:
+        {
+            "explanation": "Solo puedo explicar platos de comida y elementos del menú. Esto parece ser [lo que realmente es] en lugar de un elemento de comida.",
+            "tags": [],
+            "allergens": [],
+            "cuisine": "No aplicable"
+        }
+        
+        SI ES UN PLATO DE COMIDA: Proporciona una explicación concisa adecuada para un turista en menos de 300 caracteres. 
         
         Para las etiquetas, incluye: restricciones dietéticas (Vegetariano, Vegano, Sin Gluten, Sin Lácteos), métodos de cocción (A la Parrilla, Frito, Al Vapor, Crudo), y perfiles de sabor (Picante, Dulce, Salado, Suave, Caliente).
         
@@ -145,8 +175,23 @@ const getLanguagePrompt = (dishName: string, language: string): string => {
         
         Responde en el formato JSON solicitado, pero con todo el contenido en español.`,
         
-        zh: `你是一位烹饪专家。请解释"${decodeURIComponent(dishName)}"这道菜。
-        为游客提供300字符以内的简明解释。
+        zh: `你是一位烹饪专家。分析文本"${decodeURIComponent(dishName)}"。
+        
+        首先：确定这是否真的是食物菜品或菜单项目。如果它似乎是：
+        - 一个人的名字（例如，"John Smith"，"足球运动员"）
+        - 一项运动或活动（例如，"足球"，"篮球"，"游泳"）
+        - 非食物项目（例如，"桌子"，"椅子"，"菜单"）
+        - 不是食物的随机词汇或短语
+        
+        那么用这个确切的JSON格式回应：
+        {
+            "explanation": "我只能解释食物菜品和菜单项目。这似乎是[它实际是什么]而不是食物项目。",
+            "tags": [],
+            "allergens": [],
+            "cuisine": "不适用"
+        }
+        
+        如果它是食物菜品：为游客提供300字符以内的简明解释。
         
         标签包括：饮食限制（素食、纯素、无麸质、无乳制品），烹饪方法（烤制、油炸、蒸制、生食），以及口味特征（辛辣、甜、咸、温和、热）。
         
@@ -158,12 +203,27 @@ const getLanguagePrompt = (dishName: string, language: string): string => {
         
         请用中文回应，并使用请求的JSON格式。`,
         
-        fr: `Vous êtes un expert culinaire. Expliquez le plat "${decodeURIComponent(dishName)}". 
-        Fournissez une explication concise adaptée à un touriste en moins de 300 caractères.
+        fr: `Vous êtes un expert culinaire. Analysez le texte "${decodeURIComponent(dishName)}".
         
-        Pour les étiquettes, incluez: restrictions alimentaires (Végétarien, Végan, Sans Gluten, Sans Lactose), méthodes de cuisson (Grillé, Frit, Vapeur, Cru), et profils de saveur (Épicé, Sucré, Salé, Doux, Chaud).
+        D'ABORD : Déterminez si c'est vraiment un plat alimentaire ou un élément de menu. Si cela semble être :
+        - Le nom d'une personne (ex., "John Smith", "Joueur de Football")
+        - Un sport ou une activité (ex., "Football", "Basketball", "Natation")
+        - Un élément non alimentaire (ex., "Table", "Chaise", "Menu")
+        - Un mot ou une phrase aléatoire qui n'est pas de la nourriture
         
-        Pour les allergènes, spécifiez spécifiquement ce que contient le plat en utilisant ce format: "Contient [allergène]" (ex., "Contient Noix", "Contient Produits Laitiers", "Contient Gluten", "Contient Fruits de Mer", "Contient Œufs", "Contient Poisson", "Contient Soja").
+        Alors répondez avec ce format JSON exact :
+        {
+            "explanation": "Je ne peux expliquer que les plats alimentaires et les éléments de menu. Ceci semble être [ce que c'est réellement] plutôt qu'un élément alimentaire.",
+            "tags": [],
+            "allergens": [],
+            "cuisine": "Non applicable"
+        }
+        
+        SI C'EST UN PLAT ALIMENTAIRE : Fournissez une explication concise adaptée à un touriste en moins de 300 caractères.
+        
+        Pour les étiquettes, incluez : restrictions alimentaires (Végétarien, Végan, Sans Gluten, Sans Lactose), méthodes de cuisson (Grillé, Frit, Vapeur, Cru), et profils de saveur (Épicé, Sucré, Salé, Doux, Chaud).
+        
+        Pour les allergènes, spécifiez spécifiquement ce que contient le plat en utilisant ce format : "Contient [allergène]" (ex., "Contient Noix", "Contient Produits Laitiers", "Contient Gluten", "Contient Fruits de Mer", "Contient Œufs", "Contient Poisson", "Contient Soja").
         
         Pour la cuisine, identifiez le type de cuisine spécifique (ex., "Italienne", "Japonaise", "Mexicaine", "Indienne", "Thaïlandaise", "Française", "Chinoise", "Méditerranéenne", "Américaine", "Coréenne", "Vietnamienne", "Grecque", "Espagnole", "Libanaise", "Marocaine", etc.). Soyez spécifique - utilisez la classification culinaire la plus précise.
         
