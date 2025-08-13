@@ -27,13 +27,6 @@
 [functions."create-checkout-session"]
   timeout = 15
 
-# Restaurant-specific functions
-[functions."restaurant-welcome-email"]
-  timeout = 10
-
-[functions."processRestaurantMenu"]
-  timeout = 30
-
 # Redirects for SPA routing and API proxy
 [[redirects]]
   from = "/api/*"

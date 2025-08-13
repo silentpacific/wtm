@@ -18,9 +18,6 @@ import {
 import { getAnonymousUsage } from './services/anonymousUsageTracking';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
-import { RestaurantAuthProvider } from './contexts/RestaurantAuthContext';
-import RestaurantRoutes from './components/RestaurantRoutes';
-
 
 const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
   const [aboutExpanded, setAboutExpanded] = useState(false);
@@ -443,12 +440,6 @@ const AppContent: FC = () => {
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
 		  
-		  {/* Restaurant routes */}
-		  <Route path="/restaurants/*" element={
-			<RestaurantAuthProvider>
-			  <RestaurantRoutes />
-			</RestaurantAuthProvider>
-		  } />
         </Routes>
       </main>
       
