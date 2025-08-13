@@ -511,10 +511,8 @@ export const handler: Handler = async (event: HandlerEvent) => {
         console.log(`🔍 Processing dish explanation request: "${dishName}" in ${language}${restaurantId ? ` for restaurant: ${restaurantId}` : ''}`);
         
         // 1. Database search for existing explanations (using admin client for better performance)
-        let { data: allDishes, error: fetchError } = await supabaseAdmin
-            .from('dishes')
-            .select('name, explanation, tags, allergens, cuisine, restaurant_id')
-            .eq('language', language);
+		let { data: allDishes, error: fetchError } = await supabaseAdmin
+			.rpc('get_dishes_by_language', { p_language: language });
 
         if (fetchError) {
             console.error("Database fetch error:", fetchError);

@@ -85,37 +85,45 @@ useEffect(() => {
 }, [currentLanguage]);
 
   // Fetch dish explanation from database
-  const fetchDishFromDatabase = async (dishName: string, language: string): Promise<DishExplanation> => {
-    console.log(`🔍 Demo: Fetching dish "${dishName}" in language "${language}" from database...`);
-    
-    const { data, error } = await supabase
-      .from('dishes')
-      .select('*')
-      .eq('name', dishName)
-      .eq('language', language)
-      .eq('restaurant_name', 'Brasserie Française')
-      .single();
+const fetchDishFromDatabase = async (dishName: string, language: string): Promise<DishExplanation> => {
+  console.log(`🔍 Demo: Fetching dish "${dishName}" in language "${language}" from database...`);
+  
+  // Use the RPC function instead of direct table access
+  const { data: allDishes, error } = await supabase.rpc('get_dishes_by_language', { 
+    p_language: language 
+  });
 
-    if (error) {
-      console.error('❌ Demo: Database error:', error);
-      throw new Error(`Failed to fetch dish explanation: ${error.message}`);
-    }
+  if (error) {
+    console.error('❌ Demo: Database error:', error);
+    throw new Error(`Failed to fetch dish explanation: ${error.message}`);
+  }
 
-    if (!data) {
-      console.error('❌ Demo: No data found for dish');
-      throw new Error('Dish explanation not found in database');
-    }
+  if (!allDishes || allDishes.length === 0) {
+    console.error('❌ Demo: No dishes found for language');
+    throw new Error('No dishes found in database for this language');
+  }
 
-    console.log('✅ Demo: Successfully fetched from database:', data);
+  // Find the specific dish by name and restaurant
+  const matchingDish = allDishes.find((dish: any) => 
+    dish.name === dishName && 
+    (dish.restaurant_name === 'Brasserie Française' || dish.restaurant_name === 'Brasserie FranÃ§aise')
+  );
 
-    // Transform database result to match DishExplanation interface
-    return {
-      explanation: data.explanation || '',
-      tags: Array.isArray(data.tags) ? data.tags : [],
-      allergens: Array.isArray(data.allergens) ? data.allergens : [],
-      cuisine: data.cuisine || 'French'
-    };
+  if (!matchingDish) {
+    console.error('❌ Demo: No data found for dish');
+    throw new Error('Dish explanation not found in database');
+  }
+
+  console.log('✅ Demo: Successfully fetched from database:', matchingDish);
+
+  // Transform database result to match DishExplanation interface
+  return {
+    explanation: matchingDish.explanation || '',
+    tags: Array.isArray(matchingDish.tags) ? matchingDish.tags : [],
+    allergens: Array.isArray(matchingDish.allergens) ? matchingDish.allergens : [],
+    cuisine: matchingDish.cuisine || 'French'
   };
+};
 
   const handleDishClick = async (dishName: string) => {
     if (loadingDishes.has(dishName)) return;
