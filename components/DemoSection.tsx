@@ -1,28 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabaseClient';
 import stringSimilarity from 'string-similarity';
 
-
-// Add this temporary test function at the top of your component
-const testDirectAccess = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('dishes')
-      .select('name')
-      .limit(1);
-    
-    console.log('🧪 Direct access test:', { data, error });
-  } catch (err) {
-    console.log('🧪 Direct access failed:', err);
-  }
-};
-
-// Call it when component mounts
-useEffect(() => {
-  testDirectAccess();
-}, []);
 
 // Import the DishExplanation type from your types file
 interface DishExplanation {
@@ -101,6 +80,25 @@ const DemoSection: React.FC<DemoSectionProps> = ({ selectedLanguage = 'en' }) =>
   const [loadingDishes, setLoadingDishes] = useState<Set<string>>(new Set());
   const [explanations, setExplanations] = useState<ExplanationState>({});
   const [currentLanguage, setCurrentLanguage] = useState(selectedLanguage);
+  
+ // Add this temporary test function at the top of your component
+const testDirectAccess = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('dishes')
+      .select('name')
+      .limit(1);
+    
+    console.log('🧪 Direct access test:', { data, error });
+  } catch (err) {
+    console.log('🧪 Direct access failed:', err);
+  }
+};
+
+// Call it when component mounts
+useEffect(() => {
+  testDirectAccess();
+}, []); 
   
   // Add this useEffect to reset visual state when language changes
 useEffect(() => {
