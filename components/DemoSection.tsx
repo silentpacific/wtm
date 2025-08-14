@@ -120,10 +120,10 @@ const fetchDishFromDatabase = async (dishName: string, language: string): Promis
     )
   }));
 
-  // Find best match (dish similarity > 0.6 AND restaurant similarity > 0.7)
+  // Find best match (dish similarity > 0.6)
   const bestMatch = restaurantMatches
-    .filter(item => item.dishSimilarity > 0.6 && item.restaurantSimilarity > 0.7)
-    .sort((a, b) => (b.dishSimilarity + b.restaurantSimilarity) - (a.dishSimilarity + a.restaurantSimilarity))[0];
+    .filter(item => item.dishSimilarity > 0.6)
+    .sort((a, b) => b.dishSimilarity - a.dishSimilarity)[0];
 
   if (!bestMatch) {
     console.error('❌ Demo: No fuzzy match found for dish');
