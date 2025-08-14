@@ -91,9 +91,10 @@ useEffect(() => {
 const fetchDishFromDatabase = async (dishName: string, language: string): Promise<DishExplanation> => {
   console.log(`🔍 Demo: Fetching dish "${dishName}" in language "${language}" from database...`);
   
-  const { data: allDishes, error } = await supabase.rpc('get_dishes_by_language', { 
-    p_language: language 
-  });
+  // Get ALL dishes (no language filter for finding the dish)
+  const { data: allDishes, error } = await supabase
+    .from('dishes')
+    .select('name, explanation, tags, allergens, cuisine, restaurant_name, language');
 
   if (error) {
     console.error('❌ Demo: Database error:', error);
@@ -101,46 +102,50 @@ const fetchDishFromDatabase = async (dishName: string, language: string): Promis
   }
 
   if (!allDishes || allDishes.length === 0) {
-    console.error('❌ Demo: No dishes found for language');
-    throw new Error('No dishes found in database for this language');
+    console.error('❌ Demo: No dishes found in database');
+    throw new Error('No dishes found in database');
   }
 
-  // Fuzzy match on dish name (similarity threshold of 0.6)
+  console.log(`🔍 Total dishes in database: ${allDishes.length}`);
+
+  // Find the dish using fuzzy matching (no language restriction)
   const dishMatches = allDishes.map((dish: any) => ({
     dish,
     dishSimilarity: stringSimilarity.compareTwoStrings(dishName.toLowerCase(), dish.name.toLowerCase())
   }));
 
-  // Fuzzy match on restaurant name (similarity threshold of 0.7)
-  const restaurantMatches = dishMatches.map(item => ({
-    ...item,
-    restaurantSimilarity: stringSimilarity.compareTwoStrings(
-      'Brasserie Française'.toLowerCase(), 
-      (item.dish.restaurant_name || '').toLowerCase()
-    )
-  }));
-
-  // Find best match (dish similarity > 0.6)
-  const bestMatch = restaurantMatches
+  const bestDishMatch = dishMatches
     .filter(item => item.dishSimilarity > 0.6)
     .sort((a, b) => b.dishSimilarity - a.dishSimilarity)[0];
 
-  if (!bestMatch) {
+  if (!bestDishMatch) {
     console.error('❌ Demo: No fuzzy match found for dish');
-    console.log('Looking for:', dishName, 'at restaurant: Brasserie Française');
+    console.log('Looking for:', dishName);
     console.log('Best dish matches:', dishMatches.slice(0, 5).map(m => `${m.dish.name} (${m.dishSimilarity.toFixed(2)})`));
-    console.log('Best restaurant matches:', restaurantMatches.slice(0, 5).map(m => `${m.dish.restaurant_name} (${m.restaurantSimilarity.toFixed(2)})`));
-    throw new Error('Dish explanation not found in database');
+    throw new Error('Dish not found in database');
   }
 
-  console.log('✅ Demo: Fuzzy match found:', bestMatch.dish.name, 'at', bestMatch.dish.restaurant_name);
-  console.log('Similarities - Dish:', bestMatch.dishSimilarity.toFixed(2), 'Restaurant:', bestMatch.restaurantSimilarity.toFixed(2));
+  console.log('✅ Demo: Found dish match:', bestDishMatch.dish.name, 'with similarity:', bestDishMatch.dishSimilarity.toFixed(2));
+
+  // Now get the explanation in the desired language for this specific dish
+  const dishInDesiredLanguage = allDishes.find(dish => 
+    dish.name === bestDishMatch.dish.name && 
+    dish.language === language
+  );
+
+  if (!dishInDesiredLanguage) {
+    console.error('❌ Demo: No explanation found in desired language');
+    console.log('Available languages for this dish:', allDishes.filter(d => d.name === bestDishMatch.dish.name).map(d => d.language));
+    throw new Error(`Explanation not available in ${language}`);
+  }
+
+  console.log('✅ Demo: Found explanation in', language, 'for:', dishInDesiredLanguage.name);
 
   return {
-    explanation: bestMatch.dish.explanation || '',
-    tags: Array.isArray(bestMatch.dish.tags) ? bestMatch.dish.tags : [],
-    allergens: Array.isArray(bestMatch.dish.allergens) ? bestMatch.dish.allergens : [],
-    cuisine: bestMatch.dish.cuisine || 'French'
+    explanation: dishInDesiredLanguage.explanation || '',
+    tags: Array.isArray(dishInDesiredLanguage.tags) ? dishInDesiredLanguage.tags : [],
+    allergens: Array.isArray(dishInDesiredLanguage.allergens) ? dishInDesiredLanguage.allergens : [],
+    cuisine: dishInDesiredLanguage.cuisine || 'French'
   };
 };
 
