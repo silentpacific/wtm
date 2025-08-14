@@ -81,25 +81,7 @@ const DemoSection: React.FC<DemoSectionProps> = ({ selectedLanguage = 'en' }) =>
   const [explanations, setExplanations] = useState<ExplanationState>({});
   const [currentLanguage, setCurrentLanguage] = useState(selectedLanguage);
   
- // Add this temporary test function at the top of your component
-const testDirectAccess = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('dishes')
-      .select('name')
-      .limit(1);
-    
-    console.log('🧪 Direct access test:', { data, error });
-  } catch (err) {
-    console.log('🧪 Direct access failed:', err);
-  }
-};
-
-// Call it when component mounts
-useEffect(() => {
-  testDirectAccess();
-}, []); 
-  
+ 
   // Add this useEffect to reset visual state when language changes
 useEffect(() => {
   setClickedDishes(new Set());
@@ -109,10 +91,10 @@ useEffect(() => {
 const fetchDishFromDatabase = async (dishName: string, language: string): Promise<DishExplanation> => {
   console.log(`🔍 Demo: Fetching dish "${dishName}" in language "${language}" from database...`);
   
-  // Get ALL dishes (no language filter for finding the dish)
-  const { data: allDishes, error } = await supabase
-    .from('dishes')
-    .select('name, explanation, tags, allergens, cuisine, restaurant_name, language');
+  // Get ALL dishes using the modified RPC function
+  const { data: allDishes, error } = await supabase.rpc('get_dishes_by_language', { 
+    p_language: language  // Parameter ignored now, but keeping for compatibility
+  });
 
   if (error) {
     console.error('❌ Demo: Database error:', error);
@@ -123,8 +105,6 @@ const fetchDishFromDatabase = async (dishName: string, language: string): Promis
     console.error('❌ Demo: No dishes found in database');
     throw new Error('No dishes found in database');
   }
-
-  console.log(`🔍 Total dishes in database: ${allDishes.length}`);
 
   // Find the dish using fuzzy matching (no language restriction)
   const dishMatches = allDishes.map((dish: any) => ({
@@ -138,12 +118,8 @@ const fetchDishFromDatabase = async (dishName: string, language: string): Promis
 
   if (!bestDishMatch) {
     console.error('❌ Demo: No fuzzy match found for dish');
-    console.log('Looking for:', dishName);
-    console.log('Best dish matches:', dishMatches.slice(0, 5).map(m => `${m.dish.name} (${m.dishSimilarity.toFixed(2)})`));
     throw new Error('Dish not found in database');
   }
-
-  console.log('✅ Demo: Found dish match:', bestDishMatch.dish.name, 'with similarity:', bestDishMatch.dishSimilarity.toFixed(2));
 
   // Now get the explanation in the desired language for this specific dish
   const dishInDesiredLanguage = allDishes.find(dish => 
@@ -152,12 +128,8 @@ const fetchDishFromDatabase = async (dishName: string, language: string): Promis
   );
 
   if (!dishInDesiredLanguage) {
-    console.error('❌ Demo: No explanation found in desired language');
-    console.log('Available languages for this dish:', allDishes.filter(d => d.name === bestDishMatch.dish.name).map(d => d.language));
     throw new Error(`Explanation not available in ${language}`);
   }
-
-  console.log('✅ Demo: Found explanation in', language, 'for:', dishInDesiredLanguage.name);
 
   return {
     explanation: dishInDesiredLanguage.explanation || '',
