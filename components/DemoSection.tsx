@@ -91,59 +91,52 @@ useEffect(() => {
 const fetchDishFromDatabase = async (dishName: string, language: string): Promise<DishExplanation> => {
   console.log(`🔍 Demo: Fetching dish "${dishName}" in language "${language}" from database...`);
   
-  const { data: allDishes, error } = await supabase.rpc('get_dishes_by_language', { 
-    p_language: language
+  // Step 1: Get all English dishes to find the dish name
+  const { data: englishDishes, error: error1 } = await supabase.rpc('get_dishes_by_language', { 
+    p_language: 'en' 
   });
 
-  // ADD THIS DEBUG BLOCK:
-  console.log('🔧 DEBUG: RPC call result:', { error, dataLength: allDishes?.length });
-  console.log('🔧 DEBUG: First 3 dishes:', allDishes?.slice(0, 3));
-  console.log('🔧 DEBUG: Dishes containing "STEAK":', allDishes?.filter(d => d.name?.includes('STEAK')));
-  console.log('🔧 DEBUG: Dishes containing "COQ":', allDishes?.filter(d => d.name?.includes('COQ')));
-  console.log('🔧 DEBUG: All unique dish names:', [...new Set(allDishes?.map(d => d.name))].slice(0, 10));
-  console.log('🔧 DEBUG: All unique languages:', [...new Set(allDishes?.map(d => d.language))]);
-
-
-  if (error) {
-    console.error('❌ Demo: Database error:', error);
-    throw new Error(`Failed to fetch dish explanation: ${error.message}`);
+  if (error1 || !englishDishes) {
+    throw new Error('Failed to fetch dishes');
   }
 
-  if (!allDishes || allDishes.length === 0) {
-    console.error('❌ Demo: No dishes found in database');
-    throw new Error('No dishes found in database');
-  }
-
-  // Find the dish using fuzzy matching (no language restriction)
-  const dishMatches = allDishes.map((dish: any) => ({
+  // Step 2: Find the dish using fuzzy matching
+  const dishMatches = englishDishes.map((dish: any) => ({
     dish,
-    dishSimilarity: stringSimilarity.compareTwoStrings(dishName.toLowerCase(), dish.name.toLowerCase())
+    similarity: stringSimilarity.compareTwoStrings(dishName.toLowerCase(), dish.name.toLowerCase())
   }));
 
-  const bestDishMatch = dishMatches
-    .filter(item => item.dishSimilarity > 0.6)
-    .sort((a, b) => b.dishSimilarity - a.dishSimilarity)[0];
+  const bestMatch = dishMatches
+    .filter(item => item.similarity > 0.6)
+    .sort((a, b) => b.similarity - a.similarity)[0];
 
-  if (!bestDishMatch) {
-    console.error('❌ Demo: No fuzzy match found for dish');
+  if (!bestMatch) {
+    console.log('Available dishes:', englishDishes.slice(0, 10).map(d => d.name));
     throw new Error('Dish not found in database');
   }
 
-  // Now get the explanation in the desired language for this specific dish
-  const dishInDesiredLanguage = allDishes.find(dish => 
-    dish.name === bestDishMatch.dish.name && 
-    dish.language === language
-  );
+  console.log('✅ Found dish:', bestMatch.dish.name, 'similarity:', bestMatch.similarity.toFixed(2));
 
-  if (!dishInDesiredLanguage) {
+  // Step 3: Get the explanation in the desired language
+  const { data: explanationDishes, error: error2 } = await supabase.rpc('get_dishes_by_language', { 
+    p_language: language 
+  });
+
+  if (error2 || !explanationDishes) {
+    throw new Error('Failed to fetch explanation');
+  }
+
+  const explanation = explanationDishes.find(dish => dish.name === bestMatch.dish.name);
+
+  if (!explanation) {
     throw new Error(`Explanation not available in ${language}`);
   }
 
   return {
-    explanation: dishInDesiredLanguage.explanation || '',
-    tags: Array.isArray(dishInDesiredLanguage.tags) ? dishInDesiredLanguage.tags : [],
-    allergens: Array.isArray(dishInDesiredLanguage.allergens) ? dishInDesiredLanguage.allergens : [],
-    cuisine: dishInDesiredLanguage.cuisine || 'French'
+    explanation: explanation.explanation || '',
+    tags: Array.isArray(explanation.tags) ? explanation.tags : [],
+    allergens: Array.isArray(explanation.allergens) ? explanation.allergens : [],
+    cuisine: explanation.cuisine || 'French'
   };
 };
 
