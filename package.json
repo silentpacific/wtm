@@ -14,24 +14,26 @@
     "@netlify/functions": "^4.1.12",
     "@supabase/supabase-js": "^2.53.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.41",
+    "qrcode": "^1.5.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-dropzone": "^14.3.8",
     "react-router-dom": "^7.6.3",
     "resend": "^4.7.0",
+    "string-similarity": "^4.0.4",
     "stripe": "^18.3.0",
-    "vite": "^6.2.0",
     "tailwindcss": "^3.4.14",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.41",
-    "qrcode": "^1.5.4"
+    "vite": "^6.2.0"
   },
   "devDependencies": {
-	"@netlify/functions": "^1.0.0",
+    "@netlify/functions": "^1.0.0",
     "@types/node": "^22.14.0",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "@types/qrcode": "^1.5.5",
+    "@types/string-similarity": "^4.0.2",
     "typescript": "~5.7.2"
   }
 }

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../services/supabaseClient';
+import stringSimilarity from 'string-similarity';
 
 // Import the DishExplanation type from your types file
 interface DishExplanation {
@@ -88,7 +91,6 @@ useEffect(() => {
 const fetchDishFromDatabase = async (dishName: string, language: string): Promise<DishExplanation> => {
   console.log(`🔍 Demo: Fetching dish "${dishName}" in language "${language}" from database...`);
   
-  // Use the RPC function instead of direct table access
   const { data: allDishes, error } = await supabase.rpc('get_dishes_by_language', { 
     p_language: language 
   });
@@ -103,27 +105,42 @@ const fetchDishFromDatabase = async (dishName: string, language: string): Promis
     throw new Error('No dishes found in database for this language');
   }
 
-  // Find the specific dish by name and restaurant (use correct restaurant name)
-  const matchingDish = allDishes.find((dish: any) => 
-    dish.name === dishName && 
-    dish.restaurant_name === 'Brasserie Française'  // Correct name without accent
-  );
+  // Fuzzy match on dish name (similarity threshold of 0.6)
+  const dishMatches = allDishes.map((dish: any) => ({
+    dish,
+    dishSimilarity: stringSimilarity.compareTwoStrings(dishName.toLowerCase(), dish.name.toLowerCase())
+  }));
 
-  if (!matchingDish) {
-    console.error('❌ Demo: No data found for dish');
+  // Fuzzy match on restaurant name (similarity threshold of 0.7)
+  const restaurantMatches = dishMatches.map(item => ({
+    ...item,
+    restaurantSimilarity: stringSimilarity.compareTwoStrings(
+      'Brasserie Française'.toLowerCase(), 
+      (item.dish.restaurant_name || '').toLowerCase()
+    )
+  }));
+
+  // Find best match (dish similarity > 0.6 AND restaurant similarity > 0.7)
+  const bestMatch = restaurantMatches
+    .filter(item => item.dishSimilarity > 0.6 && item.restaurantSimilarity > 0.7)
+    .sort((a, b) => (b.dishSimilarity + b.restaurantSimilarity) - (a.dishSimilarity + a.restaurantSimilarity))[0];
+
+  if (!bestMatch) {
+    console.error('❌ Demo: No fuzzy match found for dish');
     console.log('Looking for:', dishName, 'at restaurant: Brasserie Française');
-    console.log('Available dishes:', allDishes.map((d: any) => `${d.name} at ${d.restaurant_name}`));
+    console.log('Best dish matches:', dishMatches.slice(0, 5).map(m => `${m.dish.name} (${m.dishSimilarity.toFixed(2)})`));
+    console.log('Best restaurant matches:', restaurantMatches.slice(0, 5).map(m => `${m.dish.restaurant_name} (${m.restaurantSimilarity.toFixed(2)})`));
     throw new Error('Dish explanation not found in database');
   }
 
-  console.log('✅ Demo: Successfully fetched from database:', matchingDish);
+  console.log('✅ Demo: Fuzzy match found:', bestMatch.dish.name, 'at', bestMatch.dish.restaurant_name);
+  console.log('Similarities - Dish:', bestMatch.dishSimilarity.toFixed(2), 'Restaurant:', bestMatch.restaurantSimilarity.toFixed(2));
 
-  // Transform database result to match DishExplanation interface
   return {
-    explanation: matchingDish.explanation || '',
-    tags: Array.isArray(matchingDish.tags) ? matchingDish.tags : [],
-    allergens: Array.isArray(matchingDish.allergens) ? matchingDish.allergens : [],
-    cuisine: matchingDish.cuisine || 'French'
+    explanation: bestMatch.dish.explanation || '',
+    tags: Array.isArray(bestMatch.dish.tags) ? bestMatch.dish.tags : [],
+    allergens: Array.isArray(bestMatch.dish.allergens) ? bestMatch.dish.allergens : [],
+    cuisine: bestMatch.dish.cuisine || 'French'
   };
 };
 
