@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
-import stringSimilarity from 'string-similarity';
-
 
 // Import the DishExplanation type from your types file
 interface DishExplanation {
@@ -81,64 +79,87 @@ const DemoSection: React.FC<DemoSectionProps> = ({ selectedLanguage = 'en' }) =>
   const [explanations, setExplanations] = useState<ExplanationState>({});
   const [currentLanguage, setCurrentLanguage] = useState(selectedLanguage);
   
- 
   // Add this useEffect to reset visual state when language changes
-useEffect(() => {
-  setClickedDishes(new Set());
-}, [currentLanguage]);
+  useEffect(() => {
+    setClickedDishes(new Set());
+  }, [currentLanguage]);
+
+  // Simple string similarity function to avoid external dependency
+  const calculateSimilarity = (str1: string, str2: string): number => {
+    const cleanString = (str: string) => str.toLowerCase().replace(/[.,!?;:"()[\]{}]/g, '').replace(/\s+/g, ' ').trim();
+    
+    const clean1 = cleanString(str1);
+    const clean2 = cleanString(str2);
+    
+    if (clean1 === clean2) return 1.0;
+    
+    // Check if one string contains the other
+    if (clean1.includes(clean2) || clean2.includes(clean1)) return 0.8;
+    
+    // Simple word matching
+    const words1 = clean1.split(' ');
+    const words2 = clean2.split(' ');
+    const commonWords = words1.filter(word => words2.includes(word));
+    
+    return commonWords.length / Math.max(words1.length, words2.length);
+  };
 
   // Fetch dish explanation from database
-const fetchDishFromDatabase = async (dishName: string, language: string): Promise<DishExplanation> => {
-  console.log(`🔍 Demo: Fetching dish "${dishName}" in language "${language}" from database...`);
-  
-  // Step 1: Get all English dishes to find the dish name
-  const { data: englishDishes, error: error1 } = await supabase.rpc('get_dishes_by_language', { 
-    p_language: 'en' 
-  });
+  const fetchDishFromDatabase = async (dishName: string, language: string): Promise<DishExplanation> => {
+    console.log(`🔍 Demo: Fetching dish "${dishName}" in language "${language}" from database...`);
+    
+    try {
+      // Get dishes for the specific language
+      const { data: dishes, error } = await supabase.rpc('get_dishes_by_language', { 
+        p_language: language 
+      });
 
-  if (error1 || !englishDishes) {
-    throw new Error('Failed to fetch dishes');
-  }
+      if (error) {
+        console.error('Supabase RPC error:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
 
-  // Step 2: Find the dish using fuzzy matching
-  const dishMatches = englishDishes.map((dish: any) => ({
-    dish,
-    similarity: stringSimilarity.compareTwoStrings(dishName.toLowerCase(), dish.name.toLowerCase())
-  }));
+      if (!dishes || dishes.length === 0) {
+        throw new Error(`No dishes found for language: ${language}`);
+      }
 
-  const bestMatch = dishMatches
-    .filter(item => item.similarity > 0.6)
-    .sort((a, b) => b.similarity - a.similarity)[0];
+      console.log(`📊 Found ${dishes.length} dishes in ${language}`);
 
-  if (!bestMatch) {
-    console.log('Available dishes:', englishDishes.slice(0, 10).map(d => d.name));
-    throw new Error('Dish not found in database');
-  }
+      // Find the best match using similarity
+      let bestMatch = null;
+      let bestScore = 0;
 
-  console.log('✅ Found dish:', bestMatch.dish.name, 'similarity:', bestMatch.similarity.toFixed(2));
+      for (const dish of dishes) {
+        if (dish.name) {
+          const score = calculateSimilarity(dishName, dish.name);
+          console.log(`🎯 Comparing "${dishName}" with "${dish.name}": ${score.toFixed(3)}`);
+          
+          if (score > bestScore && score > 0.6) {
+            bestScore = score;
+            bestMatch = dish;
+          }
+        }
+      }
 
-  // Step 3: Get the explanation in the desired language
-  const { data: explanationDishes, error: error2 } = await supabase.rpc('get_dishes_by_language', { 
-    p_language: language 
-  });
+      if (!bestMatch) {
+        console.log('❌ No good match found. Available dishes:', dishes.slice(0, 5).map(d => d.name));
+        throw new Error(`Dish "${dishName}" not found in database for ${language}`);
+      }
 
-  if (error2 || !explanationDishes) {
-    throw new Error('Failed to fetch explanation');
-  }
+      console.log(`✅ Best match: "${bestMatch.name}" with score ${bestScore.toFixed(3)}`);
 
-  const explanation = explanationDishes.find(dish => dish.name === bestMatch.dish.name);
+      return {
+        explanation: bestMatch.explanation || '',
+        tags: Array.isArray(bestMatch.tags) ? bestMatch.tags : [],
+        allergens: Array.isArray(bestMatch.allergens) ? bestMatch.allergens : [],
+        cuisine: bestMatch.cuisine || 'French'
+      };
 
-  if (!explanation) {
-    throw new Error(`Explanation not available in ${language}`);
-  }
-
-  return {
-    explanation: explanation.explanation || '',
-    tags: Array.isArray(explanation.tags) ? explanation.tags : [],
-    allergens: Array.isArray(explanation.allergens) ? explanation.allergens : [],
-    cuisine: explanation.cuisine || 'French'
+    } catch (error) {
+      console.error(`❌ Error in fetchDishFromDatabase:`, error);
+      throw error;
+    }
   };
-};
 
   const handleDishClick = async (dishName: string) => {
     if (loadingDishes.has(dishName)) return;
