@@ -91,10 +91,18 @@ useEffect(() => {
 const fetchDishFromDatabase = async (dishName: string, language: string): Promise<DishExplanation> => {
   console.log(`🔍 Demo: Fetching dish "${dishName}" in language "${language}" from database...`);
   
-  // Get ALL dishes using the modified RPC function
   const { data: allDishes, error } = await supabase.rpc('get_dishes_by_language', { 
-    p_language: language  // Parameter ignored now, but keeping for compatibility
+    p_language: language
   });
+
+  // ADD THIS DEBUG BLOCK:
+  console.log('🔧 DEBUG: RPC call result:', { error, dataLength: allDishes?.length });
+  console.log('🔧 DEBUG: First 3 dishes:', allDishes?.slice(0, 3));
+  console.log('🔧 DEBUG: Dishes containing "STEAK":', allDishes?.filter(d => d.name?.includes('STEAK')));
+  console.log('🔧 DEBUG: Dishes containing "COQ":', allDishes?.filter(d => d.name?.includes('COQ')));
+  console.log('🔧 DEBUG: All unique dish names:', [...new Set(allDishes?.map(d => d.name))].slice(0, 10));
+  console.log('🔧 DEBUG: All unique languages:', [...new Set(allDishes?.map(d => d.language))]);
+
 
   if (error) {
     console.error('❌ Demo: Database error:', error);
