@@ -1,4 +1,4 @@
-// Updated App.tsx - Fixed header/footer conflicts and real-time subscriptions
+// Updated App.tsx - Fixed header/footer conflicts and real-time subscriptions + Restaurant Routes
 import React, { useState, useCallback, useEffect, type FC } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
@@ -20,6 +20,14 @@ import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
 import RestaurantPublicPage from './pages/RestaurantPublicPage';
 import QRCodeTest from './components/QRCodeTest';
+
+// Restaurant management imports
+import RestaurantLandingPage from './pages/restaurant-landing-page';
+import RestaurantDashboard from './pages/RestaurantDashboard';
+import RestaurantMenuManager from './pages/RestaurantMenuManager';
+import RestaurantProfile from './pages/RestaurantProfile';
+import RestaurantQRCodes from './pages/RestaurantQRCodes';
+import RestaurantBilling from './pages/RestaurantBilling';
 
 
 const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
@@ -257,8 +265,8 @@ const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
 const AppContent: FC = () => {
   const location = useLocation();
   
-  // Check if we're on restaurant pages
-  const isRestaurantPage = location.pathname.startsWith('/restaurants');
+  // Check if we're on restaurant pages (both public and management)
+  const isRestaurantPage = location.pathname.startsWith('/restaurants') || location.pathname.startsWith('/restaurant');
   
   const [globalCounters, setGlobalCounters] = useState<GlobalCounters>({
     menus_scanned: 0,
@@ -442,8 +450,18 @@ const AppContent: FC = () => {
           <Route path="/refund-policy" element={<RefundsPolicyPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
-		  <Route path="/restaurants/:slug" element={<RestaurantPublicPage />} />
-		  <Route path="/qr-test" element={<QRCodeTest />} />
+          <Route path="/qr-test" element={<QRCodeTest />} />
+
+          {/* Restaurant public pages (customer-facing) */}
+          <Route path="/restaurants/:slug" element={<RestaurantPublicPage />} />
+
+          {/* Restaurant management routes (business-facing) */}
+          <Route path="/restaurant" element={<RestaurantLandingPage />} />
+          <Route path="/restaurant/dashboard" element={<RestaurantDashboard />} />
+          <Route path="/restaurant/menu" element={<RestaurantMenuManager />} />
+          <Route path="/restaurant/profile" element={<RestaurantProfile />} />
+          <Route path="/restaurant/qr-codes" element={<RestaurantQRCodes />} />
+          <Route path="/restaurant/billing" element={<RestaurantBilling />} />
 
         </Routes>
       </main>
