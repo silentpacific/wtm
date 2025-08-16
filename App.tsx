@@ -18,6 +18,9 @@ import {
 import { getAnonymousUsage } from './services/anonymousUsageTracking';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
+import RestaurantPublicPage from './pages/RestaurantPublicPage';
+import QRCodeTest from './components/QRCodeTest';
+
 
 const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
   const [aboutExpanded, setAboutExpanded] = useState(false);
@@ -439,7 +442,9 @@ const AppContent: FC = () => {
           <Route path="/refund-policy" element={<RefundsPolicyPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
-		  
+		  <Route path="/restaurants/:slug" element={<RestaurantPublicPage />} />
+		  <Route path="/qr-test" element={<QRCodeTest />} />
+
         </Routes>
       </main>
       

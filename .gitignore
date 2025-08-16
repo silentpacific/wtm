@@ -30,3 +30,5 @@ testing/logs/
 # Environment files
 .env.local
 .env.test
+# Local Netlify folder
+.netlify
