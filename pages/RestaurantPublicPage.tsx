@@ -134,7 +134,7 @@ export default function RestaurantPublicPage() {
 
     // Include only dishes with selected dietary tags
     if (includeDietary.length > 0) {
-      const hasDietaryTag = includeDietary.every(tag => 
+      const hasDietaryTag = includeDietary.some(tag => 
         dish.dietary_tags?.includes(tag)
       );
       if (!hasDietaryTag) return false;
