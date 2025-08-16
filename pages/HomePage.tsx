@@ -6,7 +6,7 @@ import { CameraIcon, UploadIcon } from '../components/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { LanguageSelector } from '../components/LanguageSelector';
-import { getUserLocation, findOrCreateRestaurant } from '../services/restaurantService';
+import { restaurantService } from '../services/restaurantService';
 import { LoginModal } from '../components/LoginModal';
 import DemoSection from '../components/DemoSection';
 import ShareWidget from '../components/ShareWidget';
