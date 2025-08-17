@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Download, QrCode } from 'lucide-react';
+import RestaurantLayout from '../components/RestaurantLayout';
 
 export default function RestaurantQRCodes() {
   const [restaurantSlug, setRestaurantSlug] = useState('your-restaurant');
@@ -28,7 +29,7 @@ export default function RestaurantQRCodes() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <RestaurantLayout>
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white rounded-lg p-6 mb-8 shadow-sm">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">QR Codes</h1>
@@ -151,6 +152,6 @@ export default function RestaurantQRCodes() {
           </div>
         </div>
       </div>
-    </div>
+    </RestaurantLayout>
   );
 }

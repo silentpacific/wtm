@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, AlertCircle } from 'lucide-react';
+import RestaurantLayout from '../components/RestaurantLayout';
 
 export default function RestaurantProfile() {
   const [profile, setProfile] = useState({
@@ -52,7 +53,7 @@ export default function RestaurantProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <RestaurantLayout>
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="bg-white rounded-lg p-6 mb-8 shadow-sm">
@@ -279,6 +280,6 @@ export default function RestaurantProfile() {
           </div>
         </div>
       </div>
-    </div>
+    </RestaurantLayout>
   );
 }

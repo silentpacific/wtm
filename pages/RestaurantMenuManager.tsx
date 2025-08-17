@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
+import RestaurantLayout from '../components/RestaurantLayout';
 
 export default function RestaurantMenuManager() {
   const [dishes, setDishes] = useState([]);
@@ -20,7 +21,7 @@ export default function RestaurantMenuManager() {
   const dietaryOptions = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'low-carb'];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <RestaurantLayout>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -210,6 +211,6 @@ export default function RestaurantMenuManager() {
           </div>
         ))}
       </div>
-    </div>
+    </RestaurantLayout>
   );
 }

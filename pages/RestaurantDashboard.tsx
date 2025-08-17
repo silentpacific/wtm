@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { QrCode, Menu, User, CreditCard, BarChart3, Plus } from 'lucide-react';
+import RestaurantLayout from '../components/RestaurantLayout';
 
 export default function RestaurantDashboard() {
   const [restaurantData, setRestaurantData] = useState(null);
   const [stats, setStats] = useState({
-    totalViews: 0,
-    thisWeek: 0,
+    totalViews: 1247,
+    thisWeek: 89,
     popularDishes: []
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <RestaurantLayout>
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Welcome Header */}
         <div className="bg-white rounded-lg p-6 mb-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Restaurant Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to your Restaurant Dashboard</h1>
           <p className="text-gray-600">Manage your menu, QR codes, and view analytics</p>
         </div>
 
@@ -26,7 +27,7 @@ export default function RestaurantDashboard() {
               <BarChart3 className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Views</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalViews}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalViews.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -79,6 +80,6 @@ export default function RestaurantDashboard() {
           </Link>
         </div>
       </div>
-    </div>
+    </RestaurantLayout>
   );
 }

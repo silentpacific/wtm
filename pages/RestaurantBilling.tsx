@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import RestaurantLayout from '../components/RestaurantLayout';
 
 export default function RestaurantBilling() {
   const [subscription, setSubscription] = useState({
@@ -37,7 +38,7 @@ export default function RestaurantBilling() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <RestaurantLayout>
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="bg-white rounded-lg p-6 mb-8 shadow-sm">
@@ -220,6 +221,6 @@ export default function RestaurantBilling() {
           </div>
         )}
       </div>
-    </div>
+    </RestaurantLayout>
   );
 }
