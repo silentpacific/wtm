@@ -1,4 +1,4 @@
-// Updated App.tsx - Fixed header/footer conflicts and real-time subscriptions + Restaurant Routes
+// Updated App.tsx - Restaurant Authentication Integration
 import React, { useState, useCallback, useEffect, type FC } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
@@ -7,13 +7,15 @@ import UserProfile from './pages/UserProfile';
 import { PrivacyPolicyPage, TermsOfUsePage } from './pages/LegalPages';
 import { FaqPage, RefundsPolicyPage } from './pages/RefundsandFaq';
 import { AuthProvider } from './contexts/AuthContext';
+import { RestaurantAuthProvider } from './contexts/RestaurantAuthContext';
 import Header from './components/Header';
+import RestaurantProtectedRoute from './components/RestaurantProtectedRoute';
 import { 
   getGlobalCounters, 
   GlobalCounters, 
   incrementMenuScans, 
   incrementDishExplanations,
-  subscribeToCounters  // ← ADD THIS LINE
+  subscribeToCounters
 } from './services/counterService';
 import { getAnonymousUsage } from './services/anonymousUsageTracking';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
@@ -28,7 +30,6 @@ import RestaurantMenuManager from './pages/RestaurantMenuManager';
 import RestaurantProfile from './pages/RestaurantProfile';
 import RestaurantQRCodes from './pages/RestaurantQRCodes';
 import RestaurantBilling from './pages/RestaurantBilling';
-
 
 const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
   const [aboutExpanded, setAboutExpanded] = useState(false);
@@ -332,7 +333,7 @@ const AppContent: FC = () => {
     }
   }, [location]);
 
-// Load initial global counters and restore real-time subscriptions
+  // Load initial global counters and restore real-time subscriptions
   useEffect(() => {
     const loadCounters = async () => {
       try {
@@ -455,14 +456,48 @@ const AppContent: FC = () => {
           {/* Restaurant public pages (customer-facing) */}
           <Route path="/restaurants/:slug" element={<RestaurantPublicPage />} />
 
-          {/* Restaurant management routes (business-facing) */}
+          {/* Restaurant management routes (business-facing) - NOW PROTECTED */}
           <Route path="/restaurant" element={<RestaurantLandingPage />} />
-          <Route path="/restaurant/dashboard" element={<RestaurantDashboard />} />
-          <Route path="/restaurant/menu" element={<RestaurantMenuManager />} />
-          <Route path="/restaurant/profile" element={<RestaurantProfile />} />
-          <Route path="/restaurant/qr-codes" element={<RestaurantQRCodes />} />
-          <Route path="/restaurant/billing" element={<RestaurantBilling />} />
-
+          <Route 
+            path="/restaurant/dashboard" 
+            element={
+              <RestaurantProtectedRoute>
+                <RestaurantDashboard />
+              </RestaurantProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/restaurant/menu" 
+            element={
+              <RestaurantProtectedRoute>
+                <RestaurantMenuManager />
+              </RestaurantProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/restaurant/profile" 
+            element={
+              <RestaurantProtectedRoute>
+                <RestaurantProfile />
+              </RestaurantProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/restaurant/qr-codes" 
+            element={
+              <RestaurantProtectedRoute>
+                <RestaurantQRCodes />
+              </RestaurantProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/restaurant/billing" 
+            element={
+              <RestaurantProtectedRoute>
+                <RestaurantBilling />
+              </RestaurantProtectedRoute>
+            } 
+          />
         </Routes>
       </main>
       
@@ -475,7 +510,9 @@ const AppContent: FC = () => {
 const App: FC = () => {
   return (
     <AuthProvider>
-      <AppContent />
+      <RestaurantAuthProvider>
+        <AppContent />
+      </RestaurantAuthProvider>
     </AuthProvider>
   );
 };
