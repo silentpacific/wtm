@@ -50,6 +50,8 @@ export default function RestaurantSignupModal({ isOpen, onClose, onSwitchToLogin
     e.preventDefault();
     setError('');
 
+    console.log('🔄 Starting signup process...');
+
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -58,17 +60,31 @@ export default function RestaurantSignupModal({ isOpen, onClose, onSwitchToLogin
 
     setIsLoading(true);
 
-    const result = await signup(formData.email, formData.password, formData.businessName);
-    
-    if (result.success) {
-      onClose();
-      setFormData({ businessName: '', email: '', password: '', confirmPassword: '' });
-      setAgreedToTerms(false);
-    } else {
-      setError(result.error || 'Signup failed');
+    try {
+      console.log('📝 Calling signup with:', {
+        email: formData.email,
+        businessName: formData.businessName
+      });
+
+      const result = await signup(formData.email, formData.password, formData.businessName);
+      
+      console.log('✅ Signup result:', result);
+
+      if (result.success) {
+        console.log('🎉 Signup successful! Closing modal...');
+        onClose();
+        setFormData({ businessName: '', email: '', password: '', confirmPassword: '' });
+        setAgreedToTerms(false);
+      } else {
+        console.error('❌ Signup failed:', result.error);
+        setError(result.error || 'Signup failed');
+      }
+    } catch (error) {
+      console.error('💥 Signup error:', error);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleClose = () => {
@@ -207,9 +223,23 @@ export default function RestaurantSignupModal({ isOpen, onClose, onSwitchToLogin
             />
             <label className="text-sm text-gray-600">
               I agree to the{' '}
-              <a href="/terms" className="text-blue-600 hover:text-blue-700">Terms of Service</a>
+              <a 
+                href="/terms" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700"
+              >
+                Terms of Service
+              </a>
               {' '}and{' '}
-              <a href="/privacy" className="text-blue-600 hover:text-blue-700">Privacy Policy</a>
+              <a 
+                href="/privacy-policy" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700"
+              >
+                Privacy Policy
+              </a>
             </label>
           </div>
 
