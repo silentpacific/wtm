@@ -1,9 +1,9 @@
-# WhatTheMenu Bridge - CURRENT STATUS & AUTHENTICATION PHASE
+# WhatTheMenu Bridge - CURRENT STATUS & PHASE 2 COMPLETION
 
-**Current Status:** Week 5 AUTHENTICATION IN PROGRESS 🔄  
-**Goal:** Restaurant authentication system to enable real restaurant signups and revenue generation  
-**Pricing:** £25/month with 1-month free trial  
-**Safety Achievement:** Zero modifications to existing consumer platform
+**Current Status:** Phase 2 AUTHENTICATION COMPLETE ✅ + Phase 3 IN PROGRESS 🔄  
+**Goal:** Restaurant platform with working authentication, QR codes, and analytics  
+**Pricing:** $25/month with 30-day free trial  
+**Achievement:** Full restaurant management system operational
 
 ---
 
@@ -23,7 +23,7 @@
 - ✅ Mobile-optimized design with accessibility focus for deaf/HoH customers
 - ✅ Complete integration with existing AI and caching systems
 - ✅ Updates global counters for analytics (menu views + dish explanations)
-- ✅ British English implementation throughout (customisation, allergen, £ pricing)
+- ✅ Australian pricing implementation throughout ($25/month)
 
 ### **Week 3: Communication & Order Features** - ✅ COMPLETED
 - ✅ "Add to My List" communication tool (not ordering system)
@@ -35,9 +35,9 @@
 - ✅ Fixed vegan/vegetarian filtering logic
 
 ### **Week 4: QR Codes & Restaurant Management** - ✅ COMPLETED
-- ✅ Complete QR code generation system with multiple formats (PNG, SVG, Data URL)
+- ✅ Complete QR code generation system with multiple formats (PNG, SVG, PDF)
 - ✅ Multiple sizes (150px, 300px, 600px) for different use cases
-- ✅ Download functionality for all QR formats
+- ✅ Download functionality for all QR formats using qr-server.com API
 - ✅ Table tent templates with accessibility messaging
 - ✅ Complete restaurant management dashboard system
 - ✅ All 5 restaurant management pages implemented and functional
@@ -45,14 +45,14 @@
 
 ---
 
-## 🔄 PHASE 2: AUTHENTICATION SYSTEM (Week 5) - IN PROGRESS
+## ✅ PHASE 2: AUTHENTICATION SYSTEM (Week 5) - COMPLETED
 
 ### ✅ **COMPLETED: Database Authentication Setup**
-**Date: Today**
+**Date: Completed**
 
 #### **Database Updates Applied:**
 ```sql
--- ✅ COMPLETED: Added missing authentication fields to restaurant_business_accounts
+-- ✅ COMPLETED: Added authentication fields to restaurant_business_accounts
 ALTER TABLE restaurant_business_accounts 
 ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMP DEFAULT NOW(),
 ADD COLUMN IF NOT EXISTS trial_expires_at TIMESTAMP DEFAULT (NOW() + INTERVAL '30 days'),
@@ -76,168 +76,39 @@ ADD COLUMN IF NOT EXISTS special_notes TEXT;
 - ✅ `contexts/RestaurantAuthContext.tsx` - Complete authentication state management
 - ✅ `components/RestaurantLoginModal.tsx` - Professional login form with validation
 - ✅ `components/RestaurantSignupModal.tsx` - Registration with business details and trial activation
-- ✅ `components/RestaurantProtectedRoute.tsx` - Route protection + comprehensive landing page
+- ✅ `components/RestaurantProtectedRoute.tsx` - Route protection + authentication handling
 
 #### **App.tsx Integration:** ✅
 - ✅ `RestaurantAuthProvider` wrapper implemented
 - ✅ All restaurant management routes protected with `RestaurantProtectedRoute`
 - ✅ Consumer and restaurant routing completely isolated
-- ✅ Header/footer isolation for restaurant pages
+- ✅ Header/footer integration for restaurant pages
 
-### 🚨 **CURRENT BLOCKING ISSUE:**
-**Build Deployment Failure**
-
-**Problem:** File extension error
-- File exists as: `RestaurantProtectedRoute.tsx.ts` ❌
-- Needs to be: `RestaurantProtectedRoute.tsx` ✅
-
-**Error:**
-```
-Could not resolve "./components/RestaurantProtectedRoute" from "App.tsx"
-```
-
-**Solution Required:** Rename file to remove extra `.ts` extension
-
-### 🔄 **REMAINING WEEK 5 TASKS:**
-
-#### **Day 29 (Today): Deploy Fix**
-- [ ] **URGENT**: Fix file extension issue (`RestaurantProtectedRoute.tsx.ts` → `RestaurantProtectedRoute.tsx`)
-- [ ] **Test deployment** - verify build succeeds
-- [ ] **Test authentication flow** - signup/login functionality
-- [ ] **Verify database integration** - restaurant account creation
-
-#### **Days 30-31: Authentication Testing & Refinement**
-- [ ] End-to-end signup flow testing
-- [ ] Email verification implementation (if needed)
-- [ ] Password reset functionality
-- [ ] Session management testing
-- [ ] Error handling and user feedback improvements
+### ✅ **COMPLETED: Full Authentication Flow**
+- ✅ Restaurant signup with email/password
+- ✅ 30-day free trial activation
+- ✅ Login/logout functionality
+- ✅ Protected dashboard access
+- ✅ Session management
+- ✅ Restaurant account creation and linking
 
 ---
 
-## 🎯 CURRENT PLATFORM STATUS
+## 🔄 PHASE 3: FULL RESTAURANT PLATFORM (Current Week)
 
-### **Customer Journey - FULLY FUNCTIONAL:**
-1. **QR Code Scan** → Customer scans restaurant QR code ✅
-2. **Restaurant Page Load** → Taken to `/restaurants/{slug}` with full menu ✅
-3. **Menu Browsing** → View dishes with AI explanations in 4 languages ✅
-4. **Item Selection** → Add dishes to "My Selections" with customisation notes ✅
-5. **Question System** → Ask kitchen questions with waiter Yes/No/Check responses ✅
-6. **Waiter Communication** → Show selections list to waiter for ordering ✅
+### ✅ **COMPLETED: Restaurant Management System**
 
-### **Restaurant Management - AUTHENTICATION PENDING:**
-1. **Dashboard** → ⏳ Requires authentication (UI complete, auth integration pending)
-2. **Menu Manager** → ⏳ Requires authentication (UI complete, database integration pending)
-3. **Profile Management** → ⏳ Requires authentication (UI complete, real data integration pending)
-4. **QR Code Generation** → ⏳ Requires authentication (UI complete, restaurant linking pending)
-5. **Billing Interface** → ⏳ Requires authentication (UI complete, subscription integration pending)
+#### **Dashboard Analytics:** ✅
+- ✅ Real analytics from database (total views, weekly/monthly estimates)
+- ✅ Actual menu item counts from `restaurant_dishes` table
+- ✅ Loading states and error handling
+- ✅ Getting started guide for new restaurants
+- ✅ Removed mock data and popular dishes section
 
-### **Technical Integration Status:**
-- ✅ Zero impact on existing consumer platform
-- ✅ Existing AI system reused without modification
-- ✅ Global counters tracking both consumer and restaurant usage
-- ✅ Database isolation with new tables only
-- ✅ Separate routing with proper component isolation
-- 🚨 **Build system blocked** by file extension issue
-- ⏳ **Authentication integration** 90% complete, pending deployment fix
-
----
-
-## 📋 WEEK 6: PAYMENT INTEGRATION (PLANNED)
-
-### **Stripe Integration Requirements:**
-- **Product Setup**: £25/month subscription in Stripe dashboard
-- **Checkout Flow**: Post-trial payment redirection
-- **Webhook Handlers**: Subscription event processing
-- **Billing Dashboard**: Real-time subscription status
-- **Trial Management**: 30-day free trial with automatic billing
-
-### **Netlify Functions to Create:**
-- `create-restaurant-checkout.ts` - Stripe checkout session creation
-- `restaurant-stripe-webhook.ts` - Payment event handling
-- `restaurant-billing-portal.ts` - Customer portal access
-- `cancel-restaurant-subscription.ts` - Cancellation flow
-
----
-
-## 📋 WEEK 7: FULL INTEGRATION (PLANNED)
-
-### **Data Integration Tasks:**
-- Connect menu manager to authenticated restaurant accounts
-- Profile management with real restaurant data
-- QR code generation linked to specific restaurants
-- Analytics dashboard with restaurant-specific metrics
-- Billing status integration throughout management interface
-
----
-
-## 🚨 IMMEDIATE PRIORITIES
-
-### **Today (High Priority):**
-1. **Fix deployment issue** - Rename `RestaurantProtectedRoute.tsx.ts` to `RestaurantProtectedRoute.tsx`
-2. **Test build and deploy** - Verify authentication system works
-3. **Create test restaurant account** - End-to-end signup testing
-
-### **This Week (Week 5 Completion):**
-1. **Authentication system fully functional** - Signup, login, logout, session management
-2. **Protected routes working** - Dashboard accessible only after authentication
-3. **Database integration tested** - Restaurant accounts created and managed properly
-4. **Ready for payment integration** - Authentication foundation solid for Stripe integration
-
----
-
-## 💰 BUSINESS MODEL STATUS
-
-### **Revenue Readiness:**
-- ✅ **Pricing Structure**: £25/month confirmed
-- ✅ **Trial Period**: 30 days free, no payment required
-- ✅ **Value Proposition**: Multi-language accessibility for international customers
-- ⏳ **Payment Integration**: Pending Week 6 Stripe implementation
-- ⏳ **Customer Acquisition**: Pending authentication completion
-
-### **Pilot Preparation:**
-- **Target**: 3-5 local restaurants for initial testing
-- **Success Criteria**: 2+ restaurants activate QR codes, 10+ customer interactions
-- **Timeline**: Week 8 pilot launch (pending authentication + payment completion)
-
----
-
-## 🔧 TECHNICAL DEBT & IMPROVEMENTS
-
-### **Known Issues to Address:**
-- [ ] File extension consistency (immediate priority)
-- [ ] Email verification system (if required for restaurant accounts)
-- [ ] Password reset functionality
-- [ ] Session timeout handling
-- [ ] Enhanced error messaging for authentication failures
-
-### **Performance Optimizations:**
-- [ ] Authentication state persistence
-- [ ] Efficient restaurant data loading
-- [ ] Optimized protected route checks
-- [ ] Cache management for authenticated sessions
-
----
-
-## 🎯 SUCCESS METRICS
-
-### **Week 5 Goals (Authentication):**
-- [ ] **Build Success**: Deployment working without errors
-- [ ] **Signup Flow**: Restaurant can create account and access dashboard
-- [ ] **Data Integration**: Restaurant profile management working with real data
-- [ ] **Route Protection**: Authentication required for all management pages
-- [ ] **Session Management**: Login/logout functionality stable
-
-### **Phase 2 Overall Goals:**
-- [ ] **Complete Authentication**: Signup, login, profile management
-- [ ] **Payment Integration**: Stripe subscription flow working
-- [ ] **Business Ready**: Ready for pilot restaurant recruitment
-- [ ] **Revenue Generation**: First paying restaurant account
-
----
-
-**CURRENT MILESTONE: Fix deployment issue and complete authentication system** 🎯
-
-**NEXT MILESTONE: Stripe payment integration for revenue generation** 💳
-
-*Authentication system is 95% complete - just needs deployment fix and testing to enable real restaurant signups and move to payment integration phase.*
+#### **QR Code System:** ✅
+- ✅ Working QR code generation using qr-server.com API
+- ✅ Multiple format support (PNG, SVG, PDF)
+- ✅ Multiple size options (150px, 300px, 600px)
+- ✅ Real-time preview generation
+- ✅ Download functionality with proper file naming
+- ✅ Usage instructions for

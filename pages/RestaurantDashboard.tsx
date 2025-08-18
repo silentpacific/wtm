@@ -2,18 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { QrCode, Menu, User, CreditCard, BarChart3, Plus, TrendingUp, Eye } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
+import { supabase } from '../services/supabaseClient';
 
-// Simplified stats interface
 interface RestaurantStats {
   totalViews: number;
   thisWeek: number;
   thisMonth: number;
   totalDishes: number;
-  popularDishes: Array<{
-    name: string;
-    views: number;
-    section: string;
-  }>;
 }
 
 export default function RestaurantDashboard() {
@@ -22,8 +17,7 @@ export default function RestaurantDashboard() {
     totalViews: 0,
     thisWeek: 0,
     thisMonth: 0,
-    totalDishes: 0,
-    popularDishes: []
+    totalDishes: 0
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,40 +29,91 @@ export default function RestaurantDashboard() {
   }, [restaurant?.id]);
 
   const loadStats = async () => {
+    if (!restaurant?.id) return;
+    
     try {
       setIsLoading(true);
+      console.log('Loading stats for restaurant ID:', restaurant.id);
       
-      // Simulate loading real data - replace with actual API calls later
-      setTimeout(() => {
-        setStats({
-          totalViews: Math.floor(Math.random() * 1000) + 100,
-          thisWeek: Math.floor(Math.random() * 100) + 20,
-          thisMonth: Math.floor(Math.random() * 300) + 50,
-          totalDishes: Math.floor(Math.random() * 50) + 10,
-          popularDishes: [
-            { name: 'Signature Burger', views: 45, section: 'Mains' },
-            { name: 'Chicken Wings', views: 38, section: 'Appetizers' },
-            { name: 'Chocolate Cake', views: 32, section: 'Desserts' }
-          ]
-        });
-        setIsLoading(false);
-      }, 1000);
+      // Get restaurant views from restaurants table
+      const { data: restaurantData, error: restaurantError } = await supabase
+        .from('restaurants')
+        .select('total_scans, dishes_explained, last_scanned_at')
+        .eq('id', restaurant.id)
+        .maybeSingle();
+
+      if (restaurantError && restaurantError.code !== 'PGRST116') {
+        console.error('Error fetching restaurant data:', restaurantError);
+      }
+
+      console.log('Restaurant data:', restaurantData);
+
+      // Get total dishes count
+      const { count: dishCount, error: dishError } = await supabase
+        .from('restaurant_dishes')
+        .select('id', { count: 'exact' })
+        .eq('restaurant_id', restaurant.id)
+        .eq('is_available', true);
+
+      if (dishError) {
+        console.error('Error fetching dish count:', dishError);
+      }
+
+      console.log('Dish count:', dishCount);
+
+      // Calculate total views (scans + dish explanations)
+      const totalScans = restaurantData?.total_scans || 0;
+      const totalExplanations = restaurantData?.dishes_explained || 0;
+      const totalViews = totalScans + totalExplanations;
+
+      // Calculate time-based stats - more conservative estimates
+      const estimatedWeeklyViews = Math.max(0, Math.floor(totalViews * 0.1)); // 10% in last week
+      const estimatedMonthlyViews = Math.max(0, Math.floor(totalViews * 0.3)); // 30% in last month
+
+      const newStats = {
+        totalViews: totalViews,
+        thisWeek: estimatedWeeklyViews,
+        thisMonth: estimatedMonthlyViews,
+        totalDishes: dishCount || 0
+      };
+
+      console.log('Setting stats:', newStats);
+      setStats(newStats);
+
     } catch (error) {
       console.error('Error loading restaurant stats:', error);
+      // Set zero stats on error
+      setStats({
+        totalViews: 0,
+        thisWeek: 0,
+        thisMonth: 0,
+        totalDishes: 0
+      });
+    } finally {
       setIsLoading(false);
     }
   };
+
+  if (!restaurant) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="text-center">
+          <p className="text-gray-500">Loading restaurant information...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Welcome Header */}
       <div className="bg-white rounded-lg p-6 mb-8 shadow-sm">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Welcome back, {restaurant?.business_name || 'Restaurant Owner'}!
+          Welcome back, {restaurant.business_name}!
         </h1>
         <p className="text-gray-600">Manage your menu, QR codes, and view analytics</p>
         
-        {restaurant?.subscription_status === 'trial' && (
+        {restaurant.subscription_status === 'trial' && (
           <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -97,8 +142,13 @@ export default function RestaurantDashboard() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Views</p>
               <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? '...' : stats.totalViews.toLocaleString()}
+                {isLoading ? (
+                  <div className="animate-pulse bg-gray-200 rounded w-16 h-8"></div>
+                ) : (
+                  stats.totalViews
+                )}
               </p>
+              <p className="text-xs text-gray-500 mt-1">Page visits + dish views</p>
             </div>
           </div>
         </div>
@@ -109,8 +159,13 @@ export default function RestaurantDashboard() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">This Week</p>
               <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? '...' : stats.thisWeek.toLocaleString()}
+                {isLoading ? (
+                  <div className="animate-pulse bg-gray-200 rounded w-12 h-8"></div>
+                ) : (
+                  stats.thisWeek
+                )}
               </p>
+              <p className="text-xs text-gray-500 mt-1">Estimated recent activity</p>
             </div>
           </div>
         </div>
@@ -121,8 +176,13 @@ export default function RestaurantDashboard() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">This Month</p>
               <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? '...' : stats.thisMonth.toLocaleString()}
+                {isLoading ? (
+                  <div className="animate-pulse bg-gray-200 rounded w-14 h-8"></div>
+                ) : (
+                  stats.thisMonth
+                )}
               </p>
+              <p className="text-xs text-gray-500 mt-1">Estimated monthly activity</p>
             </div>
           </div>
         </div>
@@ -133,8 +193,13 @@ export default function RestaurantDashboard() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Menu Items</p>
               <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? '...' : stats.totalDishes.toLocaleString()}
+                {isLoading ? (
+                  <div className="animate-pulse bg-gray-200 rounded w-8 h-8"></div>
+                ) : (
+                  stats.totalDishes
+                )}
               </p>
+              <p className="text-xs text-gray-500 mt-1">Available dishes</p>
             </div>
           </div>
         </div>
@@ -170,66 +235,75 @@ export default function RestaurantDashboard() {
         </div>
       </div>
 
-      {/* Popular Dishes Section */}
-      {stats.popularDishes.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Popular Dishes</h2>
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="space-y-4">
-              {stats.popularDishes.slice(0, 5).map((dish, index) => (
-                <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                  <div>
-                    <p className="font-medium text-gray-900">{dish.name}</p>
-                    <p className="text-sm text-gray-500">{dish.section}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-blue-600">{dish.views} views</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+      {/* Restaurant Info Summary */}
+      <div className="bg-white rounded-lg p-6 shadow-sm mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Restaurant Information</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Restaurant Name</h3>
+            <p className="text-gray-900">{restaurant.business_name}</p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Public URL</h3>
+            <a 
+              href={`/restaurants/${restaurant.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-700"
+            >
+              whatthemenu.com/restaurants/{restaurant.slug}
+            </a>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Contact Email</h3>
+            <p className="text-gray-900">{restaurant.contact_email}</p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Subscription Status</h3>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              restaurant.subscription_status === 'active' 
+                ? 'bg-green-100 text-green-800'
+                : restaurant.subscription_status === 'trial'
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {restaurant.subscription_status === 'active' && '✓ Active'}
+              {restaurant.subscription_status === 'trial' && '⏱️ Trial'}
+              {restaurant.subscription_status === 'cancelled' && '⚠️ Cancelled'}
+            </span>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Restaurant Info Summary */}
-      {restaurant && (
-        <div className="bg-white rounded-lg p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Restaurant Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Restaurant Name</h3>
-              <p className="text-gray-900">{restaurant.business_name}</p>
+      {/* Getting Started Section (for new restaurants) */}
+      {!isLoading && stats.totalDishes === 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h3 className="font-semibold text-blue-900 mb-3">Get Started with Your Restaurant</h3>
+          <p className="text-blue-800 text-sm mb-4">
+            Welcome to WhatTheMenu! Here's how to get your restaurant set up:
+          </p>
+          <div className="space-y-2 text-blue-800 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+              <span>Add your menu items in the Menu Manager</span>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Public URL</h3>
-              <a 
-                href={`/restaurants/${restaurant.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-700"
-              >
-                whatthemenu.com/restaurants/{restaurant.slug}
-              </a>
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+              <span>Download QR codes for your tables</span>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Contact Email</h3>
-              <p className="text-gray-900">{restaurant.contact_email}</p>
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
+              <span>Test your public restaurant page</span>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Subscription Status</h3>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                restaurant.subscription_status === 'active' 
-                  ? 'bg-green-100 text-green-800'
-                  : restaurant.subscription_status === 'trial'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {restaurant.subscription_status === 'active' && '✓ Active'}
-                {restaurant.subscription_status === 'trial' && '⏱️ Trial'}
-                {restaurant.subscription_status === 'cancelled' && '⚠️ Cancelled'}
-              </span>
-            </div>
+          </div>
+          <div className="mt-4">
+            <Link
+              to="/restaurant/menu"
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus size={16} className="mr-2" />
+              Add Your First Menu Item
+            </Link>
           </div>
         </div>
       )}
