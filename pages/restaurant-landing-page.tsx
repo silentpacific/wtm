@@ -1,9 +1,29 @@
 import React, { useState } from 'react';
-import { CheckCircle, Users, Globe, Filter, MessageSquare, QrCode, Star, ArrowRight, Play } from 'lucide-react';
+import { CheckCircle, Users, Globe, Filter, MessageSquare, QrCode, Star, ArrowRight } from 'lucide-react';
+import RestaurantLoginModal from '../components/RestaurantLoginModal';
+import RestaurantSignupModal from '../components/RestaurantSignupModal';
+import RestaurantHeader from '../components/RestaurantHeader';
+import RestaurantFooter from '../components/RestaurantFooter';
 
 export default function RestaurantLandingPage() {
   const [email, setEmail] = useState('');
-  const [showDemo, setShowDemo] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
+
+  const handleSwitchToSignup = () => {
+    setShowLogin(false);
+    setShowSignup(true);
+  };
+
+  const handleSwitchToLogin = () => {
+    setShowSignup(false);
+    setShowLogin(true);
+  };
+
+  const handleCloseModals = () => {
+    setShowLogin(false);
+    setShowSignup(false);
+  };
 
   const benefits = [
     {
@@ -62,6 +82,9 @@ export default function RestaurantLandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Add Restaurant Header */}
+      <RestaurantHeader />
+
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
         <div className="max-w-6xl mx-auto px-4">
@@ -78,22 +101,24 @@ export default function RestaurantLandingPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <button className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                <button 
+                  onClick={() => setShowSignup(true)}
+                  className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
                   Start Free Trial
                 </button>
                 <button 
-                  onClick={() => setShowDemo(true)}
-                  className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center gap-2"
+                  onClick={() => setShowLogin(true)}
+                  className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
                 >
-                  <Play size={20} />
-                  Watch Demo
+                  Sign In
                 </button>
               </div>
 
               <div className="flex items-center gap-6 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                   <CheckCircle size={16} className="text-green-500" />
-                  <span>7-day free trial</span>
+                  <span>30-day free trial</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle size={16} className="text-green-500" />
@@ -287,7 +312,7 @@ export default function RestaurantLandingPage() {
 
           <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-8 max-w-md mx-auto">
             <div className="text-center mb-6">
-              <div className="text-5xl font-bold text-blue-600 mb-2">$25</div>
+              <div className="text-5xl font-bold text-blue-600 mb-2">£25</div>
               <div className="text-gray-600">per month</div>
             </div>
 
@@ -314,11 +339,14 @@ export default function RestaurantLandingPage() {
               </div>
               <div className="flex items-center gap-3">
                 <CheckCircle size={20} className="text-green-500" />
-                <span>7-day free trial</span>
+                <span>30-day free trial</span>
               </div>
             </div>
 
-            <button className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg">
+            <button 
+              onClick={() => setShowSignup(true)}
+              className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg"
+            >
               Start Free Trial
             </button>
           </div>
@@ -343,45 +371,36 @@ export default function RestaurantLandingPage() {
               onChange={(e) => setEmail(e.target.value)}
               className="px-6 py-4 rounded-lg text-gray-900 w-full sm:w-auto sm:min-w-[300px]"
             />
-            <button className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center gap-2">
+            <button 
+              onClick={() => setShowSignup(true)}
+              className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center gap-2"
+            >
               Get Started Free
               <ArrowRight size={20} />
             </button>
           </div>
 
           <p className="text-blue-200 text-sm">
-            7-day free trial • No credit card required • Cancel anytime
+            30-day free trial • No credit card required • Cancel anytime
           </p>
         </div>
       </section>
 
-      {/* Demo Modal */}
-      {showDemo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="p-6 border-b flex items-center justify-between">
-              <h3 className="text-xl font-bold">See How It Works</h3>
-              <button
-                onClick={() => setShowDemo(false)}
-                className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="p-6">
-              <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <Play size={64} className="text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Demo video would be embedded here</p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Showing customer scanning QR code, browsing menu, and placing order
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Add Restaurant Footer */}
+      <RestaurantFooter />
+
+      {/* Modals */}
+      <RestaurantLoginModal
+        isOpen={showLogin}
+        onClose={handleCloseModals}
+        onSwitchToSignup={handleSwitchToSignup}
+      />
+      
+      <RestaurantSignupModal
+        isOpen={showSignup}
+        onClose={handleCloseModals}
+        onSwitchToLogin={handleSwitchToLogin}
+      />
     </div>
   );
 }

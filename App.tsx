@@ -1,13 +1,13 @@
-// Updated App.tsx - Restaurant Authentication Integration
+// Updated App.tsx - Fixed Restaurant Authentication Integration
 import React, { useState, useCallback, useEffect, type FC } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
 import UserProfile from './pages/UserProfile';
 import { PrivacyPolicyPage, TermsOfUsePage } from './pages/LegalPages';
 import { FaqPage, RefundsPolicyPage } from './pages/RefundsandFaq';
 import { AuthProvider } from './contexts/AuthContext';
-import { RestaurantAuthProvider } from './contexts/RestaurantAuthContext';
+import { RestaurantAuthProvider, useRestaurantAuth } from './contexts/RestaurantAuthContext';
 import Header from './components/Header';
 import RestaurantProtectedRoute from './components/RestaurantProtectedRoute';
 import { 
@@ -263,6 +263,30 @@ const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
   );
 };
 
+// Component to handle restaurant route logic
+const RestaurantRouteHandler: FC = () => {
+  const { restaurant, loading } = useRestaurantAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If authenticated, redirect to dashboard
+  if (restaurant) {
+    return <Navigate to="/restaurant/dashboard" replace />;
+  }
+
+  // If not authenticated, show landing page
+  return <RestaurantLandingPage />;
+};
+
 const AppContent: FC = () => {
   const location = useLocation();
   
@@ -456,8 +480,8 @@ const AppContent: FC = () => {
           {/* Restaurant public pages (customer-facing) */}
           <Route path="/restaurants/:slug" element={<RestaurantPublicPage />} />
 
-          {/* Restaurant management routes (business-facing) - NOW PROTECTED */}
-          <Route path="/restaurant" element={<RestaurantLandingPage />} />
+          {/* Restaurant management routes (business-facing) */}
+          <Route path="/restaurant" element={<RestaurantRouteHandler />} />
           <Route 
             path="/restaurant/dashboard" 
             element={
