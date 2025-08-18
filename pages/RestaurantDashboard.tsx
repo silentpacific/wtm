@@ -146,3 +146,5 @@ export default function RestaurantDashboard() {
         </div>
       )}
     </div>
+  );
+}
