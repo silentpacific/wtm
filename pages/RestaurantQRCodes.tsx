@@ -1,26 +1,35 @@
-{/* QR Code Placeholder */}
-          <div className="flex justify-center mb-6">
-            {previewUrl ? (
-              <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
-                <img 
-                  src={previewUrl} 
-                  alt="QR Code Preview" 
-                  className="w-48 h-48 object-contain"
-                />
-              </div>
-            ) : (
-              <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <QrCode size={120} className="mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500 text-sm">
-                  QR Code Preview<br />
-                  {sizes[selectedSize as keyof typeof sizes].label}
-                </p>
-              </div>
-            )}
-          </div>import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, QrCode, Printer, Share2, AlertCircle } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
-import { qrCodeService, QRCodeOptions } from '../services/qrCodeService';
+
+// Simplified QR code options interface
+interface QRCodeOptions {
+  size: number;
+  format: 'png' | 'svg' | 'pdf';
+}
+
+// Simple QR code service inline
+const generateQRCode = async (url: string, options: QRCodeOptions) => {
+  const { size, format } = options;
+  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&format=png`;
+  return { url: qrApiUrl, filename: `qr-code-${size}x${size}.${format}` };
+};
+
+const downloadQRCode = async (url: string, options: QRCodeOptions) => {
+  const result = await generateQRCode(url, options);
+  const link = document.createElement('a');
+  link.href = result.url;
+  link.download = result.filename;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const getQRCodePreview = async (url: string, size: number = 200) => {
+  const result = await generateQRCode(url, { size, format: 'png' });
+  return result.url;
+};
 
 export default function RestaurantQRCodes() {
   const { restaurant } = useRestaurantAuth();
@@ -54,7 +63,7 @@ export default function RestaurantQRCodes() {
   const generatePreview = async () => {
     try {
       setError('');
-      const preview = await qrCodeService.getQRCodePreview(restaurantUrl, 200);
+      const preview = await getQRCodePreview(restaurantUrl, 200);
       setPreviewUrl(preview);
     } catch (error) {
       console.error('Error generating preview:', error);
@@ -72,7 +81,7 @@ export default function RestaurantQRCodes() {
         format: format as 'png' | 'svg' | 'pdf'
       };
       
-      await qrCodeService.downloadQRCode(restaurantUrl, options);
+      await downloadQRCode(restaurantUrl, options);
     } catch (error) {
       console.error('Error downloading QR code:', error);
       setError('Failed to download QR code. Please try again.');
@@ -231,13 +240,23 @@ export default function RestaurantQRCodes() {
           
           {/* QR Code Placeholder */}
           <div className="flex justify-center mb-6">
-            <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <QrCode size={120} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-500 text-sm">
-                QR Code Preview<br />
-                {sizes[selectedSize as keyof typeof sizes].label}
-              </p>
-            </div>
+            {previewUrl ? (
+              <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
+                <img 
+                  src={previewUrl} 
+                  alt="QR Code Preview" 
+                  className="w-48 h-48 object-contain"
+                />
+              </div>
+            ) : (
+              <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <QrCode size={120} className="mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500 text-sm">
+                  QR Code Preview<br />
+                  {sizes[selectedSize as keyof typeof sizes].label}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* QR Code Info */}

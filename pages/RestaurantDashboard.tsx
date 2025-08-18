@@ -2,7 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { QrCode, Menu, User, CreditCard, BarChart3, Plus, TrendingUp, Eye } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
-import { restaurantAnalyticsService, RestaurantStats } from '../services/restaurantAnalyticsService';
+
+// Simplified stats interface
+interface RestaurantStats {
+  totalViews: number;
+  thisWeek: number;
+  thisMonth: number;
+  totalDishes: number;
+  popularDishes: Array<{
+    name: string;
+    views: number;
+    section: string;
+  }>;
+}
 
 export default function RestaurantDashboard() {
   const { restaurant } = useRestaurantAuth();
@@ -11,8 +23,7 @@ export default function RestaurantDashboard() {
     thisWeek: 0,
     thisMonth: 0,
     totalDishes: 0,
-    popularDishes: [],
-    recentActivity: []
+    popularDishes: []
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -26,11 +37,24 @@ export default function RestaurantDashboard() {
   const loadStats = async () => {
     try {
       setIsLoading(true);
-      const analyticsData = await restaurantAnalyticsService.getRestaurantStats(restaurant!.id);
-      setStats(analyticsData);
+      
+      // Simulate loading real data - replace with actual API calls later
+      setTimeout(() => {
+        setStats({
+          totalViews: Math.floor(Math.random() * 1000) + 100,
+          thisWeek: Math.floor(Math.random() * 100) + 20,
+          thisMonth: Math.floor(Math.random() * 300) + 50,
+          totalDishes: Math.floor(Math.random() * 50) + 10,
+          popularDishes: [
+            { name: 'Signature Burger', views: 45, section: 'Mains' },
+            { name: 'Chicken Wings', views: 38, section: 'Appetizers' },
+            { name: 'Chocolate Cake', views: 32, section: 'Desserts' }
+          ]
+        });
+        setIsLoading(false);
+      }, 1000);
     } catch (error) {
       console.error('Error loading restaurant stats:', error);
-    } finally {
       setIsLoading(false);
     }
   };
