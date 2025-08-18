@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User, LogOut, Bell, Settings } from 'lucide-react';
+import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
 
 export default function RestaurantHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const location = useLocation();
-
-  // Mock restaurant data - will come from auth context later
-  const restaurant = {
-    name: "Your Restaurant",
-    email: "owner@restaurant.com",
-    subscription_status: "active" // trial, active, cancelled
-  };
+  const { restaurant, logout } = useRestaurantAuth();
 
   const navigation = [
     { name: 'Dashboard', href: '/restaurant/dashboard', icon: '📊' },
@@ -23,6 +18,19 @@ export default function RestaurantHeader() {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      setProfileMenuOpen(false);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  if (!restaurant) {
+    return null; // Don't render header if no restaurant loaded
+  }
 
   return (
     <header className="bg-white shadow-sm border-b-2 border-gray-100">
@@ -92,14 +100,14 @@ export default function RestaurantHeader() {
                 <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
                   <User size={16} className="text-white" />
                 </div>
-                <span className="ml-2 text-gray-700 font-medium">{restaurant.name}</span>
+                <span className="ml-2 text-gray-700 font-medium">{restaurant.business_name}</span>
               </button>
 
               {profileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
                   <div className="py-1">
                     <div className="px-4 py-2 text-sm text-gray-500 border-b">
-                      {restaurant.email}
+                      {restaurant.contact_email}
                     </div>
                     <Link
                       to="/restaurant/profile"
@@ -111,10 +119,7 @@ export default function RestaurantHeader() {
                     </Link>
                     <button
                       className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                      onClick={() => {
-                        // Logout logic here
-                        setProfileMenuOpen(false);
-                      }}
+                      onClick={handleSignOut}
                     >
                       <LogOut size={16} className="inline mr-2" />
                       Sign Out
@@ -164,8 +169,8 @@ export default function RestaurantHeader() {
                   <User size={16} className="text-white" />
                 </div>
                 <div>
-                  <div className="text-base font-medium text-gray-800">{restaurant.name}</div>
-                  <div className="text-sm text-gray-500">{restaurant.email}</div>
+                  <div className="text-base font-medium text-gray-800">{restaurant.business_name}</div>
+                  <div className="text-sm text-gray-500">{restaurant.contact_email}</div>
                 </div>
               </div>
               <Link
@@ -179,7 +184,7 @@ export default function RestaurantHeader() {
               <button
                 className="block w-full text-left px-3 py-2 text-base font-medium text-red-600 hover:bg-gray-100"
                 onClick={() => {
-                  // Logout logic here
+                  handleSignOut();
                   setMobileMenuOpen(false);
                 }}
               >

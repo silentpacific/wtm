@@ -1,15 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { QrCode, Menu, User, CreditCard, BarChart3, Plus } from 'lucide-react';
+import { QrCode, Menu, User, CreditCard, BarChart3, Plus, TrendingUp, Eye } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
+import { restaurantAnalyticsService, RestaurantStats } from '../services/restaurantAnalyticsService';
 
 export default function RestaurantDashboard() {
   const { restaurant } = useRestaurantAuth();
-  const [stats, setStats] = useState({
-    totalViews: 1247,
-    thisWeek: 89,
-    popularDishes: []
+  const [stats, setStats] = useState<RestaurantStats>({
+    totalViews: 0,
+    thisWeek: 0,
+    thisMonth: 0,
+    totalDishes: 0,
+    popularDishes: [],
+    recentActivity: []
   });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load analytics data when component mounts
+  useEffect(() => {
+    if (restaurant?.id) {
+      loadStats();
+    }
+  }, [restaurant?.id]);
+
+  const loadStats = async () => {
+    try {
+      setIsLoading(true);
+      const analyticsData = await restaurantAnalyticsService.getRestaurantStats(restaurant!.id);
+      setStats(analyticsData);
+    } catch (error) {
+      console.error('Error loading restaurant stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -42,33 +66,51 @@ export default function RestaurantDashboard() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex items-center">
-            <BarChart3 className="h-8 w-8 text-blue-600" />
+            <Eye className="h-8 w-8 text-blue-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Views</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalViews.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {isLoading ? '...' : stats.totalViews.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex items-center">
-            <BarChart3 className="h-8 w-8 text-green-600" />
+            <TrendingUp className="h-8 w-8 text-green-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">This Week</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.thisWeek}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {isLoading ? '...' : stats.thisWeek.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex items-center">
-            <Menu className="h-8 w-8 text-purple-600" />
+            <BarChart3 className="h-8 w-8 text-purple-600" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">This Month</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {isLoading ? '...' : stats.thisMonth.toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="flex items-center">
+            <Menu className="h-8 w-8 text-orange-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Menu Items</p>
-              <p className="text-2xl font-bold text-gray-900">24</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {isLoading ? '...' : stats.totalDishes.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
@@ -103,6 +145,28 @@ export default function RestaurantDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Popular Dishes Section */}
+      {stats.popularDishes.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Popular Dishes</h2>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="space-y-4">
+              {stats.popularDishes.slice(0, 5).map((dish, index) => (
+                <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                  <div>
+                    <p className="font-medium text-gray-900">{dish.name}</p>
+                    <p className="text-sm text-gray-500">{dish.section}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-blue-600">{dish.views} views</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Restaurant Info Summary */}
       {restaurant && (

@@ -78,7 +78,7 @@ export default function RestaurantBilling() {
         <div className="flex gap-4">
           {isTrialActive ? (
             <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-              Subscribe Now - £25/month
+              Subscribe Now - $25/month
             </button>
           ) : (
             <button className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
@@ -103,7 +103,7 @@ export default function RestaurantBilling() {
               <p className="text-gray-600 text-sm">Everything you need for accessible dining</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-gray-900">£25</p>
+              <p className="text-2xl font-bold text-gray-900">$25</p>
               <p className="text-gray-600 text-sm">per month</p>
             </div>
           </div>
@@ -177,7 +177,7 @@ export default function RestaurantBilling() {
                 <p className="text-sm text-gray-500">Paid on Jan 1, 2025</p>
               </div>
               <div className="text-right">
-                <p className="font-medium text-gray-900">£25.00</p>
+                <p className="font-medium text-gray-900">$25.00</p>
                 <button className="text-blue-600 hover:text-blue-700 text-sm">Download</button>
               </div>
             </div>

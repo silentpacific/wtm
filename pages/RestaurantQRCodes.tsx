@@ -1,11 +1,34 @@
-import React, { useState } from 'react';
-import { Download, QrCode, Printer, Share2 } from 'lucide-react';
+{/* QR Code Placeholder */}
+          <div className="flex justify-center mb-6">
+            {previewUrl ? (
+              <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
+                <img 
+                  src={previewUrl} 
+                  alt="QR Code Preview" 
+                  className="w-48 h-48 object-contain"
+                />
+              </div>
+            ) : (
+              <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <QrCode size={120} className="mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500 text-sm">
+                  QR Code Preview<br />
+                  {sizes[selectedSize as keyof typeof sizes].label}
+                </p>
+              </div>
+            )}
+          </div>import React, { useState, useEffect } from 'react';
+import { Download, QrCode, Printer, Share2, AlertCircle } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
+import { qrCodeService, QRCodeOptions } from '../services/qrCodeService';
 
 export default function RestaurantQRCodes() {
   const { restaurant } = useRestaurantAuth();
   const [selectedSize, setSelectedSize] = useState('medium');
   const [selectedFormat, setSelectedFormat] = useState('png');
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState('');
 
   const sizes = {
     small: { label: '150x150px', value: 150 },
@@ -21,12 +44,41 @@ export default function RestaurantQRCodes() {
 
   const restaurantUrl = restaurant ? `https://whatthemenu.com/restaurants/${restaurant.slug}` : '';
 
-  const handleDownload = (format: string, size: string) => {
-    // This would integrate with your QR code generation service
-    console.log(`Downloading ${format} QR code in ${size} size for ${restaurantUrl}`);
+  // Generate preview when component loads or selection changes
+  useEffect(() => {
+    if (restaurantUrl) {
+      generatePreview();
+    }
+  }, [restaurantUrl, selectedSize]);
+
+  const generatePreview = async () => {
+    try {
+      setError('');
+      const preview = await qrCodeService.getQRCodePreview(restaurantUrl, 200);
+      setPreviewUrl(preview);
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      setError('Failed to generate preview');
+    }
+  };
+
+  const handleDownload = async (format: string, size: string) => {
+    setIsGenerating(true);
+    setError('');
     
-    // For now, just show an alert
-    alert(`QR code download would start here!\nFormat: ${format}\nSize: ${sizes[size as keyof typeof sizes].label}\nURL: ${restaurantUrl}`);
+    try {
+      const options: QRCodeOptions = {
+        size: sizes[size as keyof typeof sizes].value,
+        format: format as 'png' | 'svg' | 'pdf'
+      };
+      
+      await qrCodeService.downloadQRCode(restaurantUrl, options);
+    } catch (error) {
+      console.error('Error downloading QR code:', error);
+      setError('Failed to download QR code. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   if (!restaurant) {
@@ -135,25 +187,36 @@ export default function RestaurantQRCodes() {
           {/* Download Buttons */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Download</h3>
+            
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+                <AlertCircle size={16} />
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+            
             <div className="space-y-3">
               <button
                 onClick={() => handleDownload(selectedFormat, selectedSize)}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                disabled={isGenerating}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Download size={16} />
-                Download {formats[selectedFormat as keyof typeof formats]} ({sizes[selectedSize as keyof typeof sizes].label})
+                {isGenerating ? 'Generating...' : `Download ${formats[selectedFormat as keyof typeof formats]} (${sizes[selectedSize as keyof typeof sizes].label})`}
               </button>
               
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleDownload('png', 'small')}
-                  className="py-2 px-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                  disabled={isGenerating}
+                  className="py-2 px-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
                 >
                   Quick: Small PNG
                 </button>
                 <button
                   onClick={() => handleDownload('png', 'large')}
-                  className="py-2 px-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                  disabled={isGenerating}
+                  className="py-2 px-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
                 >
                   Quick: Large PNG
                 </button>

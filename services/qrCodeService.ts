@@ -1,275 +1,197 @@
-// src/services/qrCodeService.ts
-import QRCode from 'qrcode';
-
+// QR Code Service for Restaurant Pages
 export interface QRCodeOptions {
-  size?: number;
-  margin?: number;
-  color?: {
-    dark?: string;
-    light?: string;
-  };
+  size: number;
+  format: 'png' | 'svg' | 'pdf';
+  errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H';
 }
 
-export interface RestaurantQRData {
-  restaurantSlug: string;
-  restaurantName: string;
-  qrCodeDataURL: string;
-  qrCodeSVG: string;
-  restaurantURL: string;
+export interface QRCodeResult {
+  url: string;
+  dataUrl?: string;
+  filename: string;
 }
 
-export class QRCodeService {
-  private static getRestaurantURL(slug: string): string {
-    const baseURL = window.location.origin;
-    return `${baseURL}/restaurants/${slug}`;
-  }
-
-  /**
-   * Generate QR code as Data URL (PNG format) for display
-   */
-  static async generateQRDataURL(
-    restaurantSlug: string, 
-    options: QRCodeOptions = {}
-  ): Promise<string> {
-    const url = this.getRestaurantURL(restaurantSlug);
+class QRCodeService {
+  // Generate QR code using QR Server API (free service)
+  async generateQRCode(url: string, options: QRCodeOptions): Promise<QRCodeResult> {
+    const { size, format, errorCorrectionLevel = 'M' } = options;
     
-    const qrOptions = {
-      width: options.size || 300,
-      margin: options.margin || 2,
-      color: {
-        dark: options.color?.dark || '#000000',
-        light: options.color?.light || '#FFFFFF'
-      },
-      errorCorrectionLevel: 'M' as const
-    };
-
     try {
-      return await QRCode.toDataURL(url, qrOptions);
+      // Using qr-server.com API (free, reliable service)
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/`;
+      const params = new URLSearchParams({
+        size: `${size}x${size}`,
+        data: url,
+        format: format === 'pdf' ? 'png' : format, // API doesn't support PDF directly
+        ecc: errorCorrectionLevel,
+        margin: '10',
+        qzone: '1'
+      });
+
+      const qrUrl = `${qrApiUrl}?${params.toString()}`;
+      
+      if (format === 'svg') {
+        // For SVG, we'll use a different approach
+        return this.generateSVGQRCode(url, size);
+      }
+
+      // For PNG format
+      const filename = `qr-code-${size}x${size}.${format}`;
+      
+      if (format === 'pdf') {
+        // Generate PDF with QR code
+        return this.generatePDFQRCode(qrUrl, size, url);
+      }
+
+      return {
+        url: qrUrl,
+        filename
+      };
     } catch (error) {
       console.error('Error generating QR code:', error);
       throw new Error('Failed to generate QR code');
     }
   }
 
-  /**
-   * Generate QR code as SVG string for printing
-   */
-  static async generateQRSVG(
-    restaurantSlug: string,
-    options: QRCodeOptions = {}
-  ): Promise<string> {
-    const url = this.getRestaurantURL(restaurantSlug);
+  // Generate SVG QR Code (simplified version)
+  private async generateSVGQRCode(url: string, size: number): Promise<QRCodeResult> {
+    // Using QR Server API but converting to SVG-like format
+    const svgContent = `
+      <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="white"/>
+        <image href="https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&format=png" width="100%" height="100%"/>
+      </svg>
+    `;
     
-    const qrOptions = {
-      width: options.size || 300,
-      margin: options.margin || 2,
-      color: {
-        dark: options.color?.dark || '#000000',
-        light: options.color?.light || '#FFFFFF'
-      },
-      errorCorrectionLevel: 'M' as const
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    const dataUrl = URL.createObjectURL(blob);
+    
+    return {
+      url: dataUrl,
+      dataUrl,
+      filename: `qr-code-${size}x${size}.svg`
     };
+  }
 
+  // Generate PDF with QR code
+  private async generatePDFQRCode(qrImageUrl: string, size: number, originalUrl: string): Promise<QRCodeResult> {
+    // Create a simple PDF-like structure (this is a simplified approach)
+    // In a real implementation, you'd use a proper PDF library
+    
     try {
-      return await QRCode.toString(url, { type: 'svg', ...qrOptions });
+      // Fetch the QR code image
+      const response = await fetch(qrImageUrl);
+      const blob = await response.blob();
+      
+      // Create a canvas to generate PDF content
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 600;
+      canvas.height = 800;
+      
+      if (ctx) {
+        // White background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Add title
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Restaurant QR Code', canvas.width / 2, 50);
+        
+        // Add URL
+        ctx.font = '14px Arial';
+        ctx.fillText(originalUrl, canvas.width / 2, 80);
+        
+        // Load and draw QR code
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        return new Promise((resolve, reject) => {
+          img.onload = () => {
+            const qrSize = Math.min(400, size * 2);
+            const x = (canvas.width - qrSize) / 2;
+            const y = 120;
+            
+            ctx.drawImage(img, x, y, qrSize, qrSize);
+            
+            // Add instructions
+            ctx.font = '16px Arial';
+            ctx.fillText('Scan this QR code to access our accessible menu', canvas.width / 2, y + qrSize + 40);
+            
+            // Convert to blob
+            canvas.toBlob((pdfBlob) => {
+              if (pdfBlob) {
+                const dataUrl = URL.createObjectURL(pdfBlob);
+                resolve({
+                  url: dataUrl,
+                  dataUrl,
+                  filename: `qr-code-${size}x${size}.png` // Note: This is actually PNG, not PDF
+                });
+              } else {
+                reject(new Error('Failed to create PDF'));
+              }
+            }, 'image/png');
+          };
+          
+          img.onerror = () => reject(new Error('Failed to load QR code image'));
+          img.src = qrImageUrl;
+        });
+      }
+      
+      throw new Error('Failed to create canvas context');
     } catch (error) {
-      console.error('Error generating QR SVG:', error);
-      throw new Error('Failed to generate QR SVG');
+      console.error('Error generating PDF QR code:', error);
+      throw error;
     }
   }
 
-  /**
-   * Generate complete restaurant QR data package
-   */
-  static async generateRestaurantQRPackage(
-    restaurantSlug: string,
-    restaurantName: string,
-    options: QRCodeOptions = {}
-  ): Promise<RestaurantQRData> {
+  // Download QR code
+  async downloadQRCode(url: string, options: QRCodeOptions): Promise<void> {
     try {
-      const [qrCodeDataURL, qrCodeSVG] = await Promise.all([
-        this.generateQRDataURL(restaurantSlug, options),
-        this.generateQRSVG(restaurantSlug, options)
-      ]);
-
-      return {
-        restaurantSlug,
-        restaurantName,
-        qrCodeDataURL,
-        qrCodeSVG,
-        restaurantURL: this.getRestaurantURL(restaurantSlug)
-      };
-    } catch (error) {
-      console.error('Error generating QR package:', error);
-      throw new Error('Failed to generate QR code package');
-    }
-  }
-
-  /**
-   * Download QR code as image file
-   */
-  static downloadQRCode(
-    dataURL: string, 
-    filename: string = 'restaurant-qr-code.png'
-  ): void {
-    try {
+      const result = await this.generateQRCode(url, options);
+      
+      // Create download link
       const link = document.createElement('a');
-      link.download = filename;
-      link.href = dataURL;
+      link.href = result.dataUrl || result.url;
+      link.download = result.filename;
+      link.style.display = 'none';
+      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      // Cleanup object URL if we created one
+      if (result.dataUrl && result.dataUrl.startsWith('blob:')) {
+        setTimeout(() => URL.revokeObjectURL(result.dataUrl!), 1000);
+      }
     } catch (error) {
       console.error('Error downloading QR code:', error);
-      throw new Error('Failed to download QR code');
+      throw error;
     }
   }
 
-  /**
-   * Download SVG as file
-   */
-  static downloadQRSVG(
-    svgString: string, 
-    filename: string = 'restaurant-qr-code.svg'
-  ): void {
+  // Get QR code for preview
+  async getQRCodePreview(url: string, size: number = 200): Promise<string> {
     try {
-      const blob = new Blob([svgString], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const result = await this.generateQRCode(url, { size, format: 'png' });
+      return result.url;
     } catch (error) {
-      console.error('Error downloading QR SVG:', error);
-      throw new Error('Failed to download QR SVG');
+      console.error('Error getting QR code preview:', error);
+      return '';
     }
   }
 
-  /**
-   * Generate multiple QR code sizes for different use cases
-   */
-  static async generateMultipleSizes(
-    restaurantSlug: string
-  ): Promise<{
-    small: string;    // 150px - for business cards
-    medium: string;   // 300px - for table tents
-    large: string;    // 600px - for posters
-    print: string;    // SVG for high-quality printing
-  }> {
+  // Validate URL before generating QR code
+  validateUrl(url: string): boolean {
     try {
-      const [small, medium, large, print] = await Promise.all([
-        this.generateQRDataURL(restaurantSlug, { size: 150 }),
-        this.generateQRDataURL(restaurantSlug, { size: 300 }),
-        this.generateQRDataURL(restaurantSlug, { size: 600 }),
-        this.generateQRSVG(restaurantSlug, { size: 300 })
-      ]);
-
-      return { small, medium, large, print };
-    } catch (error) {
-      console.error('Error generating multiple QR sizes:', error);
-      throw new Error('Failed to generate QR code sizes');
+      new URL(url);
+      return true;
+    } catch {
+      return false;
     }
-  }
-
-  /**
-   * Generate branded QR code with restaurant colors
-   */
-  static async generateBrandedQR(
-    restaurantSlug: string,
-    brandColors: { primary: string; background: string },
-    size: number = 300
-  ): Promise<string> {
-    const options: QRCodeOptions = {
-      size,
-      margin: 2,
-      color: {
-        dark: brandColors.primary,
-        light: brandColors.background
-      }
-    };
-
-    return this.generateQRDataURL(restaurantSlug, options);
-  }
-
-  /**
-   * Validate restaurant slug for QR generation
-   */
-  static validateRestaurantSlug(slug: string): boolean {
-    // Check for valid slug format (letters, numbers, hyphens only)
-    const slugRegex = /^[a-z0-9-]+$/;
-    return slugRegex.test(slug) && slug.length >= 3 && slug.length <= 50;
-  }
-
-  /**
-   * Generate table tent template with QR code
-   */
-  static generateTableTentHTML(
-    restaurantName: string,
-    qrCodeDataURL: string,
-    instructions: string = "Scan to view our accessible menu"
-  ): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${restaurantName} - Accessible Menu</title>
-        <style>
-          body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-            text-align: center;
-            background: white;
-          }
-          .tent-container {
-            width: 400px;
-            height: 300px;
-            margin: 0 auto;
-            border: 2px solid #333;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-          }
-          .restaurant-name {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #333;
-          }
-          .qr-code {
-            margin: 15px 0;
-          }
-          .instructions {
-            font-size: 16px;
-            color: #666;
-            margin-top: 10px;
-            line-height: 1.4;
-          }
-          .accessibility-note {
-            font-size: 12px;
-            color: #888;
-            margin-top: 10px;
-            font-style: italic;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="tent-container">
-          <div class="restaurant-name">${restaurantName}</div>
-          <div class="qr-code">
-            <img src="${qrCodeDataURL}" alt="QR Code for ${restaurantName}" width="120" height="120">
-          </div>
-          <div class="instructions">${instructions}</div>
-          <div class="accessibility-note">Designed for deaf and hard-of-hearing customers</div>
-        </div>
-      </body>
-      </html>
-    `;
   }
 }
+
+export const qrCodeService = new QRCodeService();
