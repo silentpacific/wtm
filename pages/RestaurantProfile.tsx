@@ -1,357 +1,406 @@
-import React, { useState, useEffect } from 'react';
-import { Save, AlertCircle } from 'lucide-react';
-import RestaurantLayout from '../components/RestaurantLayout';
-import RestaurantProtectedRoute from '../components/RestaurantProtectedRoute';
+import React, { useState } from 'react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
+import { Save, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function RestaurantProfile() {
   const { restaurant, updateRestaurant } = useRestaurantAuth();
-  const [profile, setProfile] = useState({
-    business_name: '',
-    slug: '',
-    address: '',
-    city: '',
-    country: '',
-    phone: '',
-    website: '',
-    cuisine_type: '',
-    opening_hours: '',
-    special_notes: '',
-    description_en: ''
-  });
-  
-  const [originalSlug, setOriginalSlug] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  
+  const [formData, setFormData] = useState({
+    business_name: restaurant?.business_name || '',
+    contact_email: restaurant?.contact_email || '',
+    contact_phone: restaurant?.contact_phone || '',
+    address: restaurant?.address || '',
+    city: restaurant?.city || '',
+    country: restaurant?.country || '',
+    cuisine_type: restaurant?.cuisine_type || '',
+    website: restaurant?.website || '',
+    opening_hours: restaurant?.opening_hours || '',
+    special_notes: restaurant?.special_notes || '',
+    description_en: restaurant?.description_en || '',
+  });
 
-  // Load restaurant data when component mounts or restaurant changes
-  useEffect(() => {
-    if (restaurant) {
-      setProfile({
-        business_name: restaurant.business_name || '',
-        slug: restaurant.slug || '',
-        address: restaurant.address || '',
-        city: restaurant.city || '',
-        country: restaurant.country || '',
-        phone: restaurant.contact_phone || '',
-        website: restaurant.website || '',
-        cuisine_type: restaurant.cuisine_type || '',
-        opening_hours: restaurant.opening_hours || '',
-        special_notes: restaurant.special_notes || '',
-        description_en: restaurant.description_en || ''
-      });
-      setOriginalSlug(restaurant.slug || '');
-    }
-  }, [restaurant]);
-
-  // Generate slug from business name
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleBusinessNameChange = (name: string) => {
-    setProfile({
-      ...profile,
-      business_name: name,
-      slug: generateSlug(name)
-    });
-  };
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveMessage('');
 
-  const saveProfile = async () => {
-    setSaving(true);
-    setError('');
-    
     try {
-      const result = await updateRestaurant({
-        business_name: profile.business_name,
-        slug: profile.slug,
-        address: profile.address,
-        city: profile.city,
-        country: profile.country,
-        contact_phone: profile.phone,
-        website: profile.website,
-        cuisine_type: profile.cuisine_type,
-        opening_hours: profile.opening_hours,
-        special_notes: profile.special_notes,
-        description_en: profile.description_en
-      });
-
+      const result = await updateRestaurant(formData);
+      
       if (result.success) {
+        setSaveMessage('Profile updated successfully!');
         setIsEditing(false);
-        setOriginalSlug(profile.slug);
+        setTimeout(() => setSaveMessage(''), 3000);
       } else {
-        setError(result.error || 'Failed to save profile');
+        setSaveMessage(`Error: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error saving profile:', error);
-      setError('Failed to save profile');
+      setSaveMessage('Failed to update profile');
     } finally {
-      setSaving(false);
+      setIsSaving(false);
     }
   };
 
+  const handleCancel = () => {
+    // Reset form data to original values
+    setFormData({
+      business_name: restaurant?.business_name || '',
+      contact_email: restaurant?.contact_email || '',
+      contact_phone: restaurant?.contact_phone || '',
+      address: restaurant?.address || '',
+      city: restaurant?.city || '',
+      country: restaurant?.country || '',
+      cuisine_type: restaurant?.cuisine_type || '',
+      website: restaurant?.website || '',
+      opening_hours: restaurant?.opening_hours || '',
+      special_notes: restaurant?.special_notes || '',
+      description_en: restaurant?.description_en || '',
+    });
+    setIsEditing(false);
+    setSaveMessage('');
+  };
+
+  if (!restaurant) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="text-center">
+          <p className="text-gray-500">Loading restaurant profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <RestaurantProtectedRoute>
-      <RestaurantLayout>
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="bg-white rounded-lg p-6 mb-8 shadow-sm">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Restaurant Profile</h1>
-                <p className="text-gray-600">Manage your restaurant information and settings</p>
-              </div>
-              <div className="flex gap-2">
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={saveProfile}
-                      disabled={saving}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
-                    >
-                      <Save size={16} />
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsEditing(false);
-                        setError('');
-                        // Reset form to original values
-                        if (restaurant) {
-                          setProfile({
-                            business_name: restaurant.business_name || '',
-                            slug: restaurant.slug || '',
-                            address: restaurant.address || '',
-                            city: restaurant.city || '',
-                            country: restaurant.country || '',
-                            phone: restaurant.contact_phone || '',
-                            website: restaurant.website || '',
-                            cuisine_type: restaurant.cuisine_type || '',
-                            opening_hours: restaurant.opening_hours || '',
-                            special_notes: restaurant.special_notes || '',
-                            description_en: restaurant.description_en || ''
-                          });
-                        }
-                      }}
-                      className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                  >
-                    Edit Profile
-                  </button>
-                )}
-              </div>
-            </div>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Restaurant Profile</h1>
+          <p className="text-gray-600 mt-1">Manage your restaurant information and settings</p>
+        </div>
+        
+        {!isEditing ? (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Edit Profile
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              <Save size={16} />
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
+        )}
+      </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              {error}
-            </div>
+      {/* Save Message */}
+      {saveMessage && (
+        <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
+          saveMessage.includes('Error') 
+            ? 'bg-red-50 border border-red-200 text-red-700' 
+            : 'bg-green-50 border border-green-200 text-green-700'
+        }`}>
+          {saveMessage.includes('Error') ? (
+            <AlertCircle size={20} />
+          ) : (
+            <CheckCircle size={20} />
           )}
+          {saveMessage}
+        </div>
+      )}
 
-          {/* Profile Form */}
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Business Name */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Restaurant Name *
-                </label>
-                <input
-                  type="text"
-                  value={profile.business_name}
-                  onChange={(e) => handleBusinessNameChange(e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full p-3 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-500"
-                  placeholder="Your Restaurant Name"
-                />
-              </div>
-
-              {/* URL Slug */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Restaurant URL
-                </label>
-                <div className="flex items-center">
-                  <span className="bg-gray-100 text-gray-600 px-3 py-3 rounded-l-lg border border-r-0 border-gray-300">
-                    whatthemenu.com/restaurants/
-                  </span>
-                  <input
-                    type="text"
-                    value={profile.slug}
-                    onChange={(e) => setProfile({...profile, slug: e.target.value})}
-                    disabled={!isEditing}
-                    className="flex-1 p-3 border border-gray-300 rounded-r-lg disabled:bg-gray-50 disabled:text-gray-500"
-                    placeholder="your-restaurant-name"
-                  />
-                </div>
-                {profile.slug !== originalSlug && isEditing && (
-                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded flex items-center gap-2">
-                    <AlertCircle size={16} className="text-yellow-600" />
-                    <span className="text-sm text-yellow-800">
-                      Changing your URL will affect your QR codes and existing links
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Address */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                <input
-                  type="text"
-                  value={profile.address}
-                  onChange={(e) => setProfile({...profile, address: e.target.value})}
-                  disabled={!isEditing}
-                  className="w-full p-3 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-500"
-                  placeholder="123 High Street"
-                />
-              </div>
-
-              {/* City */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                <input
-                  type="text"
-                  value={profile.city}
-                  onChange={(e) => setProfile({...profile, city: e.target.value})}
-                  disabled={!isEditing}
-                  className="w-full p-3 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-500"
-                  placeholder="London"
-                />
-              </div>
-
-              {/* Country */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                <select
-                  value={profile.country}
-                  onChange={(e) => setProfile({...profile, country: e.target.value})}
-                  disabled={!isEditing}
-                  className="w-full p-3 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-500"
-                >
-                  <option value="">Select country</option>
-                  <option value="UK">United Kingdom</option>
-                  <option value="US">United States</option>
-                  <option value="CA">Canada</option>
-                  <option value="AU">Australia</option>
-                  <option value="FR">France</option>
-                  <option value="DE">Germany</option>
-                  <option value="ES">Spain</option>
-                  <option value="IT">Italy</option>
-                </select>
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                <input
-                  type="tel"
-                  value={profile.phone}
-                  onChange={(e) => setProfile({...profile, phone: e.target.value})}
-                  disabled={!isEditing}
-                  className="w-full p-3 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-500"
-                  placeholder="+44 20 1234 5678"
-                />
-              </div>
-
-              {/* Website */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
-                <input
-                  type="url"
-                  value={profile.website}
-                  onChange={(e) => setProfile({...profile, website: e.target.value})}
-                  disabled={!isEditing}
-                  className="w-full p-3 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-500"
-                  placeholder="https://yourrestaurant.com"
-                />
-              </div>
-
-              {/* Cuisine Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Cuisine Type</label>
-                <select
-                  value={profile.cuisine_type}
-                  onChange={(e) => setProfile({...profile, cuisine_type: e.target.value})}
-                  disabled={!isEditing}
-                  className="w-full p-3 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-500"
-                >
-                  <option value="">Select cuisine type</option>
-                  <option value="British">British</option>
-                  <option value="Italian">Italian</option>
-                  <option value="French">French</option>
-                  <option value="Indian">Indian</option>
-                  <option value="Chinese">Chinese</option>
-                  <option value="Japanese">Japanese</option>
-                  <option value="Mexican">Mexican</option>
-                  <option value="Mediterranean">Mediterranean</option>
-                  <option value="American">American</option>
-                  <option value="Thai">Thai</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              {/* Opening Hours */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Opening Hours</label>
-                <textarea
-                  value={profile.opening_hours}
-                  onChange={(e) => setProfile({...profile, opening_hours: e.target.value})}
-                  disabled={!isEditing}
-                  className="w-full p-3 border border-gray-300 rounded-lg h-20 disabled:bg-gray-50 disabled:text-gray-500"
-                  placeholder="Mon-Fri: 12:00-22:00, Sat-Sun: 11:00-23:00"
-                />
-              </div>
-
-              {/* Description */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Restaurant Description</label>
-                <textarea
-                  value={profile.description_en}
-                  onChange={(e) => setProfile({...profile, description_en: e.target.value})}
-                  disabled={!isEditing}
-                  className="w-full p-3 border border-gray-300 rounded-lg h-24 disabled:bg-gray-50 disabled:text-gray-500"
-                  placeholder="Tell customers about your restaurant..."
-                />
-              </div>
-
-              {/* Special Notes */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Special Notes</label>
-                <textarea
-                  value={profile.special_notes}
-                  onChange={(e) => setProfile({...profile, special_notes: e.target.value})}
-                  disabled={!isEditing}
-                  className="w-full p-3 border border-gray-300 rounded-lg h-20 disabled:bg-gray-50 disabled:text-gray-500"
-                  placeholder="Any special notes for customers (allergies, reservations, etc.)"
-                />
-              </div>
+      {/* Profile Form */}
+      <div className="bg-white rounded-lg shadow-sm">
+        
+        {/* Basic Information */}
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Restaurant Name - NOT EDITABLE */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Restaurant Name
+              </label>
+              <input
+                type="text"
+                value={formData.business_name}
+                disabled={true}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Restaurant name cannot be changed to maintain QR code links
+              </p>
             </div>
 
-            {/* Email Note */}
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Email address cannot be changed here. Contact support if you need to update your email.
+            {/* Public URL - NOT EDITABLE */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Public URL
+              </label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 py-2 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                  whatthemenu.com/restaurants/
+                </span>
+                <input
+                  type="text"
+                  value={restaurant.slug}
+                  disabled={true}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                URL cannot be changed to maintain QR code functionality
               </p>
+            </div>
+
+            {/* Contact Email */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contact Email
+              </label>
+              <input
+                type="email"
+                value={formData.contact_email}
+                onChange={(e) => handleInputChange('contact_email', e.target.value)}
+                disabled={!isEditing}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                  isEditing ? 'focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-50'
+                }`}
+              />
+            </div>
+
+            {/* Contact Phone */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contact Phone
+              </label>
+              <input
+                type="tel"
+                value={formData.contact_phone}
+                onChange={(e) => handleInputChange('contact_phone', e.target.value)}
+                disabled={!isEditing}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                  isEditing ? 'focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-50'
+                }`}
+                placeholder="+44 123 456 7890"
+              />
+            </div>
+
+            {/* Website */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Website
+              </label>
+              <input
+                type="url"
+                value={formData.website}
+                onChange={(e) => handleInputChange('website', e.target.value)}
+                disabled={!isEditing}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                  isEditing ? 'focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-50'
+                }`}
+                placeholder="https://your-restaurant.com"
+              />
+            </div>
+
+            {/* Cuisine Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Cuisine Type
+              </label>
+              <select
+                value={formData.cuisine_type}
+                onChange={(e) => handleInputChange('cuisine_type', e.target.value)}
+                disabled={!isEditing}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                  isEditing ? 'focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-50'
+                }`}
+              >
+                <option value="">Select cuisine type</option>
+                <option value="italian">Italian</option>
+                <option value="chinese">Chinese</option>
+                <option value="indian">Indian</option>
+                <option value="french">French</option>
+                <option value="mexican">Mexican</option>
+                <option value="japanese">Japanese</option>
+                <option value="thai">Thai</option>
+                <option value="mediterranean">Mediterranean</option>
+                <option value="american">American</option>
+                <option value="british">British</option>
+                <option value="other">Other</option>
+              </select>
             </div>
           </div>
         </div>
-      </RestaurantLayout>
-    </RestaurantProtectedRoute>
+
+        {/* Location Information */}
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Location</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Address */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Address
+              </label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                disabled={!isEditing}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                  isEditing ? 'focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-50'
+                }`}
+                placeholder="123 Main Street"
+              />
+            </div>
+
+            {/* City */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                City
+              </label>
+              <input
+                type="text"
+                value={formData.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                disabled={!isEditing}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                  isEditing ? 'focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-50'
+                }`}
+                placeholder="London"
+              />
+            </div>
+
+            {/* Country */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Country
+              </label>
+              <input
+                type="text"
+                value={formData.country}
+                onChange={(e) => handleInputChange('country', e.target.value)}
+                disabled={!isEditing}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                  isEditing ? 'focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-50'
+                }`}
+                placeholder="United Kingdom"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Information */}
+        <div className="p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h2>
+          
+          {/* Opening Hours */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Opening Hours
+            </label>
+            <textarea
+              value={formData.opening_hours}
+              onChange={(e) => handleInputChange('opening_hours', e.target.value)}
+              disabled={!isEditing}
+              rows={3}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                isEditing ? 'focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-50'
+              }`}
+              placeholder="Mon-Fri: 9:00 AM - 10:00 PM&#10;Sat-Sun: 10:00 AM - 11:00 PM"
+            />
+          </div>
+
+          {/* Description */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Restaurant Description
+            </label>
+            <textarea
+              value={formData.description_en}
+              onChange={(e) => handleInputChange('description_en', e.target.value)}
+              disabled={!isEditing}
+              rows={4}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                isEditing ? 'focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-50'
+              }`}
+              placeholder="Describe your restaurant, atmosphere, and specialties..."
+            />
+          </div>
+
+          {/* Special Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Special Notes
+            </label>
+            <textarea
+              value={formData.special_notes}
+              onChange={(e) => handleInputChange('special_notes', e.target.value)}
+              disabled={!isEditing}
+              rows={3}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                isEditing ? 'focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-50'
+              }`}
+              placeholder="Any special notes for customers (accessibility info, dietary accommodations, etc.)"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Subscription Info */}
+      <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Subscription Status</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-gray-600">Current Status:</p>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${
+              restaurant.subscription_status === 'active' 
+                ? 'bg-green-100 text-green-800'
+                : restaurant.subscription_status === 'trial'
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {restaurant.subscription_status === 'active' && '✓ Active Subscription'}
+              {restaurant.subscription_status === 'trial' && '⏱️ Free Trial'}
+              {restaurant.subscription_status === 'cancelled' && '⚠️ Cancelled'}
+            </span>
+            
+            {restaurant.subscription_status === 'trial' && (
+              <p className="text-sm text-gray-500 mt-1">
+                Trial expires: {new Date(restaurant.trial_expires_at).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+          
+          <a
+            href="/restaurant/billing"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Manage Billing
+          </a>
+        </div>
+      </div>
+    </div>
   );
 }
