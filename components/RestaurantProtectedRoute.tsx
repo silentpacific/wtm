@@ -40,7 +40,7 @@ export default function RestaurantProtectedRoute({ children }: RestaurantProtect
     );
   }
 
-  // If not authenticated, show minimal auth prompt (NOT full landing page)
+  // If not authenticated, show minimal auth prompt
   if (!restaurant) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -95,7 +95,7 @@ export default function RestaurantProtectedRoute({ children }: RestaurantProtect
     );
   }
 
-  // User is authenticated - render the protected content WITH header and footer
+  // User is authenticated - render with header and footer
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <RestaurantHeader />

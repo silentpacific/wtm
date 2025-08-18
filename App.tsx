@@ -21,7 +21,6 @@ import { getAnonymousUsage } from './services/anonymousUsageTracking';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
 import RestaurantPublicPage from './pages/RestaurantPublicPage';
-import QRCodeTest from './components/QRCodeTest';
 
 // Restaurant management imports
 import RestaurantLandingPage from './pages/restaurant-landing-page';
@@ -475,7 +474,6 @@ const AppContent: FC = () => {
           <Route path="/refund-policy" element={<RefundsPolicyPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
-          <Route path="/qr-test" element={<QRCodeTest />} />
 
           {/* Restaurant public pages (customer-facing) */}
           <Route path="/restaurants/:slug" element={<RestaurantPublicPage />} />

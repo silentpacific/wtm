@@ -1,35 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, QrCode, Printer, Share2, AlertCircle } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
-
-// Simplified QR code options interface
-interface QRCodeOptions {
-  size: number;
-  format: 'png' | 'svg' | 'pdf';
-}
-
-// Simple QR code service inline
-const generateQRCode = async (url: string, options: QRCodeOptions) => {
-  const { size, format } = options;
-  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&format=png`;
-  return { url: qrApiUrl, filename: `qr-code-${size}x${size}.${format}` };
-};
-
-const downloadQRCode = async (url: string, options: QRCodeOptions) => {
-  const result = await generateQRCode(url, options);
-  const link = document.createElement('a');
-  link.href = result.url;
-  link.download = result.filename;
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-const getQRCodePreview = async (url: string, size: number = 200) => {
-  const result = await generateQRCode(url, { size, format: 'png' });
-  return result.url;
-};
+import { qrCodeService, QRCodeOptions } from '../services/qrCodeService';
 
 export default function RestaurantQRCodes() {
   const { restaurant } = useRestaurantAuth();
@@ -63,7 +35,7 @@ export default function RestaurantQRCodes() {
   const generatePreview = async () => {
     try {
       setError('');
-      const preview = await getQRCodePreview(restaurantUrl, 200);
+      const preview = await qrCodeService.getQRCodePreview(restaurantUrl, 200);
       setPreviewUrl(preview);
     } catch (error) {
       console.error('Error generating preview:', error);
@@ -81,7 +53,7 @@ export default function RestaurantQRCodes() {
         format: format as 'png' | 'svg' | 'pdf'
       };
       
-      await downloadQRCode(restaurantUrl, options);
+      await qrCodeService.downloadQRCode(restaurantUrl, options);
     } catch (error) {
       console.error('Error downloading QR code:', error);
       setError('Failed to download QR code. Please try again.');
@@ -238,7 +210,7 @@ export default function RestaurantQRCodes() {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">QR Code Preview</h3>
           
-          {/* QR Code Placeholder */}
+          {/* QR Code Preview */}
           <div className="flex justify-center mb-6">
             {previewUrl ? (
               <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
