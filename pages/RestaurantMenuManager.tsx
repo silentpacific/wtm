@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, Camera } from 'lucide-react';
+import RestaurantMenuScanner from '../components/RestaurantMenuScanner';
 
 interface MenuItem {
   id: string;
@@ -12,6 +13,7 @@ interface MenuItem {
 }
 
 export default function RestaurantMenuManager() {
+  const [activeTab, setActiveTab] = useState<'manage' | 'scan'>('manage');
   const [menuItems, setMenuItems] = useState<MenuItem[]>([
     {
       id: '1',
@@ -78,21 +80,53 @@ export default function RestaurantMenuManager() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Menu Manager</h1>
-          <p className="text-gray-600 mt-1">Add, edit, and organize your menu items</p>
-        </div>
+      {/* Header with Tabs */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Menu Manager</h1>
         
-        <button
-          onClick={() => setIsAddingItem(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Plus size={16} />
-          Add Dish
-        </button>
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('manage')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'manage'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Manage Menu
+            </button>
+            <button
+              onClick={() => setActiveTab('scan')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'scan'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Camera size={16} />
+              Scan Menu
+            </button>
+          </nav>
+        </div>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === 'scan' ? (
+        <RestaurantMenuScanner />
+      ) : (
+        <>
+          {/* Original Menu Manager Content */}
+          <div className="flex justify-between items-center mb-6">
+            <p className="text-gray-600">Add, edit, and organize your menu items</p>
+            <button
+              onClick={() => setIsAddingItem(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <Plus size={16} />
+              Add Dish
+            </button>
+          </div>
 
       {/* Add New Item Modal */}
       {isAddingItem && (
@@ -325,8 +359,11 @@ export default function RestaurantMenuManager() {
           <li>• Add dietary tags to help customers filter options</li>
           <li>• Keep descriptions concise but informative</li>
           <li>• Update prices regularly to reflect current costs</li>
-        </ul>
-      </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
+        
