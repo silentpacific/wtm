@@ -53,7 +53,18 @@ function SimpleMenuScanner() {
 
       const result = await response.json();
       console.log('✅ API Response:', result);
-      alert('Scanning test successful! Check console for details.');
+      
+      // Show detailed results
+      if (result.dishes && result.dishes.length > 0) {
+        console.log(`🍽️ Found ${result.dishes.length} dishes:`);
+        result.dishes.forEach((dish, index) => {
+          console.log(`${index + 1}. ${dish.name} (${dish.section}) - ${dish.price || 'N/A'}`);
+        });
+        alert(`Menu scan successful! Found ${result.dishes.length} dishes. Check console for full details.`);
+      } else {
+        console.log('❌ No dishes found or error occurred:', result);
+        alert(`Scan completed but no dishes found. Response: ${JSON.stringify(result, null, 2)}`);
+      }
 
     } catch (error) {
       console.error('❌ Scanning error:', error);
@@ -128,15 +139,80 @@ function SimpleMenuScanner() {
         </div>
       )}
 
-      <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <h3 className="font-semibold text-yellow-900 mb-3">Debug Information</h3>
-        <div className="text-yellow-800 text-sm space-y-1">
-          <p>• This is a simplified scanner to test if the basic functionality works</p>
-          <p>• Your restaurant ID: 7</p>
-          <p>• The Supabase errors in console suggest connection issues</p>
-          <p>• This test bypasses the tab system to isolate the scanning feature</p>
+      {scanResult && (
+        <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Scan Results</h3>
+          
+          {scanResult.error ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h4 className="font-medium text-red-800">Error:</h4>
+              <p className="text-red-700 text-sm">{scanResult.error}</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {scanResult.restaurant_name && (
+                <div>
+                  <strong>Restaurant:</strong> {scanResult.restaurant_name}
+                </div>
+              )}
+              
+              {scanResult.cuisine_type && (
+                <div>
+                  <strong>Cuisine:</strong> {scanResult.cuisine_type}
+                </div>
+              )}
+              
+              {scanResult.dishes && scanResult.dishes.length > 0 ? (
+                <div>
+                  <h4 className="font-medium mb-2">Found {scanResult.dishes.length} dishes:</h4>
+                  <div className="space-y-3">
+                    {scanResult.dishes.map((dish, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h5 className="font-medium">{dish.name}</h5>
+                            <p className="text-sm text-gray-600">Section: {dish.section}</p>
+                            {dish.description && (
+                              <p className="text-sm text-gray-500 mt-1">{dish.description}</p>
+                            )}
+                          </div>
+                          {dish.price && (
+                            <span className="font-bold text-green-600">${dish.price}</span>
+                          )}
+                        </div>
+                        
+                        {(dish.dietary_tags?.length > 0 || dish.allergens?.length > 0) && (
+                          <div className="flex gap-1 mt-2">
+                            {dish.dietary_tags?.map((tag) => (
+                              <span key={tag} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                                {tag}
+                              </span>
+                            ))}
+                            {dish.allergens?.map((allergen) => (
+                              <span key={allergen} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">
+                                {allergen}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-gray-500">No dishes found in the menu.</div>
+              )}
+              
+              <button
+                onClick={() => setScanResult(null)}
+                className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                Scan Another Menu
+              </button>
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
