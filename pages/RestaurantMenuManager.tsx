@@ -8,11 +8,48 @@ function SimpleMenuScanner() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<any>(null);
+  const [loadingDish, setLoadingDish] = useState<string | null>(null);
+  const [dishExplanations, setDishExplanations] = useState<Record<string, any>>({});
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
-      setScanResult(null); // Clear previous results
+      setScanResult(null);
+      setDishExplanations({});
+    }
+  };
+
+  // Function to get dish explanation (like consumer app)
+  const getDishInfo = async (dishName: string) => {
+    if (dishExplanations[dishName] || !restaurant) return;
+    
+    setLoadingDish(dishName);
+    
+    try {
+      const response = await fetch('/.netlify/functions/getDishExplanation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dishName: dishName,
+          language: 'en',
+          restaurantId: restaurant.id.toString(),
+          restaurantName: restaurant.business_name
+        }),
+      });
+
+      if (response.ok) {
+        const explanation = await response.json();
+        setDishExplanations(prev => ({
+          ...prev,
+          [dishName]: explanation
+        }));
+      }
+    } catch (error) {
+      console.error('Error getting dish explanation:', error);
+    } finally {
+      setLoadingDish(null);
     }
   };
 
@@ -41,7 +78,7 @@ function SimpleMenuScanner() {
       console.log('📸 File converted to base64, length:', base64.length);
       console.log('🏪 Restaurant ID:', restaurant.id, 'Name:', restaurant.business_name);
       
-      // Call the new menu scanning endpoint
+      // Use the same approach as consumer app - just extract dish names and sections
       const response = await fetch('/.netlify/functions/scanRestaurantMenu', {
         method: 'POST',
         headers: {
@@ -52,7 +89,7 @@ function SimpleMenuScanner() {
           filename: selectedFile.name,
           restaurantId: restaurant.id.toString(),
           restaurantName: restaurant.business_name,
-          scanType: 'debug'
+          scanType: 'simple' // Use simple mode like consumer app
         }),
       });
 
@@ -175,37 +212,54 @@ function SimpleMenuScanner() {
               
               {scanResult.dishes && scanResult.dishes.length > 0 ? (
                 <div>
-                  <h4 className="font-medium mb-2">Found {scanResult.dishes.length} dishes:</h4>
+                  <h4 className="font-medium mb-2">Found {scanResult.dishes.length} dishes (click for details):</h4>
                   <div className="space-y-3">
                     {scanResult.dishes.map((dish, index) => (
                       <div key={index} className="border border-gray-200 rounded-lg p-3">
                         <div className="flex justify-between items-start">
-                          <div>
-                            <h5 className="font-medium">{dish.name}</h5>
-                            <p className="text-sm text-gray-600">Section: {dish.section}</p>
-                            {dish.description && (
-                              <p className="text-sm text-gray-500 mt-1">{dish.description}</p>
+                          <div className="flex-1">
+                            <button
+                              onClick={() => getDishInfo(dish.name)}
+                              className="text-left w-full hover:bg-gray-50 p-2 rounded transition-colors"
+                              disabled={loadingDish === dish.name}
+                            >
+                              <h5 className="font-medium text-blue-600 hover:text-blue-700">
+                                {dish.name}
+                                {loadingDish === dish.name && (
+                                  <span className="ml-2 text-sm text-gray-500">Loading...</span>
+                                )}
+                              </h5>
+                              <p className="text-sm text-gray-600">Section: {dish.section}</p>
+                            </button>
+                            
+                            {dishExplanations[dish.name] && (
+                              <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
+                                <p className="text-gray-700">{dishExplanations[dish.name].explanation}</p>
+                                {dishExplanations[dish.name].tags?.length > 0 && (
+                                  <div className="flex gap-1 mt-2">
+                                    {dishExplanations[dish.name].tags.map((tag) => (
+                                      <span key={tag} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                {dishExplanations[dish.name].allergens?.length > 0 && (
+                                  <div className="flex gap-1 mt-1">
+                                    {dishExplanations[dish.name].allergens.map((allergen) => (
+                                      <span key={allergen} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">
+                                        {allergen}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
                           {dish.price && (
                             <span className="font-bold text-green-600">${dish.price}</span>
                           )}
                         </div>
-                        
-                        {(dish.dietary_tags?.length > 0 || dish.allergens?.length > 0) && (
-                          <div className="flex gap-1 mt-2">
-                            {dish.dietary_tags?.map((tag) => (
-                              <span key={tag} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                                {tag}
-                              </span>
-                            ))}
-                            {dish.allergens?.map((allergen) => (
-                              <span key={allergen} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">
-                                {allergen}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>

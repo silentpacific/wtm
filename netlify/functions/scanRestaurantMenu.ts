@@ -2,27 +2,23 @@ import type { Handler, HandlerEvent } from "@netlify/functions";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from '@supabase/supabase-js';
 
-// Define the schema for menu scanning response
+// Simple schema - just dish names and sections (like consumer app)
 const menuScanSchema = {
     type: Type.OBJECT,
     properties: {
-        restaurant_name: {
-            type: Type.STRING,
-            description: "The name of the restaurant if visible on the menu"
-        },
         cuisine_type: {
             type: Type.STRING,
-            description: "The type of cuisine (e.g., 'Italian', 'Mexican', 'Chinese', etc.)"
+            description: "The type of cuisine if identifiable"
         },
         dishes: {
             type: Type.ARRAY,
-            description: "Array of all dishes found on the menu",
+            description: "Array of dish names and sections only",
             items: {
                 type: Type.OBJECT,
                 properties: {
                     name: {
                         type: Type.STRING,
-                        description: "The name of the dish"
+                        description: "The exact name of the dish as written"
                     },
                     section: {
                         type: Type.STRING,
@@ -30,37 +26,11 @@ const menuScanSchema = {
                     },
                     price: {
                         type: Type.NUMBER,
-                        description: "Price of the dish if visible"
-                    },
-                    description: {
-                        type: Type.STRING,
-                        description: "Brief description of the dish if available"
-                    },
-                    allergens: {
-                        type: Type.ARRAY,
-                        description: "Potential allergens in the dish",
-                        items: { type: Type.STRING }
-                    },
-                    dietary_tags: {
-                        type: Type.ARRAY,
-                        description: "Dietary tags like 'Vegetarian', 'Vegan', 'Gluten-Free'",
-                        items: { type: Type.STRING }
+                        description: "Price if clearly visible, otherwise null"
                     }
                 },
                 required: ["name", "section"]
             }
-        },
-        header_notes: {
-            type: Type.STRING,
-            description: "Any header text or restaurant information from the menu"
-        },
-        footer_notes: {
-            type: Type.STRING,
-            description: "Any footer text, policies, or special notes from the menu"
-        },
-        special_notes: {
-            type: Type.STRING,
-            description: "Any other important information from the menu"
         }
     },
     required: ["dishes", "cuisine_type"]
@@ -151,28 +121,15 @@ export const handler: Handler = async (event: HandlerEvent) => {
         // Initialize Gemini AI
         const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
-        // Create the prompt for menu analysis
-        const prompt = `You are a professional menu digitization expert. Analyze this restaurant menu image and extract all the information systematically.
+        // Use SIMPLE prompt like consumer app - just extract dish names and sections
+        const prompt = `You are a menu scanner. Extract ONLY the dish names and their menu sections from this image.
 
-IMPORTANT: Look carefully at the image and identify:
+DO NOT provide descriptions, ingredients, or detailed analysis. Just extract:
+- Dish names exactly as written
+- Which section each dish belongs to (Appetizers, Mains, Desserts, Drinks, etc.)
+- Prices if clearly visible
 
-1. **All dishes and food items** with their names exactly as written
-2. **Menu sections** (Appetizers, Mains, Entrees, Desserts, Beverages, etc.)
-3. **Prices** for each item if visible
-4. **Descriptions** for dishes if provided
-5. **Restaurant name** if visible
-6. **Cuisine type** based on the dishes
-7. **Special notes** like "GF" for gluten-free, "V" for vegetarian, etc.
-
-For each dish, also determine:
-- **Potential allergens** (gluten, dairy, nuts, shellfish, eggs, etc.)
-- **Dietary tags** (vegetarian, vegan, gluten-free, etc.) based on ingredients
-
-If the image is unclear or not a menu, return an empty dishes array.
-
-Extract ALL visible food items, even if they're in different sections or formats.
-
-Return the data in the specified JSON format.`;
+Keep it simple and fast. Return only the basic structure.`;
 
         // Prepare the image part for Gemini
         const imagePart = {
@@ -182,9 +139,9 @@ Return the data in the specified JSON format.`;
             }
         };
 
-        // Call Gemini Vision API
+        // Call Gemini Vision API with SIMPLE request (like consumer app)
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', // Use the vision-capable model
+            model: 'gemini-2.5-flash',
             contents: { 
                 parts: [
                     { text: prompt },
