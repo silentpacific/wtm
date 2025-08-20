@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Edit, Trash2, Save, X, Camera } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
 
 // Simplified menu scanner component to test
-function SimpleMenuScanner() {
+function SimpleMenuScanner({ onDishesScanned }: { onDishesScanned?: () => void }) {
   const { restaurant } = useRestaurantAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -111,6 +111,13 @@ function SimpleMenuScanner() {
         
         // Automatically save dishes to database and reload menu
         console.log('💾 Saving dishes to database...');
+        console.log('📊 Save request data:', {
+          dishCount: result.dishes.length,
+          restaurantId: restaurant.id.toString(),
+          restaurantName: restaurant.business_name,
+          cuisineType: result.cuisine_type
+        });
+        
         try {
           const saveResponse = await fetch('/.netlify/functions/saveScannedDishes', {
             method: 'POST',
@@ -125,17 +132,22 @@ function SimpleMenuScanner() {
             }),
           });
 
+          console.log('💾 Save response status:', saveResponse.status);
+          
           if (saveResponse.ok) {
             const saveResult = await saveResponse.json();
             console.log('✅ Dishes saved to database:', saveResult);
             
             // Reload the manage menu tab to show new dishes
-            await loadDishes();
+            if (onDishesScanned) {
+              await onDishesScanned();
+            }
             
             alert(`Menu scan successful! Found ${result.dishes.length} dishes and saved them to your restaurant menu. Switch to "Manage Menu" to edit them.`);
           } else {
-            console.error('Failed to save dishes:', await saveResponse.text());
-            alert(`Menu scan successful! Found ${result.dishes.length} dishes, but there was an issue saving them. Check console for details.`);
+            const errorText = await saveResponse.text();
+            console.error('❌ Failed to save dishes:', errorText);
+            alert(`Menu scan successful! Found ${result.dishes.length} dishes, but failed to save them. Error: ${errorText}`);
           }
         } catch (saveError) {
           console.error('Error saving dishes:', saveError);
@@ -395,17 +407,24 @@ export default function RestaurantMenuManager() {
 
   // Load dishes from database when component mounts or restaurant changes
   const loadDishes = async () => {
-    if (!restaurant) return;
+    if (!restaurant) {
+      console.log('⏳ No restaurant loaded yet');
+      return;
+    }
     
+    console.log(`📋 Loading dishes for restaurant ID: ${restaurant.id}`);
     setLoading(true);
+    
     try {
       const response = await fetch(`/.netlify/functions/getRestaurantDishes?restaurantId=${restaurant.id}`);
+      
       if (response.ok) {
         const data = await response.json();
         setMenuItems(data.dishes || []);
-        console.log(`📋 Loaded ${data.dishes?.length || 0} dishes from database`);
+        console.log(`✅ Loaded ${data.dishes?.length || 0} dishes from database`);
       } else {
-        console.error('Failed to load dishes');
+        const errorText = await response.text();
+        console.error('Failed to load dishes:', response.status, errorText);
       }
     } catch (error) {
       console.error('Error loading dishes:', error);
@@ -415,8 +434,13 @@ export default function RestaurantMenuManager() {
   };
 
   // Load dishes when restaurant is available
-  React.useEffect(() => {
+  useEffect(() => {
     if (restaurant) {
+      console.log('🏪 Restaurant loaded:', {
+        id: restaurant.id,
+        name: restaurant.business_name,
+        slug: restaurant.slug
+      });
       loadDishes();
     }
   }, [restaurant]);
@@ -527,7 +551,7 @@ export default function RestaurantMenuManager() {
 
       {/* Tab Content */}
       {activeTab === 'scan' ? (
-        <SimpleMenuScanner />
+        <SimpleMenuScanner onDishesScanned={loadDishes} />
       ) : (
         <>
           {/* Manage Menu Content */}
