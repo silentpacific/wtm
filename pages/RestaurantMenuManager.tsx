@@ -32,17 +32,18 @@ function SimpleMenuScanner() {
 
       console.log('📸 File converted to base64, length:', base64.length);
       
-      // Test call to your existing getDishExplanation endpoint
-      const response = await fetch('/.netlify/functions/getDishExplanation', {
+      // Call the new menu scanning endpoint
+      const response = await fetch('/.netlify/functions/scanRestaurantMenu', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          dishName: 'Test Menu Scan',
-          language: 'en',
+          image: base64,
+          filename: selectedFile.name,
           restaurantId: '7', // Your restaurant ID from the logs
-          restaurantName: "Rahul's Coffee Shop 2"
+          restaurantName: "Rahul's Coffee Shop 2",
+          scanType: 'debug'
         }),
       });
 
