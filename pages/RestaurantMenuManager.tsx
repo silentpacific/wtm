@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Plus, Edit, Trash2, Save, X, Camera } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
 
@@ -89,7 +89,7 @@ function SimpleMenuScanner() {
           filename: selectedFile.name,
           restaurantId: restaurant.id.toString(),
           restaurantName: restaurant.business_name,
-          scanType: 'simple' // Use simple mode like consumer app
+          scanType: 'production' // Changed from 'simple'
         }),
       });
 
@@ -104,10 +104,43 @@ function SimpleMenuScanner() {
       if (result.dishes && result.dishes.length > 0) {
         console.log(`🍽️ Found ${result.dishes.length} dishes:`);
         result.dishes.forEach((dish, index) => {
-          console.log(`${index + 1}. ${dish.name} (${dish.section}) - $${dish.price || 'N/A'}`);
+          console.log(`${index + 1}. ${dish.name} (${dish.section}) - ${dish.price || 'N/A'}`);
         });
+        
         setScanResult(result);
-        alert(`Menu scan successful! Found ${result.dishes.length} dishes. Check console for full details.`);
+        
+        // Automatically save dishes to database and reload menu
+        console.log('💾 Saving dishes to database...');
+        try {
+          const saveResponse = await fetch('/.netlify/functions/saveScannedDishes', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              dishes: result.dishes,
+              restaurantId: restaurant.id.toString(),
+              restaurantName: restaurant.business_name,
+              cuisineType: result.cuisine_type
+            }),
+          });
+
+          if (saveResponse.ok) {
+            const saveResult = await saveResponse.json();
+            console.log('✅ Dishes saved to database:', saveResult);
+            
+            // Reload the manage menu tab to show new dishes
+            await loadDishes();
+            
+            alert(`Menu scan successful! Found ${result.dishes.length} dishes and saved them to your restaurant menu. Switch to "Manage Menu" to edit them.`);
+          } else {
+            console.error('Failed to save dishes:', await saveResponse.text());
+            alert(`Menu scan successful! Found ${result.dishes.length} dishes, but there was an issue saving them. Check console for details.`);
+          }
+        } catch (saveError) {
+          console.error('Error saving dishes:', saveError);
+          alert(`Menu scan successful! Found ${result.dishes.length} dishes. Check console for full details.`);
+        }
       } else {
         console.log('❌ No dishes found or error occurred:', result);
         setScanResult(result);
@@ -125,8 +158,8 @@ function SimpleMenuScanner() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Menu Scanner (Debug Mode)</h1>
-        <p className="text-gray-600">Upload a photo of your menu to test the scanning functionality</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Menu Scanner</h1>
+        <p className="text-gray-600">Upload a photo of your menu to automatically populate your digital menu</p>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -268,26 +301,62 @@ function SimpleMenuScanner() {
                 <div className="text-gray-500">No dishes found in the menu.</div>
               )}
               
-              <button
-                onClick={() => setScanResult(null)}
-                className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-              >
-                Scan Another Menu
-              </button>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => setScanResult(null)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  Scan Another Menu
+                </button>
+                
+                <button
+                  onClick={async () => {
+                    if (!restaurant || !scanResult.dishes) return;
+                    
+                    try {
+                      const saveResponse = await fetch('/.netlify/functions/saveScannedDishes', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          dishes: scanResult.dishes,
+                          restaurantId: restaurant.id.toString(),
+                          restaurantName: restaurant.business_name,
+                          cuisineType: scanResult.cuisine_type
+                        }),
+                      });
+
+                      if (saveResponse.ok) {
+                        const result = await saveResponse.json();
+                        alert(`Successfully saved ${result.dishesCreated} dishes to your restaurant menu!`);
+                      } else {
+                        alert('Failed to save dishes. Please try again.');
+                      }
+                    } catch (error) {
+                      alert('Error saving dishes. Please try again.');
+                    }
+                  }}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  Save to Restaurant Menu
+                </button>
+              </div>
             </div>
           )}
         </div>
       )}
 
-      <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <h3 className="font-semibold text-yellow-900 mb-3">Debug Information</h3>
-        <div className="text-yellow-800 text-sm space-y-1">
-          <p>• This is a simplified scanner to test if the basic functionality works</p>
+      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h3 className="font-semibold text-blue-900 mb-3">How Menu Scanning Works</h3>
+        <div className="text-blue-800 text-sm space-y-1">
+          <p>• Upload a clear photo of your current menu</p>
           {restaurant && (
-            <p>• Your restaurant: {restaurant.business_name} (ID: {restaurant.id})</p>
+            <p>• Restaurant: {restaurant.business_name}</p>
           )}
-          <p>• This test bypasses complex dependencies that might cause errors</p>
-          <p>• Upload a clear menu image and check both interface and console results</p>
+          <p>• Our AI will extract dishes, prices, and sections automatically</p>
+          <p>• Click on any dish name to get detailed explanations for customers</p>
+          <p>• All dishes will be added to your public restaurant page</p>
         </div>
       </div>
     </div>
@@ -305,19 +374,10 @@ interface MenuItem {
 }
 
 export default function RestaurantMenuManager() {
-  const [activeTab, setActiveTab] = useState<'manage' | 'scan'>('scan'); // Default to scan for testing
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([
-    {
-      id: '1',
-      name: 'Sample Dish',
-      description: 'Sample description',
-      price: 12.99,
-      section: 'Appetizers',
-      allergens: ['gluten'],
-      dietary_tags: ['vegetarian']
-    }
-  ]);
-
+  const { restaurant } = useRestaurantAuth();
+  const [activeTab, setActiveTab] = useState<'manage' | 'scan'>('manage'); // Default to manage
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(false);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({
@@ -333,33 +393,95 @@ export default function RestaurantMenuManager() {
   const allergenOptions = ['gluten', 'dairy', 'nuts', 'eggs', 'fish', 'shellfish', 'soy'];
   const dietaryOptions = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free'];
 
-  const handleAddItem = () => {
-    if (newItem.name && newItem.description && newItem.price) {
-      const item: MenuItem = {
-        id: Date.now().toString(),
-        name: newItem.name!,
-        description: newItem.description!,
-        price: newItem.price!,
-        section: newItem.section || 'Appetizers',
-        allergens: newItem.allergens || [],
-        dietary_tags: newItem.dietary_tags || []
-      };
-      
-      setMenuItems([...menuItems, item]);
-      setNewItem({
-        name: '',
-        description: '',
-        price: 0,
-        section: 'Appetizers',
-        allergens: [],
-        dietary_tags: []
-      });
-      setIsAddingItem(false);
+  // Load dishes from database when component mounts or restaurant changes
+  const loadDishes = async () => {
+    if (!restaurant) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`/.netlify/functions/getRestaurantDishes?restaurantId=${restaurant.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMenuItems(data.dishes || []);
+        console.log(`📋 Loaded ${data.dishes?.length || 0} dishes from database`);
+      } else {
+        console.error('Failed to load dishes');
+      }
+    } catch (error) {
+      console.error('Error loading dishes:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteItem = (id: string) => {
-    setMenuItems(menuItems.filter(item => item.id !== id));
+  // Load dishes when restaurant is available
+  React.useEffect(() => {
+    if (restaurant) {
+      loadDishes();
+    }
+  }, [restaurant]);
+
+  const handleAddItem = async () => {
+    if (!newItem.name || !newItem.section || !restaurant) return;
+    
+    try {
+      const response = await fetch('/.netlify/functions/manageRestaurantDish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add',
+          dish: newItem,
+          restaurantId: restaurant.id.toString()
+        })
+      });
+
+      if (response.ok) {
+        // Reload dishes from database
+        await loadDishes();
+        
+        // Reset form
+        setNewItem({
+          name: '',
+          description: '',
+          price: 0,
+          section: 'Appetizers',
+          allergens: [],
+          dietary_tags: []
+        });
+        setIsAddingItem(false);
+      } else {
+        alert('Failed to add dish. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error adding dish:', error);
+      alert('Error adding dish. Please try again.');
+    }
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    if (!restaurant || !confirm('Are you sure you want to delete this dish?')) return;
+    
+    try {
+      const response = await fetch('/.netlify/functions/manageRestaurantDish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete',
+          dish: { id },
+          restaurantId: restaurant.id.toString()
+        })
+      });
+
+      if (response.ok) {
+        // Reload dishes from database
+        await loadDishes();
+      } else {
+        alert('Failed to delete dish. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting dish:', error);
+      alert('Error deleting dish. Please try again.');
+    }
   };
 
   const groupedItems = menuItems.reduce((acc, item) => {
@@ -374,7 +496,7 @@ export default function RestaurantMenuManager() {
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Header with Tabs */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Menu Manager (Debug Version)</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Menu Manager</h1>
         
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
@@ -397,7 +519,7 @@ export default function RestaurantMenuManager() {
               }`}
             >
               <Camera size={16} />
-              Scan Menu (Debug)
+              Scan Menu
             </button>
           </nav>
         </div>
@@ -407,9 +529,13 @@ export default function RestaurantMenuManager() {
       {activeTab === 'scan' ? (
         <SimpleMenuScanner />
       ) : (
-        <div>
+        <>
+          {/* Manage Menu Content */}
           <div className="flex justify-between items-center mb-6">
-            <p className="text-gray-600">Add, edit, and organize your menu items</p>
+            <div>
+              <p className="text-gray-600">Add, edit, and organize your menu items</p>
+              {loading && <p className="text-sm text-blue-600">Loading dishes...</p>}
+            </div>
             <button
               onClick={() => setIsAddingItem(true)}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -418,15 +544,104 @@ export default function RestaurantMenuManager() {
               Add Dish
             </button>
           </div>
-          
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h3 className="font-semibold text-yellow-900 mb-2">Debug Mode Active</h3>
-            <p className="text-yellow-800 text-sm">
-              This is a simplified version to test the scanner functionality. 
-              Switch to "Scan Menu (Debug)" tab to test the upload feature.
-            </p>
-          </div>
-        </div>
+          {menuItems.length > 0 ? (
+            <div className="space-y-8">
+              {sections.map(section => (
+                <div key={section} className="bg-white rounded-lg shadow-sm">
+                  <div className="p-6 border-b border-gray-200">
+                    <h2 className="text-xl font-semibold text-gray-900">{section}</h2>
+                  </div>
+                  
+                  <div className="p-6">
+                    {groupedItems[section]?.length > 0 ? (
+                      <div className="space-y-4">
+                        {groupedItems[section].map(item => (
+                          <div key={item.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h3 className="font-medium text-gray-900">{item.name}</h3>
+                                  {item.description && (
+                                    <p className="text-gray-600 text-sm mt-1">{item.description}</p>
+                                  )}
+                                  
+                                  <div className="flex gap-2 mt-2">
+                                    {item.allergens.map(allergen => (
+                                      <span
+                                        key={allergen}
+                                        className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full"
+                                      >
+                                        {allergen}
+                                      </span>
+                                    ))}
+                                    
+                                    {item.dietary_tags.map(tag => (
+                                      <span
+                                        key={tag}
+                                        className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                                
+                                <div className="text-right">
+                                  <p className="font-semibold text-gray-900">${item.price.toFixed(2)}</p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex gap-2 ml-4">
+                              <button
+                                onClick={() => setEditingItem(item.id)}
+                                className="p-2 text-gray-400 hover:text-blue-600"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="p-2 text-gray-400 hover:text-red-600"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No items in {section} yet</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Camera className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No menu items yet</h3>
+              <p className="text-gray-600 mb-6">Get started by scanning your menu or adding dishes manually.</p>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={() => setActiveTab('scan')}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <Camera size={16} />
+                  Scan Menu
+                </button>
+                <button
+                  onClick={() => setIsAddingItem(true)}
+                  className="border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  Add Manually
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
