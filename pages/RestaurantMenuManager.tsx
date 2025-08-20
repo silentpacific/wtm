@@ -1,21 +1,29 @@
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, Save, X, Camera } from 'lucide-react';
+import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
 
 // Simplified menu scanner component to test
 function SimpleMenuScanner() {
+  const { restaurant } = useRestaurantAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<any>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
+      setScanResult(null); // Clear previous results
     }
   };
 
   const scanMenu = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || !restaurant) {
+      alert('Please select a file and ensure you are logged in');
+      return;
+    }
     
     setIsScanning(true);
+    setScanResult(null);
     
     try {
       // Convert file to base64
@@ -31,6 +39,7 @@ function SimpleMenuScanner() {
       });
 
       console.log('📸 File converted to base64, length:', base64.length);
+      console.log('🏪 Restaurant ID:', restaurant.id, 'Name:', restaurant.business_name);
       
       // Call the new menu scanning endpoint
       const response = await fetch('/.netlify/functions/scanRestaurantMenu', {
@@ -41,8 +50,8 @@ function SimpleMenuScanner() {
         body: JSON.stringify({
           image: base64,
           filename: selectedFile.name,
-          restaurantId: '7', // Your restaurant ID from the logs
-          restaurantName: "Rahul's Coffee Shop 2",
+          restaurantId: restaurant.id.toString(),
+          restaurantName: restaurant.business_name,
           scanType: 'debug'
         }),
       });
@@ -58,11 +67,13 @@ function SimpleMenuScanner() {
       if (result.dishes && result.dishes.length > 0) {
         console.log(`🍽️ Found ${result.dishes.length} dishes:`);
         result.dishes.forEach((dish, index) => {
-          console.log(`${index + 1}. ${dish.name} (${dish.section}) - ${dish.price || 'N/A'}`);
+          console.log(`${index + 1}. ${dish.name} (${dish.section}) - $${dish.price || 'N/A'}`);
         });
+        setScanResult(result);
         alert(`Menu scan successful! Found ${result.dishes.length} dishes. Check console for full details.`);
       } else {
         console.log('❌ No dishes found or error occurred:', result);
+        setScanResult(result);
         alert(`Scan completed but no dishes found. Response: ${JSON.stringify(result, null, 2)}`);
       }
 
@@ -213,6 +224,18 @@ function SimpleMenuScanner() {
           )}
         </div>
       )}
+
+      <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+        <h3 className="font-semibold text-yellow-900 mb-3">Debug Information</h3>
+        <div className="text-yellow-800 text-sm space-y-1">
+          <p>• This is a simplified scanner to test if the basic functionality works</p>
+          {restaurant && (
+            <p>• Your restaurant: {restaurant.business_name} (ID: {restaurant.id})</p>
+          )}
+          <p>• This test bypasses complex dependencies that might cause errors</p>
+          <p>• Upload a clear menu image and check both interface and console results</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -330,7 +353,6 @@ export default function RestaurantMenuManager() {
       {activeTab === 'scan' ? (
         <SimpleMenuScanner />
       ) : (
-        // Original manage content (simplified)
         <div>
           <div className="flex justify-between items-center mb-6">
             <p className="text-gray-600">Add, edit, and organize your menu items</p>
