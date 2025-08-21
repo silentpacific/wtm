@@ -1,4 +1,4 @@
-// pages/RestaurantPublicPage.tsx
+// pages/RestaurantPublicPage.tsx - Fixed data mapping
 import React, { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { TopBar } from '../components/TopBar'
@@ -13,7 +13,8 @@ import { useOrderSession } from '../hooks/useOrderSession'
 import { useDebouncedSearch } from '../hooks/useDebouncedSearch'
 import { useI18n } from '../hooks/useI18n'
 import { useMenuFilters } from '../hooks/useMenuFilters'
-import type { Restaurant, Dish, OrderItem, MenuFilters, ActiveFilter, Language } from '../types'
+import { adaptDishToAccessible, adaptRestaurantToAccessible } from '../types'
+import type { AccessibleRestaurant, AccessibleDish, OrderItem, MenuFilters, ActiveFilter, Language } from '../types'
 
 const LANGUAGES: Language[] = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -26,8 +27,8 @@ export default function RestaurantPublicPage() {
   const { slug } = useParams<{ slug: string }>()
   
   // Core data state
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
-  const [dishes, setDishes] = useState<Dish[]>([])
+  const [restaurant, setRestaurant] = useState<AccessibleRestaurant | null>(null)
+  const [dishes, setDishes] = useState<AccessibleDish[]>([])
   const [sections, setSections] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -48,7 +49,7 @@ export default function RestaurantPublicPage() {
 
   // UI state
   const [showFilterSheet, setShowFilterSheet] = useState(false)
-  const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
+  const [selectedDish, setSelectedDish] = useState<AccessibleDish | null>(null)
   const [showDishSheet, setShowDishSheet] = useState(false)
   const [orderDrawerExpanded, setOrderDrawerExpanded] = useState(false)
   const [activeCategory, setActiveCategory] = useState('')
@@ -81,6 +82,8 @@ export default function RestaurantPublicPage() {
       setLoading(true)
       setError('')
 
+      console.log('🔍 Loading restaurant data for slug:', slug)
+
       const response = await fetch(`/.netlify/functions/getRestaurantData?slug=${slug}`)
       
       if (!response.ok) {
@@ -93,6 +96,7 @@ export default function RestaurantPublicPage() {
       }
 
       const data = await response.json()
+      console.log('📋 Raw API response:', data)
       
       if (data.error) {
         setError(data.error)
@@ -100,7 +104,9 @@ export default function RestaurantPublicPage() {
       }
 
       if (data.restaurant) {
-        setRestaurant(data.restaurant)
+        const adaptedRestaurant = adaptRestaurantToAccessible(data.restaurant)
+        setRestaurant(adaptedRestaurant)
+        console.log('✅ Adapted restaurant:', adaptedRestaurant)
       } else {
         setError('Restaurant data not found')
         return
@@ -109,18 +115,25 @@ export default function RestaurantPublicPage() {
       const dishList = data.dishes || []
       const sectionList = data.sections || []
       
-      setDishes(dishList)
+      console.log('🍽️ Raw dishes:', dishList.slice(0, 2)) // Log first 2 dishes
+      console.log('📂 Raw sections:', sectionList)
+      
+      // Adapt dishes to new format
+      const adaptedDishes = dishList.map(adaptDishToAccessible)
+      console.log('✅ Adapted dishes:', adaptedDishes.slice(0, 2)) // Log first 2 adapted
+      
+      setDishes(adaptedDishes)
       setSections(sectionList)
 
     } catch (error) {
-      console.error('Error loading restaurant:', error)
+      console.error('❌ Error loading restaurant:', error)
       setError('Failed to load restaurant')
     } finally {
       setLoading(false)
     }
   }
 
-  // Group dishes by category
+  // Group dishes by category using the adapted data
   const groupedDishes = useMemo(() => {
     return filteredDishes.reduce((acc, dish) => {
       const category = dish.category || 'Other'
@@ -129,7 +142,7 @@ export default function RestaurantPublicPage() {
       }
       acc[category].push(dish)
       return acc
-    }, {} as Record<string, Dish[]>)
+    }, {} as Record<string, AccessibleDish[]>)
   }, [filteredDishes])
 
   // Category data for tabs
@@ -141,7 +154,7 @@ export default function RestaurantPublicPage() {
   }, [sections, categoryCount])
 
   // Order management
-  const handleAddToOrder = (dish: Dish) => {
+  const handleAddToOrder = (dish: AccessibleDish) => {
     extendSession()
     const existingItem = order.find(item => item.dish.id === dish.id)
     
@@ -159,7 +172,7 @@ export default function RestaurantPublicPage() {
         customNote: dishNotes[dish.id] || '',
         question: dishQuestions[dish.id] || '',
         translations: {
-          name: dish.name, // Will be replaced with actual translation
+          name: dish.name,
           description: dish.description,
           originalName: dish.name,
           originalDescription: dish.description
@@ -186,7 +199,7 @@ export default function RestaurantPublicPage() {
   }
 
   // Dish sheet management
-  const handleShowDishInfo = (dish: Dish) => {
+  const handleShowDishInfo = (dish: AccessibleDish) => {
     setSelectedDish(dish)
     setShowDishSheet(true)
     extendSession()
@@ -225,7 +238,6 @@ export default function RestaurantPublicPage() {
     const fullSummary = `${restaurant?.name}\n\n${summary}\n\nTotal: $${total.toFixed(2)}`
     
     navigator.clipboard.writeText(fullSummary)
-    // Show toast notification
   }
 
   const handleShareOrder = () => {
@@ -236,13 +248,11 @@ export default function RestaurantPublicPage() {
         url: window.location.href
       })
     } else {
-      // Fallback to copy link
       navigator.clipboard.writeText(window.location.href)
     }
   }
 
   const handleShowToStaff = () => {
-    // Open a simplified view for staff
     const staffView = window.open('', '_blank')
     if (staffView) {
       const summary = order.map(item => 
@@ -314,14 +324,14 @@ export default function RestaurantPublicPage() {
         onChange={updateSearch}
       />
 
-      {/* Active Filter Chips */}
+      {/* Active Filter Chips - SINGLE LOCATION */}
       <ActiveFilterChips
         filters={appliedFilters}
         onRemove={handleFilterRemove}
         onAddFilters={() => setShowFilterSheet(true)}
       />
 
-      {/* Category Tabs */}
+      {/* Category Tabs - DYNAMIC FROM API */}
       {categories.length > 0 && (
         <CategoryTabs
           categories={categories}
@@ -357,9 +367,21 @@ export default function RestaurantPublicPage() {
               </p>
             </div>
 
-            {/* Menu Sections */}
+            {/* DEBUG INFO - Remove after testing */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm">
+              <h4 className="font-medium text-yellow-800 mb-2">Debug Info:</h4>
+              <p>Total dishes loaded: {dishes.length}</p>
+              <p>Filtered dishes: {filteredDishes.length}</p>
+              <p>Sections: {sections.join(', ')}</p>
+              <p>Active category: {activeCategory}</p>
+              <p>Sample dish: {dishes[0] ? JSON.stringify(dishes[0], null, 2) : 'No dishes'}</p>
+            </div>
+
+            {/* Menu Sections - DYNAMIC FROM API */}
             {sections.map(section => {
               const sectionDishes = groupedDishes[section] || []
+              
+              console.log(`🍽️ Section "${section}" dishes:`, sectionDishes.length)
               
               if (sectionDishes.length === 0) return null
               
@@ -412,6 +434,7 @@ export default function RestaurantPublicPage() {
         )}
       </div>
 
+      {/* All the modals and components remain the same... */}
       {/* Dish Sheet Modal */}
       <DishSheetModal
         dish={selectedDish}
@@ -500,7 +523,7 @@ export default function RestaurantPublicPage() {
         onToggleExpanded={() => setOrderDrawerExpanded(!orderDrawerExpanded)}
         onQuantityChange={handleQuantityChange}
         onRemoveItem={handleRemoveItem}
-        onNotesChange={() => {}} // Implement if needed
+        onNotesChange={() => {}}
         onCopySummary={handleCopyOrderSummary}
         onShareOrder={handleShareOrder}
         onShowToStaff={handleShowToStaff}
