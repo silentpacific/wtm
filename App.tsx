@@ -475,6 +475,9 @@ const AppContent: FC = () => {
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
 
+          {/* FIXED: Restaurant landing page route */}
+          <Route path="/restaurants" element={<RestaurantLandingPage />} />
+
           {/* Restaurant public pages (customer-facing) */}
           <Route path="/restaurants/:slug" element={<RestaurantPublicPage />} />
 
