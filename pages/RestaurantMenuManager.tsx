@@ -2,6 +2,18 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Edit, Trash2, Save, X, Camera } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
 
+// Updated interface to match API response
+interface MenuItem {
+  id: string;
+  dish_name: string;        // Changed from 'name' to match API
+  description_en?: string;  // Changed from 'description' to match API
+  price: number;
+  section_name: string;     // Changed from 'section' to match API
+  allergens: string[];
+  dietary_tags: string[];
+  is_available?: boolean;
+}
+
 // Simplified menu scanner component to test
 function SimpleMenuScanner({ onDishesScanned }: { onDishesScanned?: () => void }) {
   const { restaurant } = useRestaurantAuth();
@@ -111,12 +123,6 @@ function SimpleMenuScanner({ onDishesScanned }: { onDishesScanned?: () => void }
         
         // Automatically save dishes to database and reload menu
         console.log('💾 Saving dishes to database...');
-        console.log('📊 Save request data:', {
-          dishCount: result.dishes.length,
-          restaurantId: restaurant.id.toString(),
-          restaurantName: restaurant.business_name,
-          cuisineType: result.cuisine_type
-        });
         
         try {
           const saveResponse = await fetch('/.netlify/functions/saveScannedDishes', {
@@ -138,8 +144,9 @@ function SimpleMenuScanner({ onDishesScanned }: { onDishesScanned?: () => void }
             const saveResult = await saveResponse.json();
             console.log('✅ Dishes saved to database:', saveResult);
             
-            // Reload the manage menu tab to show new dishes
+            // Call the callback to reload dishes in parent component
             if (onDishesScanned) {
+              console.log('🔄 Triggering dish reload...');
               await onDishesScanned();
             }
             
@@ -167,6 +174,7 @@ function SimpleMenuScanner({ onDishesScanned }: { onDishesScanned?: () => void }
     }
   };
 
+  // Rest of SimpleMenuScanner component remains the same...
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-8">
@@ -312,91 +320,27 @@ function SimpleMenuScanner({ onDishesScanned }: { onDishesScanned?: () => void }
               ) : (
                 <div className="text-gray-500">No dishes found in the menu.</div>
               )}
-              
-              <div className="flex gap-3 mt-4">
-                <button
-                  onClick={() => setScanResult(null)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                >
-                  Scan Another Menu
-                </button>
-                
-                <button
-                  onClick={async () => {
-                    if (!restaurant || !scanResult.dishes) return;
-                    
-                    try {
-                      const saveResponse = await fetch('/.netlify/functions/saveScannedDishes', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          dishes: scanResult.dishes,
-                          restaurantId: restaurant.id.toString(),
-                          restaurantName: restaurant.business_name,
-                          cuisineType: scanResult.cuisine_type
-                        }),
-                      });
-
-                      if (saveResponse.ok) {
-                        const result = await saveResponse.json();
-                        alert(`Successfully saved ${result.dishesCreated} dishes to your restaurant menu!`);
-                      } else {
-                        alert('Failed to save dishes. Please try again.');
-                      }
-                    } catch (error) {
-                      alert('Error saving dishes. Please try again.');
-                    }
-                  }}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  Save to Restaurant Menu
-                </button>
-              </div>
             </div>
           )}
         </div>
       )}
-
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-3">How Menu Scanning Works</h3>
-        <div className="text-blue-800 text-sm space-y-1">
-          <p>• Upload a clear photo of your current menu</p>
-          {restaurant && (
-            <p>• Restaurant: {restaurant.business_name}</p>
-          )}
-          <p>• Our AI will extract dishes, prices, and sections automatically</p>
-          <p>• Click on any dish name to get detailed explanations for customers</p>
-          <p>• All dishes will be added to your public restaurant page</p>
-        </div>
-      </div>
     </div>
   );
 }
 
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  section: string;
-  allergens: string[];
-  dietary_tags: string[];
-}
-
 export default function RestaurantMenuManager() {
   const { restaurant } = useRestaurantAuth();
-  const [activeTab, setActiveTab] = useState<'manage' | 'scan'>('manage'); // Default to manage
+  const [activeTab, setActiveTab] = useState<'manage' | 'scan'>('manage');
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with loading true
+  const [error, setError] = useState<string | null>(null);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({
-    name: '',
-    description: '',
+    dish_name: '',
+    description_en: '',
     price: 0,
-    section: 'Appetizers',
+    section_name: 'Appetizers',
     allergens: [],
     dietary_tags: []
   });
@@ -405,48 +349,85 @@ export default function RestaurantMenuManager() {
   const allergenOptions = ['gluten', 'dairy', 'nuts', 'eggs', 'fish', 'shellfish', 'soy'];
   const dietaryOptions = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free'];
 
-  // Load dishes from database when component mounts or restaurant changes
-  const loadDishes = async () => {
-    if (!restaurant) {
-      console.log('⏳ No restaurant loaded yet');
+  // FIXED: Load dishes function with proper error handling and field mapping
+  const loadDishes = useCallback(async () => {
+    if (!restaurant?.id) {
+      console.log('⚠️ No restaurant ID available');
+      setLoading(false);
       return;
     }
     
     console.log(`📋 Loading dishes for restaurant ID: ${restaurant.id}`);
     setLoading(true);
+    setError(null);
     
     try {
       const response = await fetch(`/.netlify/functions/getRestaurantDishes?restaurantId=${restaurant.id}`);
       
-      if (response.ok) {
-        const data = await response.json();
-        setMenuItems(data.dishes || []);
-        console.log(`✅ Loaded ${data.dishes?.length || 0} dishes from database`);
-      } else {
-        const errorText = await response.text();
-        console.error('Failed to load dishes:', response.status, errorText);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    } catch (error) {
-      console.error('Error loading dishes:', error);
+      
+      const data = await response.json();
+      console.log('📋 Raw API response:', data);
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      // FIXED: Handle the data structure properly
+      const dishes = data.dishes || [];
+      console.log(`✅ Loaded ${dishes.length} dishes from database`);
+      
+      // Map API response to expected interface if needed
+      const mappedDishes = dishes.map((dish: any) => ({
+        id: dish.id?.toString() || dish.dish_id?.toString(),
+        dish_name: dish.dish_name || dish.name,
+        description_en: dish.description_en,
+        price: dish.price || 0,
+        section_name: dish.section_name || dish.section,
+        allergens: dish.allergens || [],
+        dietary_tags: dish.dietary_tags || [],
+        is_available: dish.is_available !== false
+      }));
+      
+      console.log('🔄 Mapped dishes:', mappedDishes.slice(0, 3)); // Log first 3 for debugging
+      
+      // FIXED: Force component re-render by using functional state update
+      setMenuItems(mappedDishes);
+      
+      // Debug: Verify state update
+      setTimeout(() => {
+        console.log('🔍 MenuItems state verification - length:', mappedDishes.length);
+      }, 100);
+      
+    } catch (err) {
+      console.error('❌ Error loading dishes:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load menu items');
+      setMenuItems([]); // Clear items on error
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurant?.id]);
 
-  // Load dishes when restaurant is available
+  // FIXED: Load dishes when restaurant is available, with dependency
   useEffect(() => {
-    if (restaurant) {
-      console.log('🏪 Restaurant loaded:', {
-        id: restaurant.id,
-        name: restaurant.business_name,
-        slug: restaurant.slug
-      });
+    console.log('🔄 RestaurantMenuManager - Restaurant state changed:', {
+      hasRestaurant: !!restaurant,
+      restaurantId: restaurant?.id,
+      restaurantName: restaurant?.business_name
+    });
+    
+    if (restaurant?.id) {
       loadDishes();
+    } else {
+      setLoading(false);
+      setMenuItems([]);
     }
-  }, [restaurant]);
+  }, [restaurant?.id, loadDishes]);
 
   const handleAddItem = async () => {
-    if (!newItem.name || !newItem.section || !restaurant) return;
+    if (!newItem.dish_name || !newItem.section_name || !restaurant) return;
     
     try {
       const response = await fetch('/.netlify/functions/manageRestaurantDish', {
@@ -465,10 +446,10 @@ export default function RestaurantMenuManager() {
         
         // Reset form
         setNewItem({
-          name: '',
-          description: '',
+          dish_name: '',
+          description_en: '',
           price: 0,
-          section: 'Appetizers',
+          section_name: 'Appetizers',
           allergens: [],
           dietary_tags: []
         });
@@ -508,13 +489,47 @@ export default function RestaurantMenuManager() {
     }
   };
 
+  // FIXED: Group items by section_name instead of section
   const groupedItems = menuItems.reduce((acc, item) => {
-    if (!acc[item.section]) {
-      acc[item.section] = [];
+    const section = item.section_name || 'Other';
+    if (!acc[section]) {
+      acc[section] = [];
     }
-    acc[item.section].push(item);
+    acc[section].push(item);
     return acc;
   }, {} as Record<string, MenuItem[]>);
+
+  // FIXED: Show loading state properly
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading menu items...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // FIXED: Show error state if there's an error
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="text-center">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Menu</h3>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={() => loadDishes()}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -532,7 +547,7 @@ export default function RestaurantMenuManager() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Manage Menu
+              Manage Menu ({menuItems.length} items)
             </button>
             <button
               onClick={() => setActiveTab('scan')}
@@ -558,7 +573,9 @@ export default function RestaurantMenuManager() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <p className="text-gray-600">Add, edit, and organize your menu items</p>
-              {loading && <p className="text-sm text-blue-600">Loading dishes...</p>}
+              <p className="text-sm text-gray-500 mt-1">
+                {menuItems.length > 0 && `Currently showing ${menuItems.length} dishes`}
+              </p>
             </div>
             <button
               onClick={() => setIsAddingItem(true)}
@@ -568,12 +585,16 @@ export default function RestaurantMenuManager() {
               Add Dish
             </button>
           </div>
+          
+          {/* FIXED: Better conditional rendering */}
           {menuItems.length > 0 ? (
             <div className="space-y-8">
               {sections.map(section => (
                 <div key={section} className="bg-white rounded-lg shadow-sm">
                   <div className="p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">{section}</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {section} ({groupedItems[section]?.length || 0} items)
+                    </h2>
                   </div>
                   
                   <div className="p-6">
@@ -584,13 +605,13 @@ export default function RestaurantMenuManager() {
                             <div className="flex-1">
                               <div className="flex items-start justify-between">
                                 <div>
-                                  <h3 className="font-medium text-gray-900">{item.name}</h3>
-                                  {item.description && (
-                                    <p className="text-gray-600 text-sm mt-1">{item.description}</p>
+                                  <h3 className="font-medium text-gray-900">{item.dish_name}</h3>
+                                  {item.description_en && (
+                                    <p className="text-gray-600 text-sm mt-1">{item.description_en}</p>
                                   )}
                                   
                                   <div className="flex gap-2 mt-2">
-                                    {item.allergens.map(allergen => (
+                                    {item.allergens?.map(allergen => (
                                       <span
                                         key={allergen}
                                         className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full"
@@ -599,7 +620,7 @@ export default function RestaurantMenuManager() {
                                       </span>
                                     ))}
                                     
-                                    {item.dietary_tags.map(tag => (
+                                    {item.dietary_tags?.map(tag => (
                                       <span
                                         key={tag}
                                         className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
@@ -611,7 +632,7 @@ export default function RestaurantMenuManager() {
                                 </div>
                                 
                                 <div className="text-right">
-                                  <p className="font-semibold text-gray-900">${item.price.toFixed(2)}</p>
+                                  <p className="font-semibold text-gray-900">${item.price?.toFixed(2) || '0.00'}</p>
                                 </div>
                               </div>
                             </div>
