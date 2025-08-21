@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Edit, Trash2, Save, X, Camera } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
 
-// FIXED: Interface matches exact database schema
+// Interface matches exact database schema
 interface MenuItem {
   id: string;
   dish_name: string;
@@ -145,7 +145,7 @@ function SimpleMenuScanner({ onDishesScanned }: { onDishesScanned?: () => void }
             // Call the callback to reload dishes in parent component
             if (onDishesScanned) {
               console.log('🔄 Triggering dish reload...');
-              await onDishesScanned();
+              setTimeout(() => onDishesScanned(), 1000); // Small delay to ensure DB is updated
             }
             
             alert(`Menu scan successful! Found ${result.dishes.length} dishes and saved them to your restaurant menu. Switch to "Manage Menu" to edit them.`);
@@ -345,7 +345,6 @@ export default function RestaurantMenuManager() {
   
   const [editFormData, setEditFormData] = useState<Partial<MenuItem>>({});
 
-  // FIXED: Complete the handleStartEdit function
   const handleStartEdit = (item: MenuItem) => {
     setEditingItem(item.id);
     setEditFormData({
@@ -362,7 +361,7 @@ export default function RestaurantMenuManager() {
   const allergenOptions = ['gluten', 'dairy', 'nuts', 'eggs', 'fish', 'shellfish', 'soy'];
   const dietaryOptions = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free'];
 
-  // FIXED: Use unified endpoint for consistency
+  // Use getRestaurantDishes endpoint (now returns sections too)
   const loadDishes = useCallback(async () => {
     if (!restaurant?.id) {
       console.log('⚠️ No restaurant ID available');
@@ -375,41 +374,27 @@ export default function RestaurantMenuManager() {
     setError(null);
     
     try {
-      // FIXED: Use unified getRestaurantData endpoint
       const response = await fetch(`/.netlify/functions/getRestaurantDishes?restaurantId=${restaurant.id}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-		const data = await response.json();
-		console.log('📋 Raw API response:', data);
+      const data = await response.json();
+      console.log('📋 Raw API response:', data);
 
-		if (data.error) {
-		  throw new Error(data.error);
-		}
+      if (data.error) {
+        throw new Error(data.error);
+      }
 
-		const dishes = data.dishes || [];
+      const dishes = data.dishes || [];
       const dynamicSections = data.sections || [];
       
       console.log(`✅ Loaded ${dishes.length} dishes from database`);
       console.log(`📂 Dynamic sections: ${dynamicSections.join(', ')}`);
+      console.log('🔍 Sample dish:', dishes[0]);
       
-      // FIXED: Map API response to exact interface
-      const mappedDishes: MenuItem[] = dishes.map((dish: any) => ({
-        id: dish.id?.toString(),
-        dish_name: dish.dish_name,
-        description_en: dish.description_en || '',
-        price: dish.price || 0,
-        section_name: dish.section_name,
-        allergens: dish.allergens || [],
-        dietary_tags: dish.dietary_tags || [],
-        is_available: dish.is_available !== false
-      }));
-      
-      console.log('🔄 Mapped dishes sample:', mappedDishes.slice(0, 2));
-      
-      setMenuItems(mappedDishes);
+      setMenuItems(dishes);
       setSections(dynamicSections);
       
       // Update newItem default section if sections exist
@@ -510,7 +495,7 @@ export default function RestaurantMenuManager() {
     }
   };
 
-  // FIXED: Group items using actual section names from database
+  // Group items using actual section names from database
   const groupedItems = menuItems.reduce((acc, item) => {
     const section = item.section_name || 'Other';
     if (!acc[section]) {
@@ -708,7 +693,7 @@ export default function RestaurantMenuManager() {
             </div>
           )}
           
-          {/* FIXED: Display dishes using dynamic sections */}
+          {/* Display dishes using dynamic sections */}
           {menuItems.length > 0 ? (
             <div className="space-y-8">
               {sections.map(section => (

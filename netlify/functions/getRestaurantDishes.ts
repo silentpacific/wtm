@@ -76,23 +76,51 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
         console.log(`✅ Loaded ${dishes?.length || 0} dishes for restaurant ${restaurantId}`);
 
-        // Transform to match frontend format
-		const formattedDishes = (dishes || []).map(dish => ({
-			id: dish.id.toString(),
-			dish_name: dish.dish_name,     // ← Keep original field names
-			description_en: dish.description_en || '',
-			price: dish.price || 0,
-			section_name: dish.section_name, // ← Keep original field names
-			allergens: dish.allergens || [],
-			dietary_tags: dish.dietary_tags || [],
-			is_available: dish.is_available !== false
-		}));
+        // Generate dynamic sections from actual dish data
+        const uniqueSections = [...new Set(
+            (dishes || [])
+                .map(dish => dish.section_name)
+                .filter(section => section && section.trim() !== '')
+        )];
+
+        // Sort sections in a logical order
+        const sectionOrder = [
+            'Appetizers', 'Starters', 'Soups', 'Salads',
+            'Mains', 'Main Course', 'Entrees', 'Pizza', 'Pasta',
+            'Desserts', 'Sweets',
+            'Drinks', 'Beverages', 'Coffee', 'Tea', 'Wine', 'Beer'
+        ];
+
+        const sortedSections = uniqueSections.sort((a, b) => {
+            const aIndex = sectionOrder.findIndex(s => s.toLowerCase() === a.toLowerCase());
+            const bIndex = sectionOrder.findIndex(s => s.toLowerCase() === b.toLowerCase());
+            
+            if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+            if (aIndex === -1) return 1;
+            if (bIndex === -1) return -1;
+            return aIndex - bIndex;
+        });
+
+        console.log(`📂 Dynamic sections: ${sortedSections.join(', ')}`);
+
+        // Transform to match frontend format (keep original field names)
+        const formattedDishes = (dishes || []).map(dish => ({
+            id: dish.id.toString(),
+            dish_name: dish.dish_name,     // ← Keep original field names
+            description_en: dish.description_en || '',
+            price: dish.price || 0,
+            section_name: dish.section_name, // ← Keep original field names
+            allergens: dish.allergens || [],
+            dietary_tags: dish.dietary_tags || [],
+            is_available: dish.is_available !== false
+        }));
 
         return {
             statusCode: 200,
             headers: corsHeaders,
             body: JSON.stringify({
                 dishes: formattedDishes,
+                sections: sortedSections,  // ← ADD THIS - return sections!
                 count: formattedDishes.length
             })
         };

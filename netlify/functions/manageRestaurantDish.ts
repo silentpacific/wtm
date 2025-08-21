@@ -39,7 +39,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
         switch (action) {
             case 'add':
-                if (!dish || !dish.name || !dish.section) {
+                if (!dish || !dish.dish_name || !dish.section_name) {
                     return {
                         statusCode: 400,
                         headers: corsHeaders,
@@ -81,12 +81,12 @@ export const handler: Handler = async (event: HandlerEvent) => {
                     .insert({
                         restaurant_id: parseInt(restaurantId),
                         menu_id: menuId,
-                        dish_name: dish.name,
-                        dish_name_slug: dish.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-                        section_name: dish.section,
+                        dish_name: dish.dish_name,
+                        dish_name_slug: dish.dish_name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+                        section_name: dish.section_name,
                         price: dish.price || null,
                         currency: 'USD',
-                        description_en: dish.description || '',
+                        description_en: dish.description_en || '',
                         allergens: dish.allergens || [],
                         dietary_tags: dish.dietary_tags || [],
                         is_available: true,
@@ -100,7 +100,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
                     throw new Error('Failed to add dish');
                 }
 
-                console.log(`✅ Added dish: ${dish.name}`);
+                console.log(`✅ Added dish: ${dish.dish_name}`);
                 return {
                     statusCode: 200,
                     headers: corsHeaders,
@@ -123,10 +123,10 @@ export const handler: Handler = async (event: HandlerEvent) => {
                 const { error: updateError } = await supabaseAdmin
                     .from('restaurant_dishes')
                     .update({
-                        dish_name: dish.name,
-                        section_name: dish.section,
+                        dish_name: dish.dish_name,
+                        section_name: dish.section_name,
                         price: dish.price || null,
-                        description_en: dish.description || '',
+                        description_en: dish.description_en || '',
                         allergens: dish.allergens || [],
                         dietary_tags: dish.dietary_tags || []
                     })
@@ -138,7 +138,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
                     throw new Error('Failed to update dish');
                 }
 
-                console.log(`✅ Updated dish: ${dish.name}`);
+                console.log(`✅ Updated dish: ${dish.dish_name}`);
                 return {
                     statusCode: 200,
                     headers: corsHeaders,
