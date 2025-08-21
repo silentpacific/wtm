@@ -266,6 +266,8 @@ const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
 const RestaurantRouteHandler: FC = () => {
   const { restaurant, loading } = useRestaurantAuth();
 
+  console.log('🔄 RestaurantRouteHandler state:', { restaurant: !!restaurant, loading, restaurantId: restaurant?.id });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -279,10 +281,12 @@ const RestaurantRouteHandler: FC = () => {
 
   // If authenticated, redirect to dashboard
   if (restaurant) {
+    console.log('✅ Restaurant authenticated, redirecting to dashboard');
     return <Navigate to="/restaurant/dashboard" replace />;
   }
 
   // If not authenticated, show landing page
+  console.log('❌ No restaurant found, showing landing page');
   return <RestaurantLandingPage />;
 };
 
