@@ -312,7 +312,7 @@ export default function RestaurantLandingPage() {
 
           <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-8 max-w-md mx-auto">
             <div className="text-center mb-6">
-              <div className="text-5xl font-bold text-blue-600 mb-2">£25</div>
+              <div className="text-5xl font-bold text-blue-600 mb-2">$25</div>
               <div className="text-gray-600">per month</div>
             </div>
 

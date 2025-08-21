@@ -12,6 +12,7 @@ interface RestaurantStats {
 }
 
 export default function RestaurantDashboard() {
+	console.log('🏪 RestaurantDashboard component is rendering!');
   const { restaurant } = useRestaurantAuth();
   const [stats, setStats] = useState<RestaurantStats>({
     totalViews: 0,

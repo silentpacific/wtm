@@ -79,15 +79,6 @@ export default function RestaurantFooter() {
               </li>
               <li>
                 <a
-                  href="tel:+441234567890"
-                  className="text-sm text-gray-600 hover:text-gray-900 flex items-center"
-                >
-                  <Phone size={16} className="mr-2" />
-                  +44 123 456 7890
-                </a>
-              </li>
-              <li>
-                <a
                   href="#"
                   className="text-sm text-gray-600 hover:text-gray-900 flex items-center"
                 >

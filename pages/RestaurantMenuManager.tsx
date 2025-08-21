@@ -376,20 +376,20 @@ export default function RestaurantMenuManager() {
     
     try {
       // FIXED: Use unified getRestaurantData endpoint
-      const response = await fetch(`/.netlify/functions/getRestaurantData?restaurantId=${restaurant.id}`);
+      const response = await fetch(`/.netlify/functions/getRestaurantDishes?restaurantId=${restaurant.id}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log('📋 Raw API response:', data);
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      const dishes = data.dishes || [];
+		const data = await response.json();
+		console.log('📋 Raw API response:', data);
+
+		if (data.error) {
+		  throw new Error(data.error);
+		}
+
+		const dishes = data.dishes || [];
       const dynamicSections = data.sections || [];
       
       console.log(`✅ Loaded ${dishes.length} dishes from database`);

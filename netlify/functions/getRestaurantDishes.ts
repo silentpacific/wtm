@@ -77,15 +77,16 @@ export const handler: Handler = async (event: HandlerEvent) => {
         console.log(`✅ Loaded ${dishes?.length || 0} dishes for restaurant ${restaurantId}`);
 
         // Transform to match frontend format
-        const formattedDishes = (dishes || []).map(dish => ({
-            id: dish.id.toString(),
-            name: dish.dish_name,
-            description: dish.description_en || '',
-            price: dish.price || 0,
-            section: dish.section_name,
-            allergens: dish.allergens || [],
-            dietary_tags: dish.dietary_tags || []
-        }));
+		const formattedDishes = (dishes || []).map(dish => ({
+			id: dish.id.toString(),
+			dish_name: dish.dish_name,     // ← Keep original field names
+			description_en: dish.description_en || '',
+			price: dish.price || 0,
+			section_name: dish.section_name, // ← Keep original field names
+			allergens: dish.allergens || [],
+			dietary_tags: dish.dietary_tags || [],
+			is_available: dish.is_available !== false
+		}));
 
         return {
             statusCode: 200,
