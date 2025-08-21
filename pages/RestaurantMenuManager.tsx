@@ -342,6 +342,13 @@ export default function RestaurantMenuManager() {
     allergens: [],
     dietary_tags: []
   });
+  
+const [editFormData, setEditFormData] = useState<Partial<MenuItem>>({});
+
+const handleStartEdit = (item: MenuItem) => {
+  setEditingItem(item.id);
+  setEditFormData({
+    dish
 
   const allergenOptions = ['gluten', 'dairy', 'nuts', 'eggs', 'fish', 'shellfish', 'soy'];
   const dietaryOptions = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free'];

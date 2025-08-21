@@ -81,30 +81,9 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
       return true;
     } catch (error) {
       console.error('❌ Failed to send welcome email:', error);
-      // Don't fail the signup if email fails
       return false;
     }
   };
-
-  // Check if user is authenticated on load
-  useEffect(() => {
-    checkAuth();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth state changed:', event, session?.user?.email);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        await loadRestaurantAccount(session.user.email!);
-      } else if (event === 'SIGNED_OUT') {
-        setRestaurant(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   const loadRestaurantAccount = async (email: string) => {
     try {
@@ -135,30 +114,59 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
     }
   };
 
+  // FIXED: Improved checkAuth function
   const checkAuth = async () => {
     try {
       console.log('🔍 Checking initial auth state...');
+      setLoading(true);
       
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
         console.error('❌ Error getting session:', error);
-        setLoading(false);
+        setRestaurant(null);
         return;
       }
       
-      if (session?.user) {
+      if (session?.user?.email) {
         console.log('✅ Found existing session for:', session.user.email);
-        await loadRestaurantAccount(session.user.email!);
+        await loadRestaurantAccount(session.user.email);
       } else {
         console.log('ℹ️ No existing session found');
+        setRestaurant(null);
       }
     } catch (error) {
       console.error('💥 Error checking auth:', error);
+      setRestaurant(null);
     } finally {
+      // CRITICAL: Always set loading to false
+      console.log('✅ Auth check complete, setting loading to false');
       setLoading(false);
     }
   };
+
+  // Check if user is authenticated on load
+  useEffect(() => {
+    checkAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔄 Auth state changed:', event, session?.user?.email);
+      
+      if (event === 'SIGNED_IN' && session?.user?.email) {
+        setLoading(true);
+        await loadRestaurantAccount(session.user.email);
+        setLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        setRestaurant(null);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
@@ -185,7 +193,6 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
       }
 
       console.log('✅ Login successful!');
-      // Restaurant account will be loaded by the auth state change listener
       return { success: true };
     } catch (error) {
       console.error('💥 Login error:', error);
@@ -202,14 +209,14 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
       console.log('🚀 Starting signup process for:', { email, businessName });
       
       const slug = generateSlug(businessName);
-      console.log('📝 Generated slug:', slug);
+      console.log('🔗 Generated slug:', slug);
       
       // Check if slug already exists
       const { data: existingSlug, error: slugCheckError } = await supabase
         .from('restaurant_business_accounts')
         .select('slug')
         .eq('slug', slug)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid error when no results
+        .maybeSingle();
 
       if (slugCheckError) {
         console.error('❌ Error checking slug:', slugCheckError);
@@ -228,7 +235,7 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
         email,
         password,
         options: {
-          emailRedirectTo: undefined // Disable email confirmation for now
+          emailRedirectTo: undefined
         }
       });
 
@@ -256,28 +263,15 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
 
       if (restaurantError) {
         console.error('❌ Restaurant account creation failed:', restaurantError);
-        // Clean up auth user if restaurant creation failed
         await supabase.auth.signOut();
         return { success: false, error: `Failed to create restaurant account: ${restaurantError.message}` };
       }
 
       console.log('✅ Restaurant account created:', restaurantData);
 
-      // Send welcome email (don't block on this)
-      const emailSent = await sendWelcomeEmail(
-        email, 
-        businessName, 
-        slug, 
-        restaurantData.trial_expires_at
-      );
+      // Send welcome email (non-blocking)
+      sendWelcomeEmail(email, businessName, slug, restaurantData.trial_expires_at);
 
-      if (emailSent) {
-        console.log('✅ Welcome email sent successfully');
-      } else {
-        console.log('⚠️ Welcome email failed to send (non-blocking)');
-      }
-
-      // Set restaurant data
       setRestaurant(restaurantData);
       return { success: true };
     } catch (error) {
@@ -307,6 +301,8 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
     }
 
     try {
+      console.log('💾 Updating restaurant profile:', updates);
+
       const { data, error } = await supabase
         .from('restaurant_business_accounts')
         .update({
@@ -318,13 +314,15 @@ export const RestaurantAuthProvider: React.FC<{ children: React.ReactNode }> = (
         .single();
 
       if (error) {
+        console.error('❌ Profile update error:', error);
         return { success: false, error: error.message };
       }
 
+      console.log('✅ Profile updated successfully:', data);
       setRestaurant(data);
       return { success: true };
     } catch (error) {
-      console.error('Update restaurant error:', error);
+      console.error('💥 Update restaurant error:', error);
       return { success: false, error: 'Update failed' };
     }
   };
