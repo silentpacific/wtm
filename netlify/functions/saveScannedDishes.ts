@@ -107,7 +107,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
             section_name: dish.section,
             price: dish.price || null,
             currency: 'USD',
-            description_en: '', // Will be filled when user clicks on dishes
+            description_en: '', // Will be filled by AI
             description_es: '',
             description_zh: '',
             description_fr: '',
@@ -154,6 +154,43 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
         console.log(`🎉 Successfully saved ${insertedCount} dishes for restaurant ${restaurantId}`);
 
+        // ⚡ START BACKGROUND AI PROCESSING - Fire and forget!
+        console.log('🧠 Starting background AI explanation generation...');
+        
+        // Create a processing queue in the database
+        const processingQueue = [];
+        const languages = ['en', 'es', 'zh', 'fr'];
+        
+        dishes.forEach((dish: any) => {
+            languages.forEach(language => {
+                processingQueue.push({
+                    dishName: dish.name,
+                    language,
+                    restaurantId,
+                    restaurantName: restaurantName || 'Restaurant'
+                });
+            });
+        });
+
+        console.log(`📝 Created processing queue with ${processingQueue.length} items (${dishes.length} dishes × 4 languages)`);
+
+        // Save processing status to database for tracking
+        try {
+            await supabaseAdmin
+                .from('restaurant_business_accounts')
+                .update({ 
+                    special_notes: `AI processing: 0/${processingQueue.length} explanations complete` 
+                })
+                .eq('id', parseInt(restaurantId));
+        } catch (error) {
+            console.error('Error updating processing status:', error);
+        }
+
+        // Trigger the first explanation immediately (async)
+        if (processingQueue.length > 0) {
+            triggerNextExplanation(processingQueue[0], processingQueue, 0).catch(console.error);
+        }
+
         return {
             statusCode: 200,
             headers: corsHeaders,
@@ -161,7 +198,9 @@ export const handler: Handler = async (event: HandlerEvent) => {
                 success: true,
                 dishesCreated: insertedCount,
                 menuId: menuId,
-                message: `Successfully saved ${insertedCount} dishes to your restaurant menu`
+                message: `Successfully saved ${insertedCount} dishes to your restaurant menu`,
+                aiProcessingStarted: true,
+                totalExplanationsToGenerate: processingQueue.length
             })
         };
 
@@ -177,3 +216,78 @@ export const handler: Handler = async (event: HandlerEvent) => {
         };
     }
 };
+
+// Background processing function with 10-second delays
+async function triggerNextExplanation(
+    item: { dishName: string; language: string; restaurantId: string; restaurantName: string },
+    queue: any[],
+    index: number
+) {
+    try {
+        console.log(`🔄 Processing ${index + 1}/${queue.length}: ${item.dishName} (${item.language})`);
+        
+        // Call the single explanation function
+        const response = await fetch(`${process.env.URL || 'https://whatthemenu.netlify.app'}/.netlify/functions/generateDishExplanations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                restaurantId: item.restaurantId,
+                dishName: item.dishName,
+                language: item.language,
+                restaurantName: item.restaurantName
+            })
+        });
+
+        if (response.ok) {
+            console.log(`✅ Generated ${item.language} explanation for: ${item.dishName}`);
+        } else {
+            console.error(`❌ Failed to generate ${item.language} explanation for: ${item.dishName}`);
+        }
+
+        // Update progress in database
+        try {
+            await supabaseAdmin
+                .from('restaurant_business_accounts')
+                .update({ 
+                    special_notes: `AI processing: ${index + 1}/${queue.length} explanations complete` 
+                })
+                .eq('id', parseInt(item.restaurantId));
+        } catch (error) {
+            console.error('Error updating progress:', error);
+        }
+
+        // Schedule next item with 10-second delay
+        const nextIndex = index + 1;
+        if (nextIndex < queue.length) {
+            setTimeout(() => {
+                triggerNextExplanation(queue[nextIndex], queue, nextIndex).catch(console.error);
+            }, 10000); // 10-second delay
+        } else {
+            // All done!
+            console.log(`🎉 Completed all ${queue.length} explanations for restaurant ${item.restaurantId}`);
+            
+            // Clear processing status
+            try {
+                await supabaseAdmin
+                    .from('restaurant_business_accounts')
+                    .update({ 
+                        special_notes: `AI processing complete: ${queue.length} explanations generated` 
+                    })
+                    .eq('id', parseInt(item.restaurantId));
+            } catch (error) {
+                console.error('Error updating completion status:', error);
+            }
+        }
+
+    } catch (error) {
+        console.error(`Error processing ${item.dishName} (${item.language}):`, error);
+        
+        // Continue with next item even if this one failed
+        const nextIndex = index + 1;
+        if (nextIndex < queue.length) {
+            setTimeout(() => {
+                triggerNextExplanation(queue[nextIndex], queue, nextIndex).catch(console.error);
+            }, 10000);
+        }
+    }
+}

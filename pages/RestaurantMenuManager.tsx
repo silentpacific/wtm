@@ -469,6 +469,50 @@ export default function RestaurantMenuManager() {
     }
   };
 
+  const handleSaveEdit = async () => {
+    if (!editFormData.dish_name || !editFormData.section_name || !restaurant || !editingItem) {
+      alert('Please fill in dish name and section');
+      return;
+    }
+    
+    try {
+      const response = await fetch('/.netlify/functions/manageRestaurantDish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update',
+          dish: {
+            id: editingItem,
+            dish_name: editFormData.dish_name,
+            section_name: editFormData.section_name,
+            price: editFormData.price,
+            description_en: editFormData.description_en,
+            allergens: editFormData.allergens,
+            dietary_tags: editFormData.dietary_tags
+          },
+          restaurantId: restaurant.id.toString()
+        })
+      });
+
+      if (response.ok) {
+        await loadDishes(); // Reload all data
+        setEditingItem(null);
+        setEditFormData({});
+      } else {
+        const errorText = await response.text();
+        alert(`Failed to update dish: ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Error updating dish:', error);
+      alert('Error updating dish. Please try again.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItem(null);
+    setEditFormData({});
+  };
+
   const handleDeleteItem = async (id: string) => {
     if (!restaurant || !confirm('Are you sure you want to delete this dish?')) return;
     
@@ -687,6 +731,155 @@ export default function RestaurantMenuManager() {
                   >
                     <Save size={16} />
                     Add Dish
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Dish Modal */}
+          {editingItem && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Edit Dish</h3>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Dish Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.dish_name || ''}
+                      onChange={(e) => setEditFormData({ ...editFormData, dish_name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter dish name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={editFormData.description_en || ''}
+                      onChange={(e) => setEditFormData({ ...editFormData, description_en: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={2}
+                      placeholder="Describe the dish"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Price
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editFormData.price || 0}
+                      onChange={(e) => setEditFormData({ ...editFormData, price: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Section *
+                    </label>
+                    {sections.length > 0 ? (
+                      <select
+                        value={editFormData.section_name || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, section_name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select section</option>
+                        {sections.map(section => (
+                          <option key={section} value={section}>{section}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={editFormData.section_name || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, section_name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter section name (e.g., Appetizers, Mains)"
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Allergens
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {allergenOptions.map(allergen => (
+                        <label key={allergen} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={editFormData.allergens?.includes(allergen) || false}
+                            onChange={(e) => {
+                              const updatedAllergens = e.target.checked
+                                ? [...(editFormData.allergens || []), allergen]
+                                : (editFormData.allergens || []).filter(a => a !== allergen);
+                              setEditFormData({ ...editFormData, allergens: updatedAllergens });
+                            }}
+                            className="mr-1"
+                          />
+                          <span className="text-sm">{allergen}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Dietary Tags
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {dietaryOptions.map(tag => (
+                        <label key={tag} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={editFormData.dietary_tags?.includes(tag) || false}
+                            onChange={(e) => {
+                              const updatedTags = e.target.checked
+                                ? [...(editFormData.dietary_tags || []), tag]
+                                : (editFormData.dietary_tags || []).filter(t => t !== tag);
+                              setEditFormData({ ...editFormData, dietary_tags: updatedTags });
+                            }}
+                            className="mr-1"
+                          />
+                          <span className="text-sm">{tag}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={handleCancelEdit}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                  >
+                    <Save size={16} />
+                    Save Changes
                   </button>
                 </div>
               </div>

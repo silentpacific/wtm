@@ -101,13 +101,18 @@ export const handler: Handler = async (event: HandlerEvent) => {
                 }
 
                 console.log(`✅ Added dish: ${dish.dish_name}`);
+
+                // 🧠 START AI EXPLANATION GENERATION for new dish
+                triggerExplanationsForDish(restaurantId, dish.dish_name);
+
                 return {
                     statusCode: 200,
                     headers: corsHeaders,
                     body: JSON.stringify({ 
                         success: true, 
                         dishId: newDish.id,
-                        message: 'Dish added successfully' 
+                        message: 'Dish added successfully',
+                        aiProcessingStarted: true
                     })
                 };
 
@@ -139,12 +144,31 @@ export const handler: Handler = async (event: HandlerEvent) => {
                 }
 
                 console.log(`✅ Updated dish: ${dish.dish_name}`);
+
+                // 🧠 REGENERATE AI EXPLANATIONS for updated dish
+                // First clear old explanations
+                try {
+                    await supabaseAdmin
+                        .from('dishes')
+                        .delete()
+                        .eq('name', dish.dish_name)
+                        .eq('restaurant_id', parseInt(restaurantId));
+                    
+                    console.log(`🗑️ Cleared old explanations for: ${dish.dish_name}`);
+                } catch (error) {
+                    console.error('Error clearing old explanations:', error);
+                }
+
+                // Generate new explanations
+                triggerExplanationsForDish(restaurantId, dish.dish_name);
+
                 return {
                     statusCode: 200,
                     headers: corsHeaders,
                     body: JSON.stringify({ 
                         success: true, 
-                        message: 'Dish updated successfully' 
+                        message: 'Dish updated successfully',
+                        aiProcessingStarted: true
                     })
                 };
 
@@ -157,6 +181,14 @@ export const handler: Handler = async (event: HandlerEvent) => {
                     };
                 }
 
+                // Get dish name before deleting for cleanup
+                const { data: dishToDelete } = await supabaseAdmin
+                    .from('restaurant_dishes')
+                    .select('dish_name')
+                    .eq('id', parseInt(dish.id))
+                    .eq('restaurant_id', parseInt(restaurantId))
+                    .single();
+
                 const { error: deleteError } = await supabaseAdmin
                     .from('restaurant_dishes')
                     .update({ is_available: false })
@@ -166,6 +198,21 @@ export const handler: Handler = async (event: HandlerEvent) => {
                 if (deleteError) {
                     console.error('Error deleting dish:', deleteError);
                     throw new Error('Failed to delete dish');
+                }
+
+                // Clean up AI explanations for deleted dish
+                if (dishToDelete?.dish_name) {
+                    try {
+                        await supabaseAdmin
+                            .from('dishes')
+                            .delete()
+                            .eq('name', dishToDelete.dish_name)
+                            .eq('restaurant_id', parseInt(restaurantId));
+                        
+                        console.log(`🗑️ Cleaned up explanations for deleted dish: ${dishToDelete.dish_name}`);
+                    } catch (error) {
+                        console.error('Error cleaning up explanations:', error);
+                    }
                 }
 
                 console.log(`✅ Deleted dish ID: ${dish.id}`);
@@ -198,3 +245,52 @@ export const handler: Handler = async (event: HandlerEvent) => {
         };
     }
 };
+
+// Helper function to trigger AI explanations for a single dish (all 4 languages)
+async function triggerExplanationsForDish(restaurantId: string, dishName: string) {
+    const languages = ['en', 'es', 'zh', 'fr'];
+    
+    console.log(`🧠 Starting AI explanations for: ${dishName} (4 languages)`);
+    
+    // Get restaurant name for context
+    let restaurantName = 'Restaurant';
+    try {
+        const { data: restaurant } = await supabaseAdmin
+            .from('restaurant_business_accounts')
+            .select('business_name')
+            .eq('id', parseInt(restaurantId))
+            .single();
+        
+        if (restaurant?.business_name) {
+            restaurantName = restaurant.business_name;
+        }
+    } catch (error) {
+        console.error('Error getting restaurant name:', error);
+    }
+
+    // Trigger explanations with staggered timing
+    languages.forEach((language, index) => {
+        setTimeout(async () => {
+            try {
+                const response = await fetch(`${process.env.URL || 'https://whatthemenu.netlify.app'}/.netlify/functions/generateDishExplanations`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        restaurantId,
+                        dishName,
+                        language,
+                        restaurantName
+                    })
+                });
+
+                if (response.ok) {
+                    console.log(`✅ Generated ${language} explanation for: ${dishName}`);
+                } else {
+                    console.error(`❌ Failed ${language} explanation for: ${dishName}`);
+                }
+            } catch (error) {
+                console.error(`❌ Error generating ${language} explanation for ${dishName}:`, error);
+            }
+        }, index * 10000); // 10-second intervals (0s, 10s, 20s, 30s)
+    });
+}
