@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { QrCode, Menu, User, CreditCard, BarChart3, Plus, TrendingUp, Eye } from 'lucide-react';
+import { QrCode, Menu, User, CreditCard, BarChart3, Plus, TrendingUp, Eye, Brain, CheckCircle, Clock, Zap } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
 import { supabase } from '../services/supabaseClient';
 
@@ -11,8 +11,236 @@ interface RestaurantStats {
   totalDishes: number;
 }
 
+interface AIProcessingStatus {
+  isProcessing: boolean;
+  completed: number;
+  total: number;
+  currentTask: string;
+  timeRemaining: string;
+}
+
+// AI Processing Indicator Component
+function AIProcessingIndicator({ restaurant }: { restaurant: any }) {
+  const [processingStatus, setProcessingStatus] = useState<AIProcessingStatus>({
+    isProcessing: false,
+    completed: 0,
+    total: 0,
+    currentTask: '',
+    timeRemaining: ''
+  });
+
+  useEffect(() => {
+    if (restaurant?.id) {
+      checkProcessingStatus();
+      
+      // Check status every 30 seconds while processing
+      const interval = setInterval(() => {
+        if (processingStatus.isProcessing) {
+          checkProcessingStatus();
+        }
+      }, 30000);
+
+      return () => clearInterval(interval);
+    }
+  }, [restaurant?.id, processingStatus.isProcessing]);
+
+  const checkProcessingStatus = async () => {
+    try {
+      // Check restaurant special_notes for processing status
+      const { data: restaurantData } = await supabase
+        .from('restaurant_business_accounts')
+        .select('special_notes')
+        .eq('id', restaurant.id)
+        .single();
+
+      const notes = restaurantData?.special_notes || '';
+      
+      // Parse different status messages
+      if (notes.includes('AI processing:') && !notes.includes('complete')) {
+        // Active processing: "AI processing: 45/120 explanations complete"
+        const match = notes.match(/AI processing: (\d+)\/(\d+) explanations complete/);
+        if (match) {
+          const completed = parseInt(match[1]);
+          const total = parseInt(match[2]);
+          const remaining = total - completed;
+          const timeRemaining = formatTimeRemaining(remaining * 10); // 10 seconds per explanation
+          
+          setProcessingStatus({
+            isProcessing: true,
+            completed,
+            total,
+            currentTask: `Generating multilingual explanations...`,
+            timeRemaining
+          });
+        }
+      } else if (notes.includes('AI processing complete')) {
+        // Just completed: "AI processing complete: 120 explanations generated"
+        const match = notes.match(/AI processing complete: (\d+) explanations generated/);
+        if (match) {
+          const total = parseInt(match[1]);
+          setProcessingStatus({
+            isProcessing: false,
+            completed: total,
+            total: total,
+            currentTask: 'All explanations ready!',
+            timeRemaining: ''
+          });
+
+          // Clear the completion message after 10 seconds
+          setTimeout(() => {
+            setProcessingStatus(prev => ({ ...prev, completed: 0, total: 0 }));
+          }, 10000);
+        }
+      } else {
+        // No processing
+        setProcessingStatus({
+          isProcessing: false,
+          completed: 0,
+          total: 0,
+          currentTask: '',
+          timeRemaining: ''
+        });
+      }
+    } catch (error) {
+      console.error('Error checking processing status:', error);
+    }
+  };
+
+  const formatTimeRemaining = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s remaining`;
+    if (seconds < 3600) return `${Math.ceil(seconds / 60)}m remaining`;
+    return `${Math.ceil(seconds / 3600)}h remaining`;
+  };
+
+  // Don't render if no processing happening
+  if (!processingStatus.isProcessing && processingStatus.completed === 0) {
+    return null;
+  }
+
+  const progressPercentage = processingStatus.total > 0 
+    ? (processingStatus.completed / processingStatus.total) * 100 
+    : 0;
+
+  return (
+    <div className={`rounded-lg p-6 mb-6 border-2 ${
+      processingStatus.isProcessing 
+        ? 'bg-blue-50 border-blue-200' 
+        : 'bg-green-50 border-green-200'
+    }`}>
+      <div className="flex items-start gap-4">
+        <div className={`flex-shrink-0 p-2 rounded-full ${
+          processingStatus.isProcessing 
+            ? 'bg-blue-100' 
+            : 'bg-green-100'
+        }`}>
+          {processingStatus.isProcessing ? (
+            <Brain className="w-6 h-6 text-blue-600 animate-pulse" />
+          ) : (
+            <CheckCircle className="w-6 h-6 text-green-600" />
+          )}
+        </div>
+        
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className={`font-semibold ${
+              processingStatus.isProcessing 
+                ? 'text-blue-900' 
+                : 'text-green-900'
+            }`}>
+              {processingStatus.isProcessing ? (
+                <>
+                  <Zap className="inline w-4 h-4 mr-1" />
+                  AI Processing Your Menu
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="inline w-4 h-4 mr-1" />
+                  Menu Processing Complete!
+                </>
+              )}
+            </h3>
+            
+            {processingStatus.timeRemaining && (
+              <span className="flex items-center text-sm text-blue-600">
+                <Clock className="w-3 h-3 mr-1" />
+                {processingStatus.timeRemaining}
+              </span>
+            )}
+          </div>
+
+          <p className={`text-sm mb-3 ${
+            processingStatus.isProcessing 
+              ? 'text-blue-800' 
+              : 'text-green-800'
+          }`}>
+            {processingStatus.isProcessing ? (
+              <>
+                Creating detailed explanations for all dishes in English, Spanish, Chinese, and French.
+                Your customers will get instant multilingual dish information!
+              </>
+            ) : (
+              <>
+                🎉 All dish explanations are ready! Your customers can now get instant explanations 
+                in 4 languages when they scan your QR codes.
+              </>
+            )}
+          </p>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-sm">
+              <span className={processingStatus.isProcessing ? 'text-blue-700' : 'text-green-700'}>
+                {processingStatus.currentTask}
+              </span>
+              <span className={`font-medium ${
+                processingStatus.isProcessing ? 'text-blue-900' : 'text-green-900'
+              }`}>
+                {processingStatus.completed}/{processingStatus.total} explanations
+              </span>
+            </div>
+            
+            <div className={`w-full h-3 rounded-full ${
+              processingStatus.isProcessing ? 'bg-blue-200' : 'bg-green-200'
+            }`}>
+              <div 
+                className={`h-3 rounded-full transition-all duration-500 ${
+                  processingStatus.isProcessing 
+                    ? 'bg-blue-600' 
+                    : 'bg-green-600'
+                }`}
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+            
+            <div className="text-xs text-gray-600 mt-2">
+              {processingStatus.isProcessing ? (
+                <>
+                  <div className="flex items-center gap-4">
+                    <span>✅ English explanations</span>
+                    <span>✅ Spanish explanations</span>
+                    <span>✅ Chinese explanations</span>
+                    <span>✅ French explanations</span>
+                  </div>
+                  <p className="mt-1 italic">
+                    Processing happens in the background. You can continue managing your menu while AI works.
+                  </p>
+                </>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <span className="text-green-600">🌍 4 languages ready</span>
+                  <span className="text-green-600">⚡ Instant responses</span>
+                  <span className="text-green-600">🎯 Zero wait time</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RestaurantDashboard() {
-	console.log('🏪 RestaurantDashboard component is rendering!');
+  console.log('🏪 RestaurantDashboard component is rendering!');
   const { restaurant } = useRestaurantAuth();
   const [stats, setStats] = useState<RestaurantStats>({
     totalViews: 0,
@@ -134,6 +362,9 @@ export default function RestaurantDashboard() {
           </div>
         )}
       </div>
+
+      {/* AI Processing Indicator */}
+      <AIProcessingIndicator restaurant={restaurant} />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
