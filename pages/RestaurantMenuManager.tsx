@@ -343,12 +343,21 @@ export default function RestaurantMenuManager() {
     dietary_tags: []
   });
   
-const [editFormData, setEditFormData] = useState<Partial<MenuItem>>({});
+  const [editFormData, setEditFormData] = useState<Partial<MenuItem>>({});
 
-const handleStartEdit = (item: MenuItem) => {
-  setEditingItem(item.id);
-  setEditFormData({
-    dish
+  // FIXED: Complete the handleStartEdit function
+  const handleStartEdit = (item: MenuItem) => {
+    setEditingItem(item.id);
+    setEditFormData({
+      dish_name: item.dish_name,
+      description_en: item.description_en,
+      price: item.price,
+      section_name: item.section_name,
+      allergens: item.allergens,
+      dietary_tags: item.dietary_tags,
+      is_available: item.is_available
+    });
+  };
 
   const allergenOptions = ['gluten', 'dairy', 'nuts', 'eggs', 'fish', 'shellfish', 'soy'];
   const dietaryOptions = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free'];
@@ -752,7 +761,7 @@ const handleStartEdit = (item: MenuItem) => {
                             
                             <div className="flex gap-2 ml-4">
                               <button
-                                onClick={() => setEditingItem(item.id)}
+                                onClick={() => handleStartEdit(item)}
                                 className="p-2 text-gray-400 hover:text-blue-600"
                                 title="Edit dish"
                               >
@@ -806,4 +815,3 @@ const handleStartEdit = (item: MenuItem) => {
     </div>
   );
 }
-            

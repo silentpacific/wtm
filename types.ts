@@ -1,3 +1,9 @@
+// types.ts - Complete merged file with existing and new accessibility types
+
+// ================================
+// EXISTING TYPES (Your current types)
+// ================================
+
 export interface Dish {
   name: string;
 }
@@ -68,7 +74,6 @@ export interface UserProfile {
   updated_at?: string;
 }
 
-
 // Enhanced user profile with historical tracking
 export interface EnhancedUserProfile extends UserProfile {
   lifetime_menus_scanned?: number;
@@ -111,4 +116,139 @@ export interface AnonymousUsage {
   explanationsUsed: number;
   lastResetMonth: string;
   fingerprint: string;
+}
+
+// ================================
+// NEW ACCESSIBILITY TYPES
+// ================================
+
+export type Allergen = 'peanuts' | 'treenuts' | 'dairy' | 'gluten' | 'egg' | 'soy' | 'shellfish' | 'sesame' | 'fish' | 'sulfites'
+export type Diet = 'vegan' | 'vegetarian' | 'halal' | 'kosher' | 'jain' | 'keto' | 'low_fodmap' | 'gluten_free'
+
+// New enhanced Dish interface for accessibility features
+export interface AccessibleDish {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  category: string;
+  allergens?: Allergen[];
+  diets?: Diet[];
+  spiceLevel?: 0 | 1 | 2 | 3;
+  imageUrl?: string;
+  aliases?: string[];
+  // Keep compatibility with existing fields
+  section_name?: string; // Maps to category
+  dish_name?: string;    // Maps to name
+  description_en?: string; // Maps to description
+  dietary_tags?: string[]; // Maps to diets
+  is_available?: boolean;
+}
+
+// Restaurant interface for accessibility features
+export interface AccessibleRestaurant {
+  slug: string;
+  name: string;
+  currency: string;
+  address?: string;
+  // Keep compatibility with existing Restaurant interface
+  id?: number;
+  business_name?: string; // Maps to name
+  cuisine_type?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
+export interface OrderItem {
+  dish: AccessibleDish;
+  quantity: number;
+  customizations: string[];
+  customNote?: string;
+  question?: string;
+  translations: DishTranslations;
+}
+
+export interface MenuFilters {
+  excludeAllergens: Allergen[];
+  includeDiets: Diet[];
+}
+
+export interface ActiveFilter {
+  id: string;
+  type: 'allergen' | 'diet';
+  label: string;
+  value: string;
+}
+
+export interface DishTranslations {
+  name: string;
+  description?: string;
+  originalName: string;
+  originalDescription?: string;
+}
+
+export interface SessionData {
+  order: OrderItem[];
+  language: string;
+  filters: MenuFilters;
+  searchQuery: string;
+  expiresAt: number;
+  lastActivity: number;
+}
+
+export interface Language {
+  code: string;
+  name: string;
+  flag: string;
+}
+
+// Menu structure for accessibility features
+export interface AccessibleMenu {
+  category: string;
+  dishes: AccessibleDish[];
+}
+
+export type Menu = AccessibleMenu[];
+
+// ================================
+// TYPE ADAPTERS/MAPPERS
+// ================================
+
+// Helper functions to convert between old and new interfaces
+export function adaptDishToAccessible(oldDish: any): AccessibleDish {
+  return {
+    id: oldDish.id?.toString() || '',
+    name: oldDish.dish_name || oldDish.name || '',
+    description: oldDish.description_en || oldDish.description || '',
+    price: oldDish.price || 0,
+    category: oldDish.section_name || oldDish.category || 'Other',
+    allergens: oldDish.allergens || [],
+    diets: oldDish.dietary_tags || oldDish.diets || [],
+    spiceLevel: oldDish.spiceLevel || 0,
+    imageUrl: oldDish.imageUrl || oldDish.image_url || '',
+    aliases: oldDish.aliases || [],
+    // Preserve original fields for backward compatibility
+    section_name: oldDish.section_name,
+    dish_name: oldDish.dish_name,
+    description_en: oldDish.description_en,
+    dietary_tags: oldDish.dietary_tags,
+    is_available: oldDish.is_available !== false
+  }
+}
+
+export function adaptRestaurantToAccessible(oldRestaurant: any): AccessibleRestaurant {
+  return {
+    slug: oldRestaurant.slug || '',
+    name: oldRestaurant.business_name || oldRestaurant.name || '',
+    currency: oldRestaurant.currency || '$',
+    address: oldRestaurant.address || '',
+    // Preserve original fields
+    id: oldRestaurant.id,
+    business_name: oldRestaurant.business_name,
+    cuisine_type: oldRestaurant.cuisine_type,
+    city: oldRestaurant.city,
+    state: oldRestaurant.state,
+    country: oldRestaurant.country
+  }
 }
