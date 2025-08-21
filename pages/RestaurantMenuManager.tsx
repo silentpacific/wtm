@@ -2,13 +2,13 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Edit, Trash2, Save, X, Camera } from 'lucide-react';
 import { useRestaurantAuth } from '../contexts/RestaurantAuthContext';
 
-// Updated interface to match API response
+// FIXED: Interface matches exact database schema
 interface MenuItem {
   id: string;
-  dish_name: string;        // Changed from 'name' to match API
-  description_en?: string;  // Changed from 'description' to match API
+  dish_name: string;
+  description_en?: string;
   price: number;
-  section_name: string;     // Changed from 'section' to match API
+  section_name: string;
   allergens: string[];
   dietary_tags: string[];
   is_available?: boolean;
@@ -90,7 +90,6 @@ function SimpleMenuScanner({ onDishesScanned }: { onDishesScanned?: () => void }
       console.log('📸 File converted to base64, length:', base64.length);
       console.log('🏪 Restaurant ID:', restaurant.id, 'Name:', restaurant.business_name);
       
-      // Use the same approach as consumer app - just extract dish names and sections
       const response = await fetch('/.netlify/functions/scanRestaurantMenu', {
         method: 'POST',
         headers: {
@@ -101,7 +100,7 @@ function SimpleMenuScanner({ onDishesScanned }: { onDishesScanned?: () => void }
           filename: selectedFile.name,
           restaurantId: restaurant.id.toString(),
           restaurantName: restaurant.business_name,
-          scanType: 'production' // Changed from 'simple'
+          scanType: 'production'
         }),
       });
 
@@ -112,7 +111,6 @@ function SimpleMenuScanner({ onDishesScanned }: { onDishesScanned?: () => void }
       const result = await response.json();
       console.log('✅ API Response:', result);
       
-      // Show detailed results
       if (result.dishes && result.dishes.length > 0) {
         console.log(`🍽️ Found ${result.dishes.length} dishes:`);
         result.dishes.forEach((dish, index) => {
@@ -174,7 +172,6 @@ function SimpleMenuScanner({ onDishesScanned }: { onDishesScanned?: () => void }
     }
   };
 
-  // Rest of SimpleMenuScanner component remains the same...
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-8">
@@ -332,7 +329,8 @@ export default function RestaurantMenuManager() {
   const { restaurant } = useRestaurantAuth();
   const [activeTab, setActiveTab] = useState<'manage' | 'scan'>('manage');
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true); // Start with loading true
+  const [sections, setSections] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
@@ -340,16 +338,15 @@ export default function RestaurantMenuManager() {
     dish_name: '',
     description_en: '',
     price: 0,
-    section_name: 'Appetizers',
+    section_name: '',
     allergens: [],
     dietary_tags: []
   });
 
-  const sections = ['Appetizers', 'Mains', 'Desserts', 'Drinks'];
   const allergenOptions = ['gluten', 'dairy', 'nuts', 'eggs', 'fish', 'shellfish', 'soy'];
   const dietaryOptions = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free'];
 
-  // FIXED: Load dishes function with proper error handling and field mapping
+  // FIXED: Use unified endpoint for consistency
   const loadDishes = useCallback(async () => {
     if (!restaurant?.id) {
       console.log('⚠️ No restaurant ID available');
@@ -362,7 +359,8 @@ export default function RestaurantMenuManager() {
     setError(null);
     
     try {
-      const response = await fetch(`/.netlify/functions/getRestaurantDishes?restaurantId=${restaurant.id}`);
+      // FIXED: Use unified getRestaurantData endpoint
+      const response = await fetch(`/.netlify/functions/getRestaurantData?restaurantId=${restaurant.id}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -375,42 +373,45 @@ export default function RestaurantMenuManager() {
         throw new Error(data.error);
       }
       
-      // FIXED: Handle the data structure properly
       const dishes = data.dishes || [];
-      console.log(`✅ Loaded ${dishes.length} dishes from database`);
+      const dynamicSections = data.sections || [];
       
-      // Map API response to expected interface if needed
-      const mappedDishes = dishes.map((dish: any) => ({
-        id: dish.id?.toString() || dish.dish_id?.toString(),
-        dish_name: dish.dish_name || dish.name,
-        description_en: dish.description_en,
+      console.log(`✅ Loaded ${dishes.length} dishes from database`);
+      console.log(`📂 Dynamic sections: ${dynamicSections.join(', ')}`);
+      
+      // FIXED: Map API response to exact interface
+      const mappedDishes: MenuItem[] = dishes.map((dish: any) => ({
+        id: dish.id?.toString(),
+        dish_name: dish.dish_name,
+        description_en: dish.description_en || '',
         price: dish.price || 0,
-        section_name: dish.section_name || dish.section,
+        section_name: dish.section_name,
         allergens: dish.allergens || [],
         dietary_tags: dish.dietary_tags || [],
         is_available: dish.is_available !== false
       }));
       
-      console.log('🔄 Mapped dishes:', mappedDishes.slice(0, 3)); // Log first 3 for debugging
+      console.log('🔄 Mapped dishes sample:', mappedDishes.slice(0, 2));
       
-      // FIXED: Force component re-render by using functional state update
       setMenuItems(mappedDishes);
+      setSections(dynamicSections);
       
-      // Debug: Verify state update
-      setTimeout(() => {
-        console.log('🔍 MenuItems state verification - length:', mappedDishes.length);
-      }, 100);
+      // Update newItem default section if sections exist
+      if (dynamicSections.length > 0 && (!newItem.section_name || newItem.section_name === '')) {
+        setNewItem(prev => ({ ...prev, section_name: dynamicSections[0] }));
+      }
       
     } catch (err) {
       console.error('❌ Error loading dishes:', err);
       setError(err instanceof Error ? err.message : 'Failed to load menu items');
-      setMenuItems([]); // Clear items on error
+      setMenuItems([]);
+      setSections([]);
     } finally {
       setLoading(false);
     }
   }, [restaurant?.id]);
 
-  // FIXED: Load dishes when restaurant is available, with dependency
+  // Load dishes when restaurant is available
   useEffect(() => {
     console.log('🔄 RestaurantMenuManager - Restaurant state changed:', {
       hasRestaurant: !!restaurant,
@@ -423,11 +424,15 @@ export default function RestaurantMenuManager() {
     } else {
       setLoading(false);
       setMenuItems([]);
+      setSections([]);
     }
   }, [restaurant?.id, loadDishes]);
 
   const handleAddItem = async () => {
-    if (!newItem.dish_name || !newItem.section_name || !restaurant) return;
+    if (!newItem.dish_name || !newItem.section_name || !restaurant) {
+      alert('Please fill in dish name and section');
+      return;
+    }
     
     try {
       const response = await fetch('/.netlify/functions/manageRestaurantDish', {
@@ -441,21 +446,21 @@ export default function RestaurantMenuManager() {
       });
 
       if (response.ok) {
-        // Reload dishes from database
-        await loadDishes();
+        await loadDishes(); // Reload all data
         
         // Reset form
         setNewItem({
           dish_name: '',
           description_en: '',
           price: 0,
-          section_name: 'Appetizers',
+          section_name: sections[0] || '',
           allergens: [],
           dietary_tags: []
         });
         setIsAddingItem(false);
       } else {
-        alert('Failed to add dish. Please try again.');
+        const errorText = await response.text();
+        alert(`Failed to add dish: ${errorText}`);
       }
     } catch (error) {
       console.error('Error adding dish:', error);
@@ -478,10 +483,10 @@ export default function RestaurantMenuManager() {
       });
 
       if (response.ok) {
-        // Reload dishes from database
-        await loadDishes();
+        await loadDishes(); // Reload all data
       } else {
-        alert('Failed to delete dish. Please try again.');
+        const errorText = await response.text();
+        alert(`Failed to delete dish: ${errorText}`);
       }
     } catch (error) {
       console.error('Error deleting dish:', error);
@@ -489,7 +494,7 @@ export default function RestaurantMenuManager() {
     }
   };
 
-  // FIXED: Group items by section_name instead of section
+  // FIXED: Group items using actual section names from database
   const groupedItems = menuItems.reduce((acc, item) => {
     const section = item.section_name || 'Other';
     if (!acc[section]) {
@@ -499,7 +504,7 @@ export default function RestaurantMenuManager() {
     return acc;
   }, {} as Record<string, MenuItem[]>);
 
-  // FIXED: Show loading state properly
+  // Show loading state properly
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -511,7 +516,7 @@ export default function RestaurantMenuManager() {
     );
   }
 
-  // FIXED: Show error state if there's an error
+  // Show error state if there's an error
   if (error) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -574,7 +579,7 @@ export default function RestaurantMenuManager() {
             <div>
               <p className="text-gray-600">Add, edit, and organize your menu items</p>
               <p className="text-sm text-gray-500 mt-1">
-                {menuItems.length > 0 && `Currently showing ${menuItems.length} dishes`}
+                {menuItems.length > 0 && `Currently showing ${menuItems.length} dishes across ${sections.length} sections`}
               </p>
             </div>
             <button
@@ -586,7 +591,108 @@ export default function RestaurantMenuManager() {
             </button>
           </div>
           
-          {/* FIXED: Better conditional rendering */}
+          {/* Add Dish Modal */}
+          {isAddingItem && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Add New Dish</h3>
+                  <button
+                    onClick={() => setIsAddingItem(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Dish Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={newItem.dish_name || ''}
+                      onChange={(e) => setNewItem({ ...newItem, dish_name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter dish name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={newItem.description_en || ''}
+                      onChange={(e) => setNewItem({ ...newItem, description_en: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={2}
+                      placeholder="Describe the dish"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Price
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newItem.price || 0}
+                      onChange={(e) => setNewItem({ ...newItem, price: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Section *
+                    </label>
+                    {sections.length > 0 ? (
+                      <select
+                        value={newItem.section_name || ''}
+                        onChange={(e) => setNewItem({ ...newItem, section_name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select section</option>
+                        {sections.map(section => (
+                          <option key={section} value={section}>{section}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={newItem.section_name || ''}
+                        onChange={(e) => setNewItem({ ...newItem, section_name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter section name (e.g., Appetizers, Mains)"
+                      />
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setIsAddingItem(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddItem}
+                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                  >
+                    <Save size={16} />
+                    Add Dish
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* FIXED: Display dishes using dynamic sections */}
           {menuItems.length > 0 ? (
             <div className="space-y-8">
               {sections.map(section => (
@@ -641,12 +747,14 @@ export default function RestaurantMenuManager() {
                               <button
                                 onClick={() => setEditingItem(item.id)}
                                 className="p-2 text-gray-400 hover:text-blue-600"
+                                title="Edit dish"
                               >
                                 <Edit size={16} />
                               </button>
                               <button
                                 onClick={() => handleDeleteItem(item.id)}
                                 className="p-2 text-gray-400 hover:text-red-600"
+                                title="Delete dish"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -691,3 +799,4 @@ export default function RestaurantMenuManager() {
     </div>
   );
 }
+            

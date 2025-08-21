@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { supabase } from '../services/supabaseClient';
 
 interface Restaurant {
   id: number;
@@ -13,6 +12,8 @@ interface Restaurant {
   country?: string;
   cuisine_type?: string;
   opening_hours?: string;
+  website?: string;
+  contact_phone?: string;
 }
 
 interface Dish {
@@ -24,12 +25,14 @@ interface Dish {
   description_en?: string;
   allergens?: string[];
   dietary_tags?: string[];
+  is_available?: boolean;
 }
 
 const RestaurantPublicPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [dishes, setDishes] = useState<Dish[]>([]);
+  const [sections, setSections] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -46,36 +49,46 @@ const RestaurantPublicPage: React.FC = () => {
 
       console.log('🔍 Loading restaurant data for slug:', slug);
 
-      // Get restaurant info
-      const { data: restaurantData, error: restaurantError } = await supabase
-        .from('restaurant_business_accounts')
-        .select('*')
-        .eq('slug', slug)
-        .single();
-
-      if (restaurantError) {
-        console.error('❌ Restaurant not found:', restaurantError);
-        setError('Restaurant not found');
+      // FIXED: Use unified getRestaurantData endpoint
+      const response = await fetch(`/.netlify/functions/getRestaurantData?slug=${slug}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('Restaurant not found');
+        } else {
+          setError(`Failed to load restaurant: ${response.status}`);
+        }
         return;
       }
 
-      console.log('✅ Restaurant found:', restaurantData);
-      setRestaurant(restaurantData);
-
-      // Get menu items
-      const { data: dishData, error: dishError } = await supabase
-        .from('restaurant_dishes')
-        .select('*')
-        .eq('restaurant_id', restaurantData.id)
-        .eq('is_available', true)
-        .order('section_name, display_order');
-
-      if (dishError) {
-        console.error('❌ Error loading dishes:', dishError);
-      } else {
-        console.log(`✅ Loaded ${dishData?.length || 0} dishes`);
-        setDishes(dishData || []);
+      const data = await response.json();
+      
+      if (data.error) {
+        console.error('❌ API Error:', data.error);
+        setError(data.error);
+        return;
       }
+
+      console.log('✅ Restaurant data loaded:', data);
+
+      // Set restaurant data
+      if (data.restaurant) {
+        setRestaurant(data.restaurant);
+        console.log(`✅ Restaurant: ${data.restaurant.business_name}`);
+      } else {
+        setError('Restaurant data not found');
+        return;
+      }
+
+      // Set dishes and sections
+      const dishList = data.dishes || [];
+      const sectionList = data.sections || [];
+      
+      console.log(`✅ Loaded ${dishList.length} dishes`);
+      console.log(`📂 Sections: ${sectionList.join(', ')}`);
+      
+      setDishes(dishList);
+      setSections(sectionList);
 
     } catch (error) {
       console.error('❌ Error loading restaurant:', error);
@@ -101,10 +114,16 @@ const RestaurantPublicPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Restaurant Not Found</h1>
-          <p className="text-gray-600 mb-4">Restaurant '{slug}' not found</p>
+          <p className="text-gray-600 mb-4">
+            {error || `Restaurant '${slug}' not found`}
+          </p>
+          <div className="space-y-2 text-sm text-gray-500">
+            <p>Searched for: {slug}</p>
+            <p>Please check the URL and try again.</p>
+          </div>
           <button
             onClick={() => window.history.back()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           >
             Go Back
           </button>
@@ -113,32 +132,45 @@ const RestaurantPublicPage: React.FC = () => {
     );
   }
 
-  // Group dishes by section
+  // FIXED: Group dishes by section_name using dynamic sections
   const groupedDishes = dishes.reduce((acc, dish) => {
-    if (!acc[dish.section_name]) {
-      acc[dish.section_name] = [];
+    const section = dish.section_name || 'Other';
+    if (!acc[section]) {
+      acc[section] = [];
     }
-    acc[dish.section_name].push(dish);
+    acc[section].push(dish);
     return acc;
   }, {} as Record<string, Dish[]>);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Restaurant Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{restaurant.business_name}</h1>
-          {restaurant.description_en && (
-            <p className="text-gray-600 mb-4">{restaurant.description_en}</p>
-          )}
-          
-          <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-            {restaurant.cuisine_type && (
-              <span className="bg-gray-100 px-2 py-1 rounded">{restaurant.cuisine_type}</span>
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">{restaurant.business_name}</h1>
+            
+            {restaurant.description_en && (
+              <p className="text-lg text-gray-600 mb-6 max-w-2xl mx-auto">{restaurant.description_en}</p>
             )}
-            {restaurant.city && (
-              <span>{restaurant.city}</span>
-            )}
+            
+            <div className="flex justify-center flex-wrap gap-4 text-sm">
+              {restaurant.cuisine_type && (
+                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
+                  {restaurant.cuisine_type}
+                </span>
+              )}
+              {restaurant.city && (
+                <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
+                  📍 {restaurant.city}
+                </span>
+              )}
+              {dishes.length > 0 && (
+                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full">
+                  {dishes.length} dishes available
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -146,95 +178,194 @@ const RestaurantPublicPage: React.FC = () => {
       {/* Menu Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
         {dishes.length === 0 ? (
-          <div className="bg-white rounded-lg p-8 text-center">
+          <div className="bg-white rounded-lg p-8 text-center shadow-sm">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">🍽️</span>
+            </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Menu Coming Soon</h2>
-            <p className="text-gray-600">This restaurant is still setting up their menu. Please check back later!</p>
+            <p className="text-gray-600">
+              {restaurant.business_name} is still setting up their digital menu. Please check back later or contact the restaurant directly!
+            </p>
+            {restaurant.contact_phone && (
+              <p className="text-sm text-gray-500 mt-2">
+                📞 {restaurant.contact_phone}
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-8">
-            {Object.entries(groupedDishes).map(([section, sectionDishes]) => (
-              <div key={section} className="bg-white rounded-lg shadow-sm">
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-2xl font-bold text-gray-900">{section}</h2>
-                </div>
-                
-                <div className="p-6">
-                  <div className="space-y-6">
-                    {sectionDishes.map((dish) => (
-                      <div key={dish.id} className="border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">{dish.dish_name}</h3>
-                            
-                            {dish.description_en && (
-                              <p className="text-gray-600 mb-3">{dish.description_en}</p>
-                            )}
-                            
-                            <div className="flex flex-wrap gap-2">
-                              {dish.dietary_tags?.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
+            {/* Menu Introduction */}
+            <div className="bg-white rounded-lg p-6 shadow-sm text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Our Menu</h2>
+              <p className="text-gray-600">
+                Discover our delicious selection of {dishes.length} dishes across {sections.length} categories
+              </p>
+            </div>
+
+            {/* FIXED: Display sections dynamically */}
+            {sections.map(section => {
+              const sectionDishes = groupedDishes[section] || [];
+              
+              if (sectionDishes.length === 0) return null;
+              
+              return (
+                <div key={section} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                  <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-xl font-bold text-gray-900">{section}</h3>
+                    <p className="text-sm text-gray-600">{sectionDishes.length} items</p>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="space-y-6">
+                      {sectionDishes.map((dish) => (
+                        <div key={dish.id} className="border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1 pr-4">
+                              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                                {dish.dish_name}
+                              </h4>
                               
-                              {dish.allergens?.map((allergen) => (
-                                <span
-                                  key={allergen}
-                                  className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full"
-                                >
-                                  Contains: {allergen}
-                                </span>
-                              ))}
+                              {dish.description_en && (
+                                <p className="text-gray-600 mb-3 leading-relaxed">
+                                  {dish.description_en}
+                                </p>
+                              )}
+                              
+                              {/* Tags and Allergens */}
+                              {(dish.dietary_tags?.length > 0 || dish.allergens?.length > 0) && (
+                                <div className="flex flex-wrap gap-2">
+                                  {dish.dietary_tags?.map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full"
+                                    >
+                                      ✓ {tag}
+                                    </span>
+                                  ))}
+                                  
+                                  {dish.allergens?.map((allergen) => (
+                                    <span
+                                      key={allergen}
+                                      className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full"
+                                    >
+                                      ⚠️ Contains {allergen}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
+                            
+                            {/* Price */}
+                            {dish.price && (
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-xl font-bold text-gray-900">
+                                  ${dish.price.toFixed(2)}
+                                </p>
+                              </div>
+                            )}
                           </div>
-                          
-                          {dish.price && (
-                            <div className="ml-4 text-right">
-                              <p className="text-lg font-bold text-gray-900">
-                                ${dish.price.toFixed(2)}
-                              </p>
-                            </div>
-                          )}
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         
-        {/* Restaurant Info Footer */}
+        {/* Restaurant Information Footer */}
         <div className="mt-8 bg-white rounded-lg p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Restaurant Information</h3>
-          <div className="grid md:grid-cols-2 gap-4 text-sm">
-            {restaurant.address && (
-              <div>
-                <span className="font-medium text-gray-700">Address:</span>
-                <p className="text-gray-600">
-                  {restaurant.address}
-                  {restaurant.city && `, ${restaurant.city}`}
-                  {restaurant.country && `, ${restaurant.country}`}
-                </p>
-              </div>
-            )}
+          <div className="grid md:grid-cols-2 gap-6 text-sm">
             
-            {restaurant.opening_hours && (
-              <div>
-                <span className="font-medium text-gray-700">Hours:</span>
-                <p className="text-gray-600 whitespace-pre-line">{restaurant.opening_hours}</p>
-              </div>
-            )}
+            {/* Contact Information */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-700">Contact</h4>
+              
+              {restaurant.contact_phone && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">📞</span>
+                  <a 
+                    href={`tel:${restaurant.contact_phone}`}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    {restaurant.contact_phone}
+                  </a>
+                </div>
+              )}
+              
+              {restaurant.contact_email && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">✉️</span>
+                  <a 
+                    href={`mailto:${restaurant.contact_email}`}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    {restaurant.contact_email}
+                  </a>
+                </div>
+              )}
+              
+              {restaurant.website && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">🌐</span>
+                  <a 
+                    href={restaurant.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    Visit Website
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Location and Hours */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-700">Location & Hours</h4>
+              
+              {restaurant.address && (
+                <div className="flex items-start gap-2">
+                  <span className="text-gray-500 mt-0.5">📍</span>
+                  <div className="text-gray-600">
+                    {restaurant.address}
+                    {restaurant.city && <div>{restaurant.city}</div>}
+                    {restaurant.country && <div>{restaurant.country}</div>}
+                  </div>
+                </div>
+              )}
+              
+              {restaurant.opening_hours && (
+                <div className="flex items-start gap-2">
+                  <span className="text-gray-500 mt-0.5">🕒</span>
+                  <div className="text-gray-600 whitespace-pre-line">
+                    {restaurant.opening_hours}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+        </div>
+
+        {/* Powered by WhatTheMenu */}
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-500">
+            Digital menu powered by{' '}
+            <a 
+              href="https://whatthemenu.com" 
+              className="text-blue-600 hover:text-blue-700 font-medium"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              WhatTheMenu
+            </a>
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-// FIXED: Explicit default export
 export default RestaurantPublicPage;
