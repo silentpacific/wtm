@@ -105,11 +105,121 @@ const RestaurantPublicPage: React.FC = () => {
     }
   }, [sessionKey]);
 
-  // Save session data
+  // Save session data - FIXED: This was the problematic section
   useEffect(() => {
     const sessionData: SessionData = {
       orderList,
-                  language: selectedLanguage
+      language: selectedLanguage,
+      dishExplanations,
+      lastUpdated: Date.now()
+    };
+    localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+  }, [orderList, selectedLanguage, dishExplanations, sessionKey]);
+
+  // Analytics tracking
+  useEffect(() => {
+    if (restaurant) {
+      // Track page view
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'restaurant_page_view', {
+          restaurant_id: restaurant.id,
+          restaurant_name: restaurant.business_name,
+          language: selectedLanguage
+        });
+      }
+    }
+  }, [restaurant, selectedLanguage]);
+
+  useEffect(() => {
+    if (slug) {
+      loadRestaurantData();
+    }
+  }, [slug]);
+
+  const loadRestaurantData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      console.log('🔍 Loading restaurant data for slug:', slug);
+
+      const response = await fetch(`/.netlify/functions/getRestaurantData?slug=${slug}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('Restaurant not found');
+        } else {
+          setError(`Failed to load restaurant: ${response.status}`);
+        }
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        console.error('❌ API Error:', data.error);
+        setError(data.error);
+        return;
+      }
+
+      console.log('✅ Restaurant data loaded:', data);
+
+      if (data.restaurant) {
+        setRestaurant(data.restaurant);
+        console.log(`✅ Restaurant: ${data.restaurant.business_name}`);
+      } else {
+        setError('Restaurant data not found');
+        return;
+      }
+
+      const dishList = data.dishes || [];
+      const sectionList = data.sections || [];
+      
+      console.log(`✅ Loaded ${dishList.length} dishes`);
+      console.log(`📂 Sections: ${sectionList.join(', ')}`);
+      
+      setDishes(dishList);
+      setSections(sectionList);
+
+    } catch (error) {
+      console.error('❌ Error loading restaurant:', error);
+      setError('Failed to load restaurant');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get dish explanation
+  const getDishExplanation = async (dish: Dish) => {
+    if (dishExplanations[dish.id] || loadingExplanations[dish.id]) return;
+
+    setLoadingExplanations(prev => ({ ...prev, [dish.id]: true }));
+
+    try {
+      const response = await fetch('/.netlify/functions/getDishExplanation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dishName: dish.dish_name,
+          language: selectedLanguage,
+          restaurantId: restaurant?.id.toString(),
+          restaurantName: restaurant?.business_name
+        }),
+      });
+
+      if (response.ok) {
+        const explanation = await response.json();
+        setDishExplanations(prev => ({
+          ...prev,
+          [dish.id]: explanation
+        }));
+
+        // Analytics tracking - FIXED: Added proper comma
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'dish_explanation_viewed', {
+            restaurant_id: restaurant?.id,
+            dish_name: dish.dish_name,
+            language: selectedLanguage
           });
         }
       }
@@ -803,115 +913,4 @@ const RestaurantPublicPage: React.FC = () => {
   );
 };
 
-export default RestaurantPublicPage;,
-      dishExplanations,
-      lastUpdated: Date.now()
-    };
-    localStorage.setItem(sessionKey, JSON.stringify(sessionData));
-  }, [orderList, selectedLanguage, dishExplanations, sessionKey]);
-
-  // Analytics tracking
-  useEffect(() => {
-    if (restaurant) {
-      // Track page view
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'restaurant_page_view', {
-          restaurant_id: restaurant.id,
-          restaurant_name: restaurant.business_name,
-          language: selectedLanguage
-        });
-      }
-    }
-  }, [restaurant, selectedLanguage]);
-
-  useEffect(() => {
-    if (slug) {
-      loadRestaurantData();
-    }
-  }, [slug]);
-
-  const loadRestaurantData = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      console.log('🔍 Loading restaurant data for slug:', slug);
-
-      const response = await fetch(`/.netlify/functions/getRestaurantData?slug=${slug}`);
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          setError('Restaurant not found');
-        } else {
-          setError(`Failed to load restaurant: ${response.status}`);
-        }
-        return;
-      }
-
-      const data = await response.json();
-      
-      if (data.error) {
-        console.error('❌ API Error:', data.error);
-        setError(data.error);
-        return;
-      }
-
-      console.log('✅ Restaurant data loaded:', data);
-
-      if (data.restaurant) {
-        setRestaurant(data.restaurant);
-        console.log(`✅ Restaurant: ${data.restaurant.business_name}`);
-      } else {
-        setError('Restaurant data not found');
-        return;
-      }
-
-      const dishList = data.dishes || [];
-      const sectionList = data.sections || [];
-      
-      console.log(`✅ Loaded ${dishList.length} dishes`);
-      console.log(`📂 Sections: ${sectionList.join(', ')}`);
-      
-      setDishes(dishList);
-      setSections(sectionList);
-
-    } catch (error) {
-      console.error('❌ Error loading restaurant:', error);
-      setError('Failed to load restaurant');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Get dish explanation
-  const getDishExplanation = async (dish: Dish) => {
-    if (dishExplanations[dish.id] || loadingExplanations[dish.id]) return;
-
-    setLoadingExplanations(prev => ({ ...prev, [dish.id]: true }));
-
-    try {
-      const response = await fetch('/.netlify/functions/getDishExplanation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dishName: dish.dish_name,
-          language: selectedLanguage,
-          restaurantId: restaurant?.id.toString(),
-          restaurantName: restaurant?.business_name
-        }),
-      });
-
-      if (response.ok) {
-        const explanation = await response.json();
-        setDishExplanations(prev => ({
-          ...prev,
-          [dish.id]: explanation
-        }));
-
-        // Analytics
-        if (typeof gtag !== 'undefined') {
-          gtag('event', 'dish_explanation_viewed', {
-			  restaurant_id: restaurant?.id,
-			  dish_name: dish.dish_name,
-			  language: selectedLanguage
-			});
+export default RestaurantPublicPage;
