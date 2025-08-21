@@ -911,5 +911,7 @@ export default RestaurantPublicPage;,
         // Analytics
         if (typeof gtag !== 'undefined') {
           gtag('event', 'dish_explanation_viewed', {
-            restaurant_id: restaurant?.id,
-            dish_name: dish.dish_name,
+			  restaurant_id: restaurant?.id,
+			  dish_name: dish.dish_name,
+			  language: selectedLanguage
+			});
