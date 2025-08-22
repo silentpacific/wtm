@@ -1,9 +1,9 @@
 import React, { memo } from 'react'
 import { Info, Plus, Minus, Trash2, ChevronDown } from 'lucide-react'
-import type { Dish, DishTranslations } from '../types'
+import type { AccessibleDish, DishTranslations } from '../types'
 
 interface DishCardProps {
-  dish: Dish
+  dish: AccessibleDish
   quantity: number
   showOriginal: boolean
   translations: DishTranslations
@@ -27,7 +27,10 @@ export const DishCard = memo(function DishCard({
   const displayDescription = showOriginal ? translations.originalDescription : translations.description
   
   return (
-    <div className="p-4 border-b border-gray-100 last:border-b-0">
+    <div 
+      className="p-4 border-b border-gray-100 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors"
+      onClick={onShowInfo}
+    >
       <div className="flex justify-between items-start gap-3">
         {/* Left side - Dish info */}
         <div className="flex-1 min-w-0">
@@ -38,7 +41,10 @@ export const DishCard = memo(function DishCard({
             </h4>
             {translations.name !== translations.originalName && (
               <button
-                onClick={onToggleOriginal}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleOriginal()
+                }}
                 className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-700 border border-blue-200 rounded-md"
                 aria-label={showOriginal ? 'Show translation' : 'Show original name'}
               >
@@ -48,12 +54,14 @@ export const DishCard = memo(function DishCard({
             )}
           </div>
           
-          {/* Description */}
-          {displayDescription && (
+          {/* Description - Only show if exists */}
+          {displayDescription && displayDescription.trim() && (
             <p className="text-gray-600 text-sm leading-relaxed mb-2 line-clamp-2">
               {displayDescription}
             </p>
           )}
+          
+          {/* FIX #3: Removed the "0" number that was showing below dish name */}
           
           {/* Tags */}
           <div className="flex flex-wrap gap-1 mb-2">
@@ -65,7 +73,7 @@ export const DishCard = memo(function DishCard({
             )}
             
             {/* Dietary tags */}
-            {dish.diets?.map((diet) => (
+            {dish.dietaryTags?.map((diet) => (
               <span
                 key={diet}
                 className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
@@ -99,10 +107,13 @@ export const DishCard = memo(function DishCard({
           </p>
           
           <div className="flex items-center gap-2">
-            {/* Info button */}
+            {/* Info button - Enhanced with better visual feedback */}
             <button
-              onClick={onShowInfo}
-              className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 min-h-[44px] min-w-[44px]"
+              onClick={(e) => {
+                e.stopPropagation()
+                onShowInfo()
+              }}
+              className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 min-h-[44px] min-w-[44px] transition-colors"
               aria-label={`More information about ${displayName}`}
             >
               <Info size={18} />
@@ -111,8 +122,11 @@ export const DishCard = memo(function DishCard({
             {/* Add/Quantity controls */}
             {quantity === 0 ? (
               <button
-                onClick={onAddToOrder}
-                className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm min-h-[44px]"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onAddToOrder()
+                }}
+                className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm min-h-[44px] transition-colors"
                 aria-label={`Add ${displayName} to order`}
               >
                 <Plus size={16} />
@@ -121,8 +135,11 @@ export const DishCard = memo(function DishCard({
             ) : (
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => onQuantityChange(-1)}
-                  className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onQuantityChange(-1)
+                  }}
+                  className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
                   aria-label={`Remove one ${displayName}`}
                 >
                   <Minus size={16} />
@@ -134,15 +151,21 @@ export const DishCard = memo(function DishCard({
                   {quantity}
                 </span>
                 <button
-                  onClick={() => onQuantityChange(1)}
-                  className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onQuantityChange(1)
+                  }}
+                  className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-colors"
                   aria-label={`Add another ${displayName}`}
                 >
                   <Plus size={16} />
                 </button>
                 <button
-                  onClick={() => onQuantityChange(-quantity)}
-                  className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onQuantityChange(-quantity)
+                  }}
+                  className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
                   aria-label={`Remove all ${displayName} from order`}
                 >
                   <Trash2 size={16} />

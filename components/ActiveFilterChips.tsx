@@ -1,6 +1,5 @@
-// components/ActiveFilterChips.tsx
 import React from 'react'
-import { X, Plus } from 'lucide-react'
+import { X } from 'lucide-react'
 import type { ActiveFilter } from '../types'
 
 interface ActiveFilterChipsProps {
@@ -10,6 +9,11 @@ interface ActiveFilterChipsProps {
 }
 
 export function ActiveFilterChips({ filters, onRemove, onAddFilters }: ActiveFilterChipsProps) {
+  // Only show if there are active filters
+  if (filters.length === 0) {
+    return null
+  }
+
   return (
     <div className="px-4 py-2 border-b border-gray-200">
       <div className="flex flex-wrap gap-2">
@@ -31,14 +35,7 @@ export function ActiveFilterChips({ filters, onRemove, onAddFilters }: ActiveFil
           </button>
         ))}
         
-        <button
-          onClick={onAddFilters}
-          className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 min-h-[44px]"
-          aria-label="Add filters"
-        >
-          <Plus size={16} aria-hidden="true" />
-          <span className="text-sm">Filters</span>
-        </button>
+        {/* REMOVED: The duplicate "+ Filters" button that was causing the issue */}
       </div>
     </div>
   )

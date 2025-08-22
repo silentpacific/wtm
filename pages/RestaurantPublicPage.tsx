@@ -14,6 +14,7 @@ import { useDebouncedSearch } from '../hooks/useDebouncedSearch'
 import { useI18n } from '../hooks/useI18n'
 import { useMenuFilters } from '../hooks/useMenuFilters'
 import { adaptDishToAccessible, adaptRestaurantToAccessible } from '../types'
+import { supabase } from '../services/supabaseClient'
 import type { AccessibleRestaurant, AccessibleDish, OrderItem, MenuFilters, ActiveFilter, Language } from '../types'
 
 // FIX #3: Remove country codes, just show language names
@@ -215,14 +216,45 @@ export default function RestaurantPublicPage() {
     updateOrder(order.filter(item => item.dish.id !== dishId))
   }
 
-  // FIX #9: Enhanced dish sheet management with explanations
+  // FIX #2: Enhanced dish explanation fetching (DB first, then Gemini fallback)
   const handleShowDishInfo = async (dish: AccessibleDish) => {
+    console.log('🍽️ Fetching explanation for:', dish.name)
     setSelectedDish(dish)
     setShowDishSheet(true)
     extendSession()
 
-    // Fetch detailed explanation with allergens and dietary tags
+    // Show loading state
+    setSelectedDish(prev => prev ? {
+      ...prev,
+      description: 'Loading explanation...',
+      allergens: prev.allergens || [],
+      dietaryTags: prev.dietaryTags || []
+    } : null)
+
     try {
+      // Step 1: Check database cache first (restaurant-specific)
+      console.log('🔍 Checking database cache...')
+      const { data: cachedExplanation } = await supabase
+        .from('dishes')
+        .select('explanation, allergens, tags')
+        .eq('name', dish.name)
+        .eq('restaurant_id', restaurant?.id)
+        .eq('language', language)
+        .maybeSingle()
+
+      if (cachedExplanation) {
+        console.log('✅ Found cached explanation in database')
+        setSelectedDish(prev => prev ? {
+          ...prev,
+          description: cachedExplanation.explanation || dish.description,
+          allergens: cachedExplanation.allergens || prev.allergens || [],
+          dietaryTags: cachedExplanation.tags || prev.dietaryTags || []
+        } : null)
+        return
+      }
+
+      // Step 2: Fallback to Gemini API if no cache found
+      console.log('🧠 No cache found, calling Gemini API...')
       const response = await fetch('/.netlify/functions/getDishExplanation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -236,16 +268,34 @@ export default function RestaurantPublicPage() {
 
       if (response.ok) {
         const explanation = await response.json()
+        console.log('✅ Got AI explanation:', explanation)
+        
         // Update the selected dish with detailed information
         setSelectedDish(prev => prev ? {
           ...prev,
-          description: explanation.explanation || prev.description,
+          description: explanation.explanation || dish.description || 'Delicious dish from our menu',
           allergens: explanation.allergens || prev.allergens || [],
           dietaryTags: explanation.tags || prev.dietaryTags || []
         } : null)
+      } else {
+        console.error('❌ API call failed:', response.status)
+        // Fallback to original description
+        setSelectedDish(prev => prev ? {
+          ...prev,
+          description: dish.description || 'Delicious dish from our menu',
+          allergens: prev.allergens || [],
+          dietaryTags: prev.dietaryTags || []
+        } : null)
       }
     } catch (error) {
-      console.error('Error fetching dish explanation:', error)
+      console.error('❌ Error fetching dish explanation:', error)
+      // Fallback to original description
+      setSelectedDish(prev => prev ? {
+        ...prev,
+        description: dish.description || 'Delicious dish from our menu',
+        allergens: prev.allergens || [],
+        dietaryTags: prev.dietaryTags || []
+      } : null)
     }
   }
 
