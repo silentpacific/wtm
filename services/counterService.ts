@@ -332,6 +332,7 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
 	  supabase.rpc('get_public_global_counters'),
 	  new Promise((_, reject) => 
 		setTimeout(() => reject(new Error('Global counters timeout')), 15000) // <- 15 seconds
+	  ) // <- ADD THIS CLOSING PARENTHESIS
 	]) as any;
 
     if (error) {
