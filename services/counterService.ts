@@ -129,16 +129,16 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
     console.log('🔍 Fetching user counters for:', userId);
 
     // Get user profile from database with timeout
-    const { data: profile, error } = await Promise.race([
-      supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single(),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
-      )
-    ]) as any;
+	const { data: profile, error } = await Promise.race([
+	  supabase
+		.from('user_profiles')
+		.select('*')
+		.eq('id', userId)
+		.single(),
+	  new Promise((_, reject) => 
+		setTimeout(() => reject(new Error('Request timeout')), 30000) // <- 30 seconds
+	  )
+	]) as any;
 
     if (error) {
       if (error.code === '42501') {
@@ -328,12 +328,11 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
     console.log('🔍 Fetching global counters...');
     
     // Use the RPC function with timeout
-    const { data, error } = await Promise.race([
-      supabase.rpc('get_public_global_counters'),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Global counters timeout')), 5000)
-      )
-    ]) as any;
+	const { data, error } = await Promise.race([
+	  supabase.rpc('get_public_global_counters'),
+	  new Promise((_, reject) => 
+		setTimeout(() => reject(new Error('Global counters timeout')), 15000) // <- 15 seconds
+	]) as any;
 
     if (error) {
       console.error('❌ Error fetching global counters:', error);
