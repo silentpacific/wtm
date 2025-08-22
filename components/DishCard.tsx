@@ -54,14 +54,14 @@ export const DishCard = memo(function DishCard({
             )}
           </div>
           
-          {/* Description - Only show if exists */}
-          {displayDescription && displayDescription.trim() && (
+          {/* Description - Only show if exists and not empty */}
+          {displayDescription && displayDescription.trim() && displayDescription !== '0' && (
             <p className="text-gray-600 text-sm leading-relaxed mb-2 line-clamp-2">
               {displayDescription}
             </p>
           )}
           
-          {/* FIX #3: Removed the "0" number that was showing below dish name */}
+          {/* FIX #3: Completely removed the "0" number display */}
           
           {/* Tags */}
           <div className="flex flex-wrap gap-1 mb-2">

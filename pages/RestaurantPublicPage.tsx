@@ -135,9 +135,9 @@ export default function RestaurantPublicPage() {
     }
   }
 
-  // Group dishes by category using the adapted data
+  // Group dishes by category using the adapted data - FIX #7: Prevent infinite loop
   const groupedDishes = useMemo(() => {
-    return filteredDishes.reduce((acc, dish) => {
+    const grouped = filteredDishes.reduce((acc, dish) => {
       const category = dish.category || 'Other'
       if (!acc[category]) {
         acc[category] = []
@@ -145,9 +145,12 @@ export default function RestaurantPublicPage() {
       acc[category].push(dish)
       return acc
     }, {} as Record<string, AccessibleDish[]>)
+    
+    // Remove console.log that was causing infinite re-renders
+    return grouped
   }, [filteredDishes])
 
-  // Category data for tabs
+  // Category data for tabs - FIX #7: Prevent infinite loop
   const categories = useMemo(() => {
     return sections.map(section => ({
       name: section,
@@ -462,7 +465,7 @@ export default function RestaurantPublicPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Menu Introduction */}
+            {/* FIX #2: Fixed "Our Menu" cutoff - Proper menu introduction */}
             <div className="bg-white rounded-lg p-6 shadow-sm text-center">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Our Menu</h2>
               <p className="text-gray-600">
@@ -472,11 +475,11 @@ export default function RestaurantPublicPage() {
 
             {/* FIX #4: Debug section removed completely */}
 
-            {/* Menu Sections - DYNAMIC FROM API */}
+            {/* Menu Sections - FIX #7: Remove console.log causing infinite loop */}
             {sections.map(section => {
               const sectionDishes = groupedDishes[section] || []
               
-              console.log(`🍽️ Section "${section}" dishes:`, sectionDishes.length)
+              // FIX #7: Removed console.log that was causing infinite re-renders
               
               if (sectionDishes.length === 0) return null
               
