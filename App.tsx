@@ -21,6 +21,7 @@ import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
 import AccessMenuTest from './components/AccessMenuTest';
 import RestaurantQRPage from './pages/RestaurantQRPage';
+import './services/errorBoundary';
 
 
 const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {

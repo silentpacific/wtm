@@ -1,5 +1,5 @@
 // src/services/enhancedUsageTracking.ts
-// Updated for new paid user scan limits (Daily: 10 scans, Weekly: 70 scans)
+// FIXED VERSION - Added error handling and removed missing column references
 
 import { supabase } from './supabaseClient';
 import { UserProfile } from '../types';
@@ -64,20 +64,43 @@ const getCurrentMonth = (): string => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 };
 
-// Get or create enhanced user profile
+// FIXED: Get or create enhanced user profile with proper error handling
 export const getOrCreateEnhancedUserProfile = async (
   userId: string, 
   email?: string
 ): Promise<EnhancedUserProfile | null> => {
   try {
+    // Validate userId
+    if (!userId || typeof userId !== 'string') {
+      console.error('❌ Invalid userId provided:', userId);
+      return null;
+    }
+
     const currentMonth = getCurrentMonth();
+    console.log('🔍 Fetching user profile for:', userId);
     
-    // Try to get existing profile
+    // Try to get existing profile with error handling
     const { data: existingProfile, error: fetchError } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('id', userId)
       .single();
+
+    // Handle permission errors specifically
+    if (fetchError) {
+      if (fetchError.code === '42501') {
+        console.error('❌ Permission denied for user_profiles table. Check RLS policies.');
+        return null;
+      }
+      
+      if (fetchError.code === 'PGRST116') {
+        console.log('📝 User profile not found, will create new one');
+        // Continue to create new profile
+      } else {
+        console.error('❌ Error fetching user profile:', fetchError);
+        return null;
+      }
+    }
 
     if (existingProfile && !fetchError) {
       // Check if we need to reset monthly counters
@@ -89,67 +112,85 @@ export const getOrCreateEnhancedUserProfile = async (
             (existingProfile.current_month_menus > 0 || existingProfile.current_month_dishes > 0)) {
           
           const [year, month] = existingProfile.usage_month.split('-');
-          await supabase
-            .from('monthly_usage_history')
-            .upsert({
-              user_id: userId,
-              year: parseInt(year),
-              month: parseInt(month),
-              menus_scanned: existingProfile.current_month_menus || 0,
-              dishes_explained: existingProfile.current_month_dishes || 0,
-              restaurants_visited: existingProfile.current_month_restaurants || 0,
-              countries_explored: existingProfile.current_month_countries || 0
-            });
+          try {
+            await supabase
+              .from('monthly_usage_history')
+              .upsert({
+                user_id: userId,
+                year: parseInt(year),
+                month: parseInt(month),
+                menus_scanned: existingProfile.current_month_menus || 0,
+                dishes_explained: existingProfile.current_month_dishes || 0,
+                restaurants_visited: existingProfile.current_month_restaurants || 0,
+                countries_explored: existingProfile.current_month_countries || 0
+              });
+          } catch (historyError) {
+            console.error('⚠️ Failed to save usage history:', historyError);
+            // Continue execution, don't block on history save
+          }
         }
         
         // Reset monthly counters
-        const { data: updatedProfile, error: updateError } = await supabase
-          .from('user_profiles')
-          .update({
-            usage_month: currentMonth,
-            current_month_menus: 0,
-            current_month_dishes: 0,
-            current_month_restaurants: 0,
-            current_month_countries: 0,
-            current_menu_dish_explanations: 0, // Reset current menu counter too
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', userId)
-          .select()
-          .single();
+        try {
+          const { data: updatedProfile, error: updateError } = await supabase
+            .from('user_profiles')
+            .update({
+              usage_month: currentMonth,
+              current_month_menus: 0,
+              current_month_dishes: 0,
+              current_month_restaurants: 0,
+              current_month_countries: 0,
+              current_menu_dish_explanations: 0,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', userId)
+            .select()
+            .single();
+            
+          if (updateError) {
+            console.error('❌ Error updating profile for new month:', updateError);
+            return existingProfile as EnhancedUserProfile;
+          }
           
-        if (updateError) {
-          console.error('Error updating profile for new month:', updateError);
+          return updatedProfile as EnhancedUserProfile;
+        } catch (updateError) {
+          console.error('❌ Failed to update monthly counters:', updateError);
           return existingProfile as EnhancedUserProfile;
         }
-        
-        return updatedProfile as EnhancedUserProfile;
       }
       
       // Ensure current_menu_dish_explanations field exists (for existing users)
       if (existingProfile.current_menu_dish_explanations === undefined) {
-        const { data: updatedProfile, error: updateError } = await supabase
-          .from('user_profiles')
-          .update({
-            current_menu_dish_explanations: 0,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', userId)
-          .select()
-          .single();
+        try {
+          const { data: updatedProfile, error: updateError } = await supabase
+            .from('user_profiles')
+            .update({
+              current_menu_dish_explanations: 0,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', userId)
+            .select()
+            .single();
+            
+          if (updateError) {
+            console.error('❌ Error adding current_menu_dish_explanations field:', updateError);
+            return existingProfile as EnhancedUserProfile;
+          }
           
-        if (updateError) {
-          console.error('Error adding current_menu_dish_explanations field:', updateError);
+          return updatedProfile as EnhancedUserProfile;
+        } catch (updateError) {
+          console.error('❌ Failed to add current_menu_dish_explanations field:', updateError);
           return existingProfile as EnhancedUserProfile;
         }
-        
-        return updatedProfile as EnhancedUserProfile;
       }
       
       return existingProfile as EnhancedUserProfile;
     }
 
     // Create new profile if doesn't exist
+    console.log('📝 Creating new user profile for:', userId);
+    
+    // REMOVED: dish_explanations_used since it doesn't exist in schema
     const newProfile = {
       id: userId,
       email: email,
@@ -157,7 +198,6 @@ export const getOrCreateEnhancedUserProfile = async (
       subscription_expires_at: null,
       scans_used: 0,
       scans_limit: 5,
-      dish_explanations_used: 0,
       lifetime_menus_scanned: 0,
       lifetime_dishes_explained: 0,
       lifetime_restaurants_visited: 0,
@@ -170,35 +210,52 @@ export const getOrCreateEnhancedUserProfile = async (
       usage_month: currentMonth
     };
 
-    const { data: createdProfile, error: createError } = await supabase
-      .from('user_profiles')
-      .insert(newProfile)
-      .select()
-      .single();
+    try {
+      const { data: createdProfile, error: createError } = await supabase
+        .from('user_profiles')
+        .insert(newProfile)
+        .select()
+        .single();
 
-    if (createError) {
-      console.error('Error creating enhanced user profile:', createError);
+      if (createError) {
+        console.error('❌ Error creating enhanced user profile:', createError);
+        return null;
+      }
+
+      console.log('✅ Created new user profile:', createdProfile.id);
+      return createdProfile as EnhancedUserProfile;
+    } catch (createError) {
+      console.error('❌ Failed to create user profile:', createError);
       return null;
     }
-
-    return createdProfile as EnhancedUserProfile;
   } catch (error) {
-    console.error('Error in getOrCreateEnhancedUserProfile:', error);
+    console.error('❌ Error in getOrCreateEnhancedUserProfile:', error);
     return null;
   }
 };
 
-// Increment user's menu scan count and reset dish counter
+// FIXED: Increment user's menu scan count with better error handling
 export const incrementUserMenuScan = async (userId: string): Promise<boolean> => {
   try {
+    // Validate userId
+    if (!userId || typeof userId !== 'string') {
+      console.error('❌ Invalid userId for menu scan increment:', userId);
+      return false;
+    }
+
     const { data: profile, error: fetchError } = await supabase
       .from('user_profiles')
       .select('scans_used, lifetime_menus_scanned, current_month_menus, subscription_type, subscription_expires_at, subscription_status')
       .eq('id', userId)
       .single();
 
-    if (fetchError || !profile) {
-      console.error('Error fetching profile for menu scan increment:', fetchError);
+    if (fetchError) {
+      console.error('❌ Error fetching profile for menu scan increment:', fetchError);
+      return false;
+    }
+    
+    if (!profile) {
+      console.error('❌ No profile found for user:', userId);
       return false;
     }
 
@@ -211,7 +268,7 @@ export const incrementUserMenuScan = async (userId: string): Promise<boolean> =>
 
     // Check if user can scan
     if (profile.scans_used >= scanLimit) {
-      console.error('User has reached scan limit');
+      console.error('❌ User has reached scan limit');
       return false;
     }
 
@@ -227,29 +284,41 @@ export const incrementUserMenuScan = async (userId: string): Promise<boolean> =>
       .eq('id', userId);
 
     if (updateError) {
-      console.error('Error incrementing menu scan count:', updateError);
+      console.error('❌ Error incrementing menu scan count:', updateError);
       return false;
     }
 
     console.log(`📸 User ${userId} menu scans: ${profile.scans_used + 1}/${scanLimit}, dishes reset to 0`);
     return true;
   } catch (error) {
-    console.error('Error in incrementUserMenuScan:', error);
+    console.error('❌ Error in incrementUserMenuScan:', error);
     return false;
   }
 };
 
-// Increment user's dish explanation count for current menu
+// FIXED: Increment user's dish explanation count with better error handling
 export const incrementUserDishExplanation = async (userId: string): Promise<boolean> => {
   try {
+    // Validate userId
+    if (!userId || typeof userId !== 'string') {
+      console.error('❌ Invalid userId for dish explanation increment:', userId);
+      return false;
+    }
+
+    // REMOVED: dish_explanations_used from select since it doesn't exist
     const { data: profile, error: fetchError } = await supabase
       .from('user_profiles')
-      .select('dish_explanations_used, lifetime_dishes_explained, current_month_dishes, current_menu_dish_explanations, subscription_type, subscription_expires_at, subscription_status')
+      .select('lifetime_dishes_explained, current_month_dishes, current_menu_dish_explanations, subscription_type, subscription_expires_at, subscription_status')
       .eq('id', userId)
       .single();
 
-    if (fetchError || !profile) {
-      console.error('Error fetching profile for dish explanation increment:', fetchError);
+    if (fetchError) {
+      console.error('❌ Error fetching profile for dish explanation increment:', fetchError);
+      return false;
+    }
+    
+    if (!profile) {
+      console.error('❌ No profile found for user:', userId);
       return false;
     }
 
@@ -262,14 +331,14 @@ export const incrementUserDishExplanation = async (userId: string): Promise<bool
 
     // For free users, check the 5-dish limit
     if (!hasUnlimited && (profile.current_menu_dish_explanations || 0) >= 5) {
-      console.error('Free user has reached dish explanation limit for current menu');
+      console.error('❌ Free user has reached dish explanation limit for current menu');
       return false;
     }
 
+    // REMOVED: dish_explanations_used from update since it doesn't exist
     const { error: updateError } = await supabase
       .from('user_profiles')
       .update({
-        dish_explanations_used: (profile.dish_explanations_used || 0) + 1,
         lifetime_dishes_explained: (profile.lifetime_dishes_explained || 0) + 1,
         current_month_dishes: (profile.current_month_dishes || 0) + 1,
         current_menu_dish_explanations: (profile.current_menu_dish_explanations || 0) + 1,
@@ -278,7 +347,7 @@ export const incrementUserDishExplanation = async (userId: string): Promise<bool
       .eq('id', userId);
 
     if (updateError) {
-      console.error('Error incrementing dish explanation count:', updateError);
+      console.error('❌ Error incrementing dish explanation count:', updateError);
       return false;
     }
 
@@ -287,14 +356,20 @@ export const incrementUserDishExplanation = async (userId: string): Promise<bool
     console.log(`💡 User ${userId} dish explanations: ${currentCount}/${limitText} (current menu)`);
     return true;
   } catch (error) {
-    console.error('Error in incrementUserDishExplanation:', error);
+    console.error('❌ Error in incrementUserDishExplanation:', error);
     return false;
   }
 };
 
-// Reset user's current menu dish explanations (called when new scan starts)
+// FIXED: Reset user's current menu dish explanations with better error handling
 export const resetUserDishCounter = async (userId: string): Promise<boolean> => {
   try {
+    // Validate userId
+    if (!userId || typeof userId !== 'string') {
+      console.error('❌ Invalid userId for dish counter reset:', userId);
+      return false;
+    }
+
     const { error: updateError } = await supabase
       .from('user_profiles')
       .update({
@@ -304,14 +379,14 @@ export const resetUserDishCounter = async (userId: string): Promise<boolean> => 
       .eq('id', userId);
 
     if (updateError) {
-      console.error('Error resetting dish counter:', updateError);
+      console.error('❌ Error resetting dish counter:', updateError);
       return false;
     }
 
     console.log(`🔄 User ${userId} dish counter reset to 0 for new menu`);
     return true;
   } catch (error) {
-    console.error('Error in resetUserDishCounter:', error);
+    console.error('❌ Error in resetUserDishCounter:', error);
     return false;
   }
 };

@@ -1,4 +1,4 @@
-// services/counterService.ts - DEFENSIVE VERSION with extensive null checks
+// services/counterService.ts - FIXED VERSION with proper error handling and circuit breaker
 
 import { supabase } from './supabaseClient';
 
@@ -17,6 +17,44 @@ export interface GlobalCounters {
   menus_scanned: number;
   dish_explanations: number;
 }
+
+// Circuit breaker to prevent infinite loops
+class CircuitBreaker {
+  private failureCount = 0;
+  private failureThreshold = 3;
+  private resetTimeout = 30000; // 30 seconds
+  private lastFailureTime = 0;
+
+  canExecute(): boolean {
+    if (this.failureCount >= this.failureThreshold) {
+      const now = Date.now();
+      if (now - this.lastFailureTime >= this.resetTimeout) {
+        this.reset();
+        return true;
+      }
+      return false;
+    }
+    return true;
+  }
+
+  recordSuccess(): void {
+    this.failureCount = 0;
+  }
+
+  recordFailure(): void {
+    this.failureCount++;
+    this.lastFailureTime = Date.now();
+  }
+
+  reset(): void {
+    this.failureCount = 0;
+    this.lastFailureTime = 0;
+  }
+}
+
+// Circuit breakers for different operations
+const userProfileCircuitBreaker = new CircuitBreaker();
+const globalCountersCircuitBreaker = new CircuitBreaker();
 
 // Helper function to safely check if subscription is expired
 const isSubscriptionExpired = (expiresAt: string | null | undefined): boolean => {
@@ -65,27 +103,87 @@ const handleExpiredSubscription = async (userId: string): Promise<void> => {
   }
 };
 
+// FIXED: Get user counters with circuit breaker and proper error handling
 export const getUserCounters = async (userId: string): Promise<UserCounters> => {
+  // Check circuit breaker
+  if (!userProfileCircuitBreaker.canExecute()) {
+    console.warn('🚫 Circuit breaker open for user profiles, returning defaults');
+    return {
+      scans_used: 0,
+      scans_limit: 5,
+      current_menu_dish_explanations: 0,
+      subscription_type: 'free',
+      subscription_status: 'inactive',
+      subscription_expires_at: null,
+      lifetime_menus_scanned: 0,
+      lifetime_dish_explanations: 0,
+    };
+  }
+
   try {
-    if (!userId) {
-      throw new Error('User ID is required');
+    // Validate userId
+    if (!userId || typeof userId !== 'string') {
+      throw new Error('Invalid user ID provided');
     }
 
-    // Get user profile from database
-    const { data: profile, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    console.log('🔍 Fetching user counters for:', userId);
+
+    // Get user profile from database with timeout
+    const { data: profile, error } = await Promise.race([
+      supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      )
+    ]) as any;
 
     if (error) {
+      if (error.code === '42501') {
+        console.error('❌ Permission denied for user_profiles table');
+        userProfileCircuitBreaker.recordFailure();
+        throw new Error('Database permission denied');
+      }
+      
+      if (error.code === 'PGRST116') {
+        console.log('📝 User profile not found, returning defaults');
+        userProfileCircuitBreaker.recordSuccess();
+        return {
+          scans_used: 0,
+          scans_limit: 5,
+          current_menu_dish_explanations: 0,
+          subscription_type: 'free',
+          subscription_status: 'inactive',
+          subscription_expires_at: null,
+          lifetime_menus_scanned: 0,
+          lifetime_dish_explanations: 0,
+        };
+      }
+      
       console.error('❌ Error fetching user profile:', error);
+      userProfileCircuitBreaker.recordFailure();
       throw error;
     }
 
     if (!profile) {
-      throw new Error('User profile not found');
+      console.warn('⚠️ No profile data returned');
+      userProfileCircuitBreaker.recordSuccess();
+      return {
+        scans_used: 0,
+        scans_limit: 5,
+        current_menu_dish_explanations: 0,
+        subscription_type: 'free',
+        subscription_status: 'inactive',
+        subscription_expires_at: null,
+        lifetime_menus_scanned: 0,
+        lifetime_dish_explanations: 0,
+      };
     }
+
+    // Record success
+    userProfileCircuitBreaker.recordSuccess();
 
     // Safely check if subscription is expired
     const subscriptionExpired = isSubscriptionExpired(profile.subscription_expires_at);
@@ -106,7 +204,7 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
           subscription_status: 'inactive',
           subscription_expires_at: null,
           lifetime_menus_scanned: Number(profile.lifetime_menus_scanned) || 0,
-          lifetime_dish_explanations: Number(profile.lifetime_dish_explanations) || 0,
+          lifetime_dish_explanations: Number(profile.lifetime_dishes_explained) || 0,
         };
       } catch (resetError) {
         console.error('❌ Error resetting expired subscription:', resetError);
@@ -129,6 +227,7 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
       }
     }
 
+    console.log('✅ Successfully fetched user counters');
     return {
       scans_used: Number(profile.scans_used) || 0,
       scans_limit: scanLimit,
@@ -137,11 +236,12 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
       subscription_status: subscriptionExpired ? 'inactive' : (profile.subscription_status || 'inactive'),
       subscription_expires_at: subscriptionExpired ? null : profile.subscription_expires_at,
       lifetime_menus_scanned: Number(profile.lifetime_menus_scanned) || 0,
-      lifetime_dish_explanations: Number(profile.lifetime_dish_explanations) || 0,
+      lifetime_dish_explanations: Number(profile.lifetime_dishes_explained) || 0,
     };
 
   } catch (error) {
     console.error('❌ Error in getUserCounters:', error);
+    userProfileCircuitBreaker.recordFailure();
     
     // Return safe defaults instead of crashing
     return {
@@ -213,20 +313,40 @@ export const canUserExplainDish = async (userId: string): Promise<boolean> => {
   }
 };
 
-// Function to get global counters with safe defaults - FIXED VERSION
+// FIXED: Get global counters with circuit breaker
 export const getGlobalCounters = async (): Promise<GlobalCounters> => {
+  // Check circuit breaker
+  if (!globalCountersCircuitBreaker.canExecute()) {
+    console.warn('🚫 Circuit breaker open for global counters, returning defaults');
+    return {
+      menus_scanned: 185,
+      dish_explanations: 615
+    };
+  }
+
   try {
-    // Use the RPC function instead of direct table access
-    const { data, error } = await supabase.rpc('get_public_global_counters');
+    console.log('🔍 Fetching global counters...');
+    
+    // Use the RPC function with timeout
+    const { data, error } = await Promise.race([
+      supabase.rpc('get_public_global_counters'),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Global counters timeout')), 5000)
+      )
+    ]) as any;
 
     if (error) {
       console.error('❌ Error fetching global counters:', error);
+      globalCountersCircuitBreaker.recordFailure();
       // Return defaults on error instead of throwing
       return {
-        menus_scanned: 152,
-        dish_explanations: 524
+        menus_scanned: 185,
+        dish_explanations: 615
       };
     }
+
+    // Record success
+    globalCountersCircuitBreaker.recordSuccess();
 
     // Convert array to object with default values
     const counters: GlobalCounters = {
@@ -246,21 +366,23 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
       });
     }
 
+    console.log('✅ Successfully fetched global counters');
     return {
-      menus_scanned: counters.menus_scanned || 152,  // Use your real count
-      dish_explanations: counters.dish_explanations || 524  // Use your real count
+      menus_scanned: counters.menus_scanned || 185,
+      dish_explanations: counters.dish_explanations || 615
     };
   } catch (error) {
     console.error('❌ Error in getGlobalCounters:', error);
+    globalCountersCircuitBreaker.recordFailure();
     // Return safe defaults on error
     return {
-      menus_scanned: 152,
-      dish_explanations: 524
+      menus_scanned: 185,
+      dish_explanations: 615
     };
   }
 };
 
-// Global counter functions
+// Global counter functions with better error handling
 export const incrementMenuScans = async (): Promise<void> => {
   try {
     const { error } = await supabase.rpc('increment_global_counter', {
@@ -275,7 +397,7 @@ export const incrementMenuScans = async (): Promise<void> => {
     console.log('✅ Global menu scan counter incremented');
   } catch (error) {
     console.error('❌ Error in incrementMenuScans:', error);
-    throw error;
+    // Don't throw, let the app continue
   }
 };
 
@@ -293,11 +415,11 @@ export const incrementDishExplanations = async (): Promise<void> => {
     console.log('✅ Global dish explanations counter incremented');
   } catch (error) {
     console.error('❌ Error in incrementDishExplanations:', error);
-    throw error;
+    // Don't throw, let the app continue
   }
 };
 
-// Safe function to set up real-time counter updates
+// FIXED: Safe function to set up real-time counter updates with unsubscribe tracking
 export const setupRealtimeCounters = (callback: (counters: GlobalCounters) => void) => {
   try {
     const subscription = supabase
@@ -333,9 +455,11 @@ export const setupRealtimeCounters = (callback: (counters: GlobalCounters) => vo
   }
 };
 
-// Fixed function to subscribe to real-time counter updates
+// FIXED: Subscribe to counter updates with proper cleanup
 export const subscribeToCounters = (callback: (counters: GlobalCounters) => void) => {
   try {
+    console.log('📡 Setting up counter subscription...');
+    
     const subscription = supabase
       .channel('global_counters_changes')
       .on(
@@ -357,6 +481,8 @@ export const subscribeToCounters = (callback: (counters: GlobalCounters) => void
         }
       )
       .subscribe();
+
+    console.log('✅ Counter subscription established');
 
     // Return proper unsubscribe function that matches expected interface
     return {

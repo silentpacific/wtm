@@ -5,6 +5,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { initErrorTracking } from './services/errorTracking';
 import App from './App';
 import './index.css'; // Add this line for Tailwind CSS
+import './services/errorBoundary';
+
 
 // Initialize error tracking FIRST
 initErrorTracking();
