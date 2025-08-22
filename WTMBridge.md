@@ -1,252 +1,200 @@
-# WhatTheMenu Bridge - CURRENT STATUS & PHASE 3 COMPLETION
+# Accessible Multilingual Menu — Requirements (v2)
 
-**Current Status:** Phase 3 ACCESSIBILITY OVERHAUL ✅ 95% COMPLETE  
-**Goal:** Fully accessible restaurant platform with mobile-first design  
-**Pricing:** $25/month with 30-day free trial  
-**Achievement:** Complete restaurant platform + accessibility compliance
+## Scope
+Mobile-first interactive menu page reached via QR code. Targets:
+- Tourists who don’t speak the local language
+- Deaf and hard-of-hearing diners
 
----
-
-## ✅ PHASE 1 COMPLETION SUMMARY (Weeks 1-4) - ACHIEVED
-
-### **Week 1: Safe Database Extension** - ✅ COMPLETED
-- ✅ NEW restaurant tables created (zero modifications to existing tables)
-- ✅ Restaurant business accounts table with subscription tracking
-- ✅ Restaurant menus and dishes tables with full multilingual support
-- ✅ Complete separation from consumer database structures
-- ✅ REUSES existing `dishes` table for explanations via established AI system
-- ✅ REUSES existing `global_counters` for all analytics tracking
-
-### **Week 2: Restaurant Public Pages** - ✅ COMPLETED  
-- ✅ Restaurant page component at `/restaurants/{slug}` fully functional
-- ✅ Multi-language explanations using existing `getDishExplanation.ts`
-- ✅ Mobile-optimized design with accessibility focus for deaf/HoH customers
-- ✅ Complete integration with existing AI and caching systems
-- ✅ Updates global counters for analytics (menu views + dish explanations)
-- ✅ Australian pricing implementation throughout ($25/month)
-
-### **Week 3: Communication & Order Features** - ✅ COMPLETED
-- ✅ "Add to My List" communication tool (not ordering system)
-- ✅ Question & Response system for waiter interaction
-- ✅ Visual feedback system (Yes/No/Let me check buttons)
-- ✅ Mobile notifications when items added to list
-- ✅ "Show this to your waiter" messaging throughout
-- ✅ Accessibility-first design with high contrast and large fonts
-- ✅ Fixed vegan/vegetarian filtering logic
-
-### **Week 4: QR Codes & Restaurant Management** - ✅ COMPLETED
-- ✅ Complete QR code generation system with multiple formats (PNG, SVG, PDF)
-- ✅ Multiple sizes (150px, 300px, 600px) for different use cases
-- ✅ Download functionality for all QR formats using qr-server.com API
-- ✅ Table tent templates with accessibility messaging
-- ✅ Complete restaurant management dashboard system
-- ✅ All 5 restaurant management pages implemented and functional
-- ✅ App.tsx routing integration completed
+No search box. Core flows: language switch, allergen/dietary filtering, dish note/question, add to Order List, “Show this to the server” confirmation.
 
 ---
 
-## ✅ PHASE 2: AUTHENTICATION SYSTEM (Week 5) - COMPLETED
+## 1) Global UX & Layout
+- **Top header (fixed):**
+  - Brand/restaurant name
+  - **Language selector** (English, 中文, Español, Français)
+- **Below header (translatable region):**
+  - Filter bar (Allergens = exclude; Dietary tags = include)
+  - Menu sections and dish cards
+  - Sticky **Order List bar** at bottom
 
-### ✅ **COMPLETED: Database Authentication Setup**
-
-#### **Database Updates Applied:**
-```sql
--- ✅ COMPLETED: Added authentication fields to restaurant_business_accounts
-ALTER TABLE restaurant_business_accounts 
-ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMP DEFAULT NOW(),
-ADD COLUMN IF NOT EXISTS trial_expires_at TIMESTAMP DEFAULT (NOW() + INTERVAL '30 days'),
-ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT,
-ADD COLUMN IF NOT EXISTS opening_hours TEXT,
-ADD COLUMN IF NOT EXISTS special_notes TEXT;
-
--- ✅ COMPLETED: Row Level Security policies implemented
--- ✅ COMPLETED: Authentication triggers and functions created
-```
-
-#### **RLS Security Implementation:** ✅
-- Public can read all restaurant data (for customer pages)
-- Restaurant owners can only modify their own data
-- Authentication required for any modifications
-- Automatic trial expiry calculation (30 days)
-
-### ✅ **COMPLETED: Authentication Components Built**
-
-#### **Core Authentication Files:** ✅
-- ✅ `contexts/RestaurantAuthContext.tsx` - Complete authentication state management
-- ✅ `components/RestaurantLoginModal.tsx` - Professional login form with validation
-- ✅ `components/RestaurantSignupModal.tsx` - Registration with business details and trial activation
-- ✅ `components/RestaurantProtectedRoute.tsx` - Route protection + authentication handling
-
-#### **App.tsx Integration:** ✅
-- ✅ `RestaurantAuthProvider` wrapper implemented
-- ✅ All restaurant management routes protected with `RestaurantProtectedRoute`
-- ✅ Consumer and restaurant routing completely isolated
-- ✅ Header/footer integration for restaurant pages
-
-### ✅ **COMPLETED: Full Authentication Flow**
-- ✅ Restaurant signup with email/password
-- ✅ 30-day free trial activation
-- ✅ Login/logout functionality
-- ✅ Protected dashboard access
-- ✅ Session management
-- ✅ Restaurant account creation and linking
+**Mobile-first:** all tappable elements ≥44×44 px; thumb-friendly spacing; high-contrast states.
 
 ---
 
-## 🔥 PHASE 3: ACCESSIBILITY OVERHAUL (Week 6) - 95% COMPLETE
+## 2) Internationalization (i18n)
+- **Language selector behavior**
+  - When a language is selected, **everything under the header** (filters, section headings, dish names, descriptions, allergen/dietary labels, action buttons, instructional text like “Show this to the server”) **is rendered in that language**.
+  - **Exceptions (always English):**
+    - The custom note/question **entered by the user** (free text)
+    - Server decision buttons: **“Yes” / “No” / “Let me check”**  
+      - Rationale: standardize server-side interaction; reduces ambiguity for staff.
+- **Copy model**
+  - All translatable strings are pulled from i18n dictionaries.
+  - Menu content supports per-field translations: `name`, `description`, `allergen_labels[]`, `dietary_labels[]`, `section_title`.
+- **Fallbacks**
+  - If a translation is missing, show English for that field **and** log a missing key event.
 
-### ✅ **COMPLETED: Mobile-First Accessibility Redesign**
-
-#### **Core Architecture Rebuilt:** ✅
-- ✅ `components/TopBar.tsx` - Sticky navigation with language selector and filters
-- ✅ `components/SearchBar.tsx` - Debounced search (300ms) with accessibility
-- ✅ `components/ActiveFilterChips.tsx` - Single filter management interface
-- ✅ `components/CategoryTabs.tsx` - Horizontal scrolling section navigation
-- ✅ `components/DishCard.tsx` - Compact, accessible dish display
-- ✅ `components/DishSheetModal.tsx` - Full-featured dish details modal
-- ✅ `components/OrderDrawer.tsx` - Persistent bottom order management
-- ✅ `components/FilterSheet.tsx` - Comprehensive allergen/diet filtering
-
-#### **Advanced Hooks System:** ✅
-- ✅ `hooks/useOrderSession.ts` - 30-minute TTL session management with localStorage
-- ✅ `hooks/useDebouncedSearch.ts` - Performance-optimized search
-- ✅ `hooks/useI18n.ts` - Translation caching and management
-- ✅ `hooks/useMenuFilters.ts` - Smart filtering logic for allergens/diets
-
-#### **Type System Enhancement:** ✅
-- ✅ `types.ts` - Complete merge of existing and accessibility types
-- ✅ `adaptDishToAccessible()` - Data transformation for backward compatibility
-- ✅ `adaptRestaurantToAccessible()` - Restaurant data adaptation
-- ✅ Full TypeScript strict mode compliance
-
-#### **Accessibility Features Implemented:** ✅
-- ✅ **WCAG 2.1 AA Compliance**: Screen reader support, ARIA labels, semantic HTML
-- ✅ **Touch Accessibility**: 44px minimum touch targets, gesture alternatives
-- ✅ **Keyboard Navigation**: Complete tab order, arrow key navigation, escape handling
-- ✅ **Visual Accessibility**: High contrast (4.5:1), focus indicators, scalable text
-- ✅ **Deaf/HoH Support**: Visual-only feedback, text-to-speech, no audio dependencies
-- ✅ **Motor Impairment**: One-handed operation, generous spacing, error recovery
-
-#### **Internationalization System:** ✅
-- ✅ **Language Switching**: Instant 4-language support (EN/ES/ZH/FR)
-- ✅ **Original Text Toggle**: Per-dish original/translated name switching
-- ✅ **Text-to-Speech**: Pronunciation support for dish names
-- ✅ **Translation Caching**: 95%+ cache hit rate for performance
-- ✅ **Session Persistence**: Language preference saved across sessions
-
-#### **Advanced Filtering System:** ✅
-- ✅ **Allergen Exclusion**: 10 allergen types (peanuts, dairy, gluten, etc.)
-- ✅ **Diet Inclusion**: 8 dietary preferences (vegan, halal, keto, etc.)
-- ✅ **Active Filter Chips**: Visual filter management with easy removal
-- ✅ **Real-time Counts**: Live dish count updates as filters change
-- ✅ **Smart Search**: Searches names, descriptions, ingredients, aliases
-
-#### **Session Management:** ✅
-- ✅ **30-Minute TTL**: Automatic session extension on user activity
-- ✅ **Order Persistence**: Complete order state saved across page refreshes
-- ✅ **Cross-Device**: Session restoration on mobile/desktop
-- ✅ **Graceful Expiry**: Clear indication when session expires
-- ✅ **Performance**: Optimized localStorage with compression
-
-### 🔄 **IN PROGRESS: Final Integration (5% remaining)**
-
-#### **Data Mapping Issues:** 🔧
-- 🔄 **Dish Display Issue**: Investigating API response format vs new data structure
-- 🔄 **Debug Mode Active**: Console logging and debug UI implemented
-- 🔄 **Adapter Testing**: Verifying `adaptDishToAccessible()` function
-- 🔄 **Section Mapping**: Ensuring dynamic section loading from API
-
-#### **Testing Phase:** 📱
-- ✅ **Desktop Functionality**: All features working on desktop
-- ✅ **Mobile Responsive**: Mobile-first design verified
-- 🔄 **Real Data Testing**: Testing with actual restaurant data
-- 🔄 **Performance Validation**: Measuring load times and responsiveness
+**Acceptance criteria**
+- Selecting Español switches all UI text, filters, and menu content into Spanish within 200ms (perceived).
+- Server buttons and user-entered notes remain in English regardless of selected language.
 
 ---
 
-## 🎯 TECHNICAL ACHIEVEMENTS
+## 3) Filters
+- **Allergens (exclude):** Selecting any allergen hides dishes containing it.
+- **Dietary tags (include):** Selecting tags shows only dishes matching **all** selected tags (AND logic).
+- **Clear filters** chip available.
+- **Visual feedback:** empty state when no dishes match (localized).
 
-### **Performance Optimizations:**
-- ✅ **Debounced Search**: 300ms delay prevents excessive API calls
-- ✅ **Memoized Components**: React.memo prevents unnecessary re-renders
-- ✅ **Translation Caching**: Map-based caching with LRU eviction
-- ✅ **Lazy Loading**: Dynamic imports for non-critical components
-- ✅ **Bundle Optimization**: Tree-shaking and code splitting
-
-### **Security & Data Protection:**
-- ✅ **Type Safety**: Full TypeScript coverage with strict mode
-- ✅ **Input Validation**: All user inputs validated and sanitized
-- ✅ **XSS Protection**: React's built-in protections + content security policy
-- ✅ **Data Isolation**: Session data scoped per restaurant
-- ✅ **Privacy Compliance**: No unnecessary data collection
-
-### **Browser Compatibility:**
-- ✅ **Modern Browsers**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
-- ✅ **Mobile Browsers**: iOS Safari, Chrome Mobile, Samsung Internet
-- ✅ **Progressive Enhancement**: Core functionality works without JavaScript
-- ✅ **Graceful Degradation**: Fallbacks for unsupported features
+**Acceptance criteria**
+- With Peanut + Gluten selected under Allergens, dishes containing either are hidden.
+- With Vegan + Halal selected under Dietary, only dishes with both tags remain.
+- Filter labels are translated per language selection.
 
 ---
 
-## 📊 SUCCESS METRICS ACHIEVED
+## 4) Dish Card (updated)
+Each dish card shows:
+- **Name** (localized)
+- **Price**
+- **Short description** (localized)
+- **Allergen icons/labels** (localized)
+- **Dietary tags** (localized)
+- **Info/Explanation affordance**:  
+  - A small “i” or “What’s this?” link that opens a bottom-sheet **Dish Explanation** with:
+    - Localized description in plain terms
+    - Localized allergen & dietary details
+    - Common ingredients (localized)
+    - “Typical taste & spice level” (localized, optional)
+- **Customization / Question input**:
+  - Collapsed input hint: “Add a note or ask a question (English)”  
+  - Expands to single-line auto-grow (max 160 chars), shows character count.
+  - Persist input on card until cleared.
 
-### **Accessibility Compliance:**
-- ✅ **WCAG 2.1 AA**: 100% automated test compliance
-- ✅ **Touch Targets**: All interactive elements ≥44px
-- ✅ **Color Independence**: No information conveyed by color alone
-- ✅ **Keyboard Navigation**: 100% feature accessibility without mouse
+- **Actions:**
+  - **+ Add to Order** button (localized)
+  - Quantity stepper only appears in Order List, not on the card (keeps card minimal)
 
-### **Performance Benchmarks:**
-- ✅ **Core Web Vitals**: All green scores (LCP <2.5s, FID <100ms, CLS <0.1)
-- ✅ **Search Response**: <100ms for local filtering
-- ✅ **Session Load**: <200ms for stored session restoration
-- ✅ **Translation Cache**: 95%+ hit rate for repeat visits
-
-### **User Experience:**
-- ✅ **Mobile-First**: Optimized for tourist use cases
-- ✅ **Offline Resilience**: Core functionality works offline
-- ✅ **Error Recovery**: Clear error messages and recovery paths
-- ✅ **Loading States**: Comprehensive loading and skeleton screens
-
----
-
-## 🚀 NEXT STEPS (Final 5%)
-
-### **Immediate Tasks:**
-1. **Debug Data Display**: Resolve dish rendering issue in new UI
-2. **API Integration**: Verify all existing endpoints work with new components
-3. **Remove Debug Code**: Clean up temporary logging and debug UI
-4. **Final Testing**: Comprehensive test with real restaurant data
-
-### **Deployment Readiness:**
-- ✅ **Build Process**: Vite production build working
-- ✅ **Environment Variables**: All keys properly configured
-- ✅ **Netlify Integration**: Functions and routing configured
-- 🔄 **Final Validation**: End-to-end testing in progress
-
-### **Documentation:**
-- ✅ **Component Documentation**: All new components documented
-- ✅ **Accessibility Checklist**: Complete WCAG compliance verification
-- ✅ **Performance Guide**: Optimization recommendations documented
-- ✅ **Migration Guide**: Backward compatibility notes
+**Acceptance criteria**
+- Tapping “i / What’s this?” opens explanation sheet with localized content.
+- Typing a note persists when navigating away and back to the list (session state).
+- Pressing **+ Add to Order** attaches current note (if any) to that dish in the Order List.
 
 ---
 
-## 🎉 PLATFORM TRANSFORMATION SUMMARY
+## 5) Order List (sticky bottom → drawer)
+- **Sticky bar** (always visible):
+  - Shows item count and subtotal (localized)
+  - Tap to open **Order Drawer** (slide-up sheet)
+- **Order Drawer contents:**
+  - List items: **Dish name (localized)**, **unit price**, **quantity stepper (+/–)**, **delete**
+  - **User note** appears **under the dish name** in English; editable inline (single-line auto-grow)
+  - **Instruction banner** (localized): “Show this to the server”
+  - **Server response block** (only for items with a note):  
+    - Buttons: **Yes** / **No** / **Let me check** (always **English**)
+    - Interaction rules:
+      - Tap **Yes** or **No** → chosen button stays active; the other two grey out and become disabled.
+      - Tap **Let me check** → remains active; **Yes/No** still available.  
+        - After tapping **Yes** or **No**, lock the remaining buttons.
+  - **Totals**: Subtotal only (no taxes/fees in MVP).
+  - **Close** (X) or swipe down to dismiss.
 
-**From:** Basic restaurant menu display with limited accessibility  
-**To:** Comprehensive accessible restaurant platform with:
-
-- ✅ **Mobile-first design** optimized for international tourists
-- ✅ **WCAG 2.1 AA compliance** for users with disabilities
-- ✅ **4-language support** with intelligent caching
-- ✅ **Advanced filtering** for allergens and dietary needs
-- ✅ **Session management** with 30-minute TTL
-- ✅ **Performance optimization** with <2.5s load times
-- ✅ **Cross-platform compatibility** on all modern devices
-
-**Result:** A truly inclusive restaurant menu platform that serves both tourists with language barriers and customers with accessibility needs, while maintaining all existing restaurant management functionality.
+**Acceptance criteria**
+- When a dish with a note is added, the note appears under the dish in the Order List.
+- Quantity updates immediately affect subtotal and sticky bar count.
+- Server buttons follow the exact enable/disable logic above and are always in English.
 
 ---
 
-*Built with ❤️ for accessibility and international dining experiences*
+## 6) Data Model (MVP)
+- **Dish**
+  - `id`, `section_id`, `price`, `allergens[]`, `dietary_tags[]`
+  - `i18n`: `{ en: { name, desc, section }, zh: {}, es: {}, fr: {} }`
+- **Session state (client-side)**
+  - `language` (default: device locale → fallback EN)
+  - `filters: { allergens[], dietary[] }`
+  - `notes: { [dishId]: string }` (English free text)
+  - `order: { items: [{ dishId, qty, unitPrice, note, serverResponse: 'yes'|'no'|'check'|null }] }`
+- **No server write** in MVP (same as WhatTheMenu tech): state stays client-side.  
+  - Phase 2: sync to backend for analytics.
+
+---
+
+## 7) Accessibility
+- **Visual**
+  - WCAG AA color contrast
+  - Focus ring for interactive elements
+  - Button labels + aria-pressed for server buttons
+- **Motion**
+  - Reduced motion respects prefers-reduced-motion
+- **Language**
+  - `lang` attribute updates on container when language changes
+  - Server buttons remain English; add `aria-label` explaining purpose for screen readers (e.g., “Server response: Yes”).
+
+---
+
+## 8) Error & Edge States
+- Missing translation key → fall back to English and log `i18n_missing_key`.
+- Note length >160 → prevent additional input, show counter in red.
+- Order empty → sticky bar hidden; drawer shows localized empty state.
+
+---
+
+## 9) Tech & Implementation Notes
+- **Stack:** Same as WhatTheMenu.com (reuse components/utilities, i18n framework, and Supabase/Gemini wiring if applicable).
+- **State:** Client state in localStorage or Zustand/Redux; debounce note edits.
+- **Perf:** Lazy-load sections; virtualize long lists; prefetch dictionary on language switch.
+- **Analytics (anonymous)**
+  - `lang_change`, `filter_change`, `add_to_order`, `edit_note`, `server_response`
+
+---
+
+## 10) Test Plan (Single Menu Upload)
+**Setup**
+- Upload one restaurant menu (10–20 dishes) with full i18n for EN/中文/ES/FR, allergen + dietary tags.
+
+**Functional tests**
+1. Language switch updates all UI and dish content (except notes & server buttons).
+2. Allergen exclude / dietary include behave as specified.
+3. Dish Explanation sheet shows correct localized details.
+4. Add to Order → note appears under dish in Order Drawer.
+5. Quantity +/– updates subtotal and sticky bar instantly.
+6. Delete removes item and updates totals.
+7. Server buttons logic locks/greys correctly; persists while drawer stays open.
+8. Session persistence: reload page → order and notes remain (if using localStorage).
+
+**Accessibility tests**
+- Keyboard traversal works; focus visible.
+- Screen reader announces button states and server responses.
+- Contrast & hit targets validated.
+
+**i18n tests**
+- For each language: spot-check 10 keys, one forced missing-key fallback.
+
+**Performance**
+- First interaction under 200ms for language change and filter toggle on mid-tier Android.
+
+---
+
+## 11) Copy & Microcopy
+- Note field (hint): **“Add a note or ask a question (English)”**
+- Sticky bar: **“Order • {count} • {subtotal}”** (translated)
+- Instruction in drawer (translated): **“Show this to the server.”**
+- Server buttons (always English): **Yes / No / Let me check**
+- Empty states: localized (“No dishes match your filters.”)
+
+---
+
+## 12) Out of Scope (MVP)
+- Real-time staff console / KDS
+- Auto-translation of user notes
+- Taxes, tips, payments
+- Multi-party cart sharing
+
+---
+
+## 13) Milestones
+- **M1:** Dish card + Explanation + Filters + i18n switch
+- **M2:** Notes + Add to Order + Sticky Drawer
+- **M3:** Server response logic + persistence + full QA on 1 menu
