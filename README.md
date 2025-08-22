@@ -1,8 +1,8 @@
 # WhatTheMenu - AI-Powered Menu Platform
 
-## ⚠️ CRITICAL: READ BEFORE MAKING CHANGES
+## âš ï¸ CRITICAL: READ BEFORE MAKING CHANGES
 
-### 🚨 Database Permissions - DO NOT TOUCH
+### ðŸš¨ Database Permissions - DO NOT TOUCH
 The current database setup is **WORKING** and **FRAGILE**. Follow these rules:
 
 1. **NEVER modify RPC function `increment_global_counter`** - it MUST have `SECURITY DEFINER` or the entire counter system breaks
@@ -10,81 +10,23 @@ The current database setup is **WORKING** and **FRAGILE**. Follow these rules:
 3. **NEVER disable Row Level Security (RLS)** policies on these tables
 4. **Frontend uses anon key, backend uses service role key** - this separation is intentional
 
-### 🔧 What's Currently Working vs Broken
-
-#### ✅ WORKING (Don't Touch!)
-- Menu scanning and AI analysis
-- Dish explanations in all 4 languages (EN, ES, ZH, FR)
-- Database caching of dish explanations
-- Global counters (menu scans & dish explanations)
-- Demo section with pre-loaded French dishes
-- User authentication and subscription management
-- Payment processing (Stripe integration)
-- Contact form and email notifications
-- Anonymous usage tracking (5 free scans)
-
-#### 🚧 KNOWN ISSUES (Safe to Fix)
-- Anonymous usage tracking needs refinement
-- Some edge cases in fuzzy dish matching
-- Mobile responsiveness on older devices
-
-#### 🚫 DO NOT IMPLEMENT (Will Break Things)
-- **Do NOT add new Netlify functions for counter increments** - the RPC approach works
-- **Do NOT move database operations to separate microservices** - Supabase handles this
-- **Do NOT change string similarity algorithms without testing** - current fuzzy matching works across all languages
-- **Do NOT modify the `getDishExplanation.ts` function structure** - it handles both caching and AI fallback correctly
-- **Do NOT implement restaurant platform yet** - focus is on consumer experience
-
 ---
 
 ## Overview
 
-WhatTheMenu is a comprehensive React-based platform that serves both consumers and restaurants with AI-powered menu analysis and translation services. The platform helps travelers understand foreign menus while providing restaurants with professional multilingual menu pages to attract international customers.
+WhatTheMenu is a comprehensive React-based platform consisting of **two distinct applications** that serve different user types with AI-powered menu analysis and translation services:
 
-## 🎯 Current Platform Status (August 2025)
+1. **WhatTheMenu (Consumer App)** - Helps travelers understand foreign menus
+2. **AccessMenu (Business App)** - Provides restaurants with accessible, multilingual ordering interfaces
 
-### ✅ Fully Operational Features
-- **Consumer Menu Scanning**: Upload/photo → AI analysis → dish explanations
-- **Multi-language Support**: All explanations work in EN/ES/ZH/FR
-- **Smart Caching**: Database-first with AI fallback (85% similarity threshold)
-- **Demo Section**: Pre-loaded French menu with real-time explanations
-- **User Authentication**: Email/password + anonymous usage (5 free scans)
-- **Restaurant Platform**: QR codes, public pages, menu management
-- **Payment Processing**: Stripe integration for both consumer and restaurant plans
+---
 
-### 🔧 Technical Architecture That Works
+## ðŸ§³ **WhatTheMenu - Consumer App (B2C)**
 
-#### Database Design (Supabase) - **STABLE, DO NOT MODIFY**
-```sql
--- These RPC functions are CRITICAL - never change the SECURITY DEFINER
-CREATE OR REPLACE FUNCTION increment_global_counter(counter_name text)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER  -- THIS IS ESSENTIAL!
-AS $$
-BEGIN
-    INSERT INTO global_counters (counter_type, count)
-    VALUES (counter_name, 1)
-    ON CONFLICT (counter_type)
-    DO UPDATE SET 
-        count = global_counters.count + 1,
-        updated_at = now();
-END;
-$$;
+### âœ… **Fully Operational Features**
+The consumer-facing application that helps travelers understand menus anywhere in the world.
 
--- Row Level Security policies - DO NOT DISABLE
-ALTER TABLE global_counters ENABLE ROW LEVEL SECURITY;
-ALTER TABLE restaurants ENABLE ROW LEVEL SECURITY;
-```
-
-#### Permission Model - **WORKING, DON'T CHANGE**
-- **Frontend (anon key)**: Read operations, RPC function calls
-- **Backend functions (service role key)**: All database writes
-- **RLS policies**: Allow anon users to read counters and restaurants
-
-## 🚀 Core Features
-
-### Consumer Platform (B2C) - **FULLY WORKING**
+#### **Core Consumer Features**
 - **Menu Scanning**: Upload or photograph restaurant menus for instant AI analysis
 - **Dish Explanations**: Click any dish for detailed descriptions, ingredients, and allergen information
 - **Multi-language Support**: Explanations available in English, Spanish, Chinese, and French
@@ -92,291 +34,353 @@ ALTER TABLE restaurants ENABLE ROW LEVEL SECURITY;
 - **Subscription Plans**: Daily ($1) and Weekly ($5) passes for unlimited access
 - **Demo Section**: Interactive French menu demonstration
 
-### Restaurant Platform (B2B) - **NOT YET IMPLEMENTED**
-- **Professional Menu Pages**: ⚠️ **PLANNED** - Clean, mobile-optimized restaurant pages
-- **QR Code Integration**: ⚠️ **PLANNED** - QR codes linking to restaurant menu pages
-- **Multi-language Menus**: ⚠️ **PLANNED** - Automatic translation for restaurants
-- **Allergen Information**: ⚠️ **PLANNED** - AI-powered allergen detection for restaurants
-- **Basic Analytics**: ⚠️ **PLANNED** - Track page views and popular dishes
-- **Easy Updates**: ⚠️ **PLANNED** - Menu update process for restaurants
+#### **Consumer User Journey**
+1. **Upload/Photo** → Take picture of menu or upload image
+2. **AI Analysis** → Gemini AI extracts and analyzes dishes
+3. **Instant Results** → Get explanations in your language
+4. **Smart Caching** → 85% similarity matching for faster responses
 
-## 🏗 Architecture
+#### **Consumer Pricing (Stripe Live)**
+- **Daily Pass**: $1 for 10 menu scans + unlimited explanations (24 hours)
+- **Weekly Pass**: $5 for 70 menu scans + unlimited explanations (7 days)
+- **Anonymous**: 5 free scans with browser fingerprinting
+- One-time purchases, no recurring subscriptions
 
-### Frontend Stack - **STABLE**
+---
+
+## ðŸ½ï¸ **AccessMenu - Business App (B2B)**
+
+### ✅ **Fully Operational Features** 
+A complete accessibility-focused ordering system for restaurants to serve international and disabled customers.
+
+#### **Core Business Features**
+- **Multilingual Menu Interface**: Complete menu display in 4 languages (EN/中文/ES/FR)
+- **Smart Filtering System**: Allergen exclusion and dietary preference filtering
+- **Visual-Only Communication**: Designed for deaf/hard-of-hearing customers
+- **Server Q&A Interface**: Yes/No/Let me check buttons for staff communication
+- **Order Management**: Complete ordering system with notes and special requests
+- **WCAG AA Compliance**: Full accessibility features for all users
+
+#### **AccessMenu User Journey**
+1. **Browse Menu** → Customer views menu in their language with filtering
+2. **Add Items** → Select dishes, add questions/notes, build order
+3. **Review Order** → See complete order with questions highlighted  
+4. **Server Communication** → Show screen to server for question answers
+5. **Finalize Order** → Present final order to staff for processing
+
+#### **AccessMenu Key Benefits**
+- **Increased Accessibility**: Serves customers with hearing impairments
+- **Language Barrier Solution**: No staff language training needed
+- **Order Accuracy**: Visual confirmation reduces mistakes
+- **Professional Image**: Shows commitment to inclusive service
+- **Tourist Friendly**: Perfect for high-tourism areas
+
+#### **Business Integration Options**
+- **Standalone Implementation**: Independent AccessMenu deployment
+- **WhatTheMenu Integration**: Add to existing restaurant subscriptions
+- **QR Code Access**: Direct customer access via table QR codes
+- **Staff Training Minimal**: Visual-only interface requires no language skills
+
+---
+
+## ðŸ"§ **What's Currently Working vs Status**
+
+### **Consumer App (WhatTheMenu) - PRODUCTION READY** ✅
+- Menu scanning and AI analysis ✅
+- Dish explanations in all 4 languages (EN, ES, ZH, FR) ✅
+- Database caching of dish explanations ✅
+- Global counters (menu scans & dish explanations) ✅
+- Demo section with pre-loaded French dishes ✅
+- User authentication and subscription management ✅
+- Payment processing (Stripe integration) ✅
+- Contact form and email notifications ✅
+- Anonymous usage tracking (5 free scans) ✅
+
+### **Business App (AccessMenu) - PRODUCTION READY** ✅
+- Complete multilingual menu system ✅
+- Smart allergen and dietary filtering ✅
+- Order management with notes ✅
+- Server communication interface ✅
+- Visual accessibility features ✅
+- WCAG AA compliance ✅
+- Mobile-first responsive design ✅
+
+### **Known Issues (Safe to Fix)** ðŸš§
+- Anonymous usage tracking needs refinement
+- Some edge cases in fuzzy dish matching
+- Mobile responsiveness on older devices
+
+### **DO NOT IMPLEMENT (Will Break Things)** ðŸš«
+- **Do NOT add new Netlify functions for counter increments** - the RPC approach works
+- **Do NOT move database operations to separate microservices** - Supabase handles this
+- **Do NOT change string similarity algorithms without testing** - current fuzzy matching works across all languages
+- **Do NOT modify the `getDishExplanation.ts` function structure** - it handles both caching and AI fallback correctly
+
+---
+
+## ðŸ— **Technical Architecture**
+
+### **Frontend Stack - STABLE**
 - **React 19**: Modern React with hooks and concurrent features
 - **TypeScript**: Type-safe development with strict mode
 - **React Router**: Client-side routing for both consumer and restaurant sections
 - **Tailwind CSS**: Utility-first styling with custom design systems
 - **Vite**: Fast build tool and development server
 
-### Backend Services - **PROVEN WORKING**
-- **Netlify Functions**: Serverless backend functions (specific ones documented below)
+### **Backend Services - PROVEN WORKING**
+- **Netlify Functions**: Serverless backend functions
 - **Supabase**: Database, authentication, and real-time features
 - **Google Gemini AI**: Menu analysis and dish explanations
 - **Stripe**: Payment processing for both consumer and restaurant subscriptions
 - **Resend**: Transactional emails and notifications
 
-### Key Libraries - **VERIFIED VERSIONS**
-- **react-dropzone**: File upload handling
-- **@supabase/supabase-js**: Database client
-- **@google/genai**: AI integration
-- **stripe**: Payment processing
-- **qrcode**: QR code generation for restaurants
+---
 
-## 📁 Project Structure - **CURRENT ACTUAL STRUCTURE**
+## ðŸ" **Project Structure - DUAL APPLICATION ARCHITECTURE**
 
 ```
-├── components/           # Reusable UI components
-│   ├── Header.tsx       # Navigation (consumer/restaurant modes)
-│   ├── LanguageSelector.tsx
-│   ├── LoginModal.tsx
-│   ├── DemoSection.tsx  # ✅ WORKING - French menu demo
-│   ├── ShareWidget.tsx
-│   └── icons.tsx        # Icon components
-├── contexts/            # React contexts
-│   └── AuthContext.tsx  # Consumer authentication ✅ WORKING
-├── pages/               # Route components - ALL WORKING
-│   ├── HomePage.tsx     # ✅ WORKING - Main scanning interface
-│   ├── UserProfile.tsx  # ✅ WORKING - User management
-│   ├── ContactPage.tsx
-│   ├── LegalPages.tsx
-│   ├── AuthVerify.tsx   # Email verification
-│   ├── PaymentSuccessPage.tsx
-│   ├── PaymentCancelledPage.tsx
-│   └── RefundsandFaq.tsx
-├── services/            # Business logic and API calls
-│   ├── supabaseClient.ts     # ✅ WORKING - Dual client setup
-│   ├── geminiService.ts      # ✅ WORKING - AI menu analysis
-│   ├── counterService.ts     # ✅ WORKING - Usage tracking
-│   ├── restaurantService.ts  # Restaurant functionality
-│   ├── anonymousUsageTracking.ts  # Anonymous user tracking
-│   ├── enhancedUsageTracking.ts   # Advanced analytics
-│   └── errorTracking.ts      # Error monitoring
-├── netlify/functions/    # Serverless backend - ALL WORKING
-│   ├── getDishExplanation.ts     # ✅ CRITICAL - Main AI/cache function
-│   ├── getDishExplanationExtension.ts  # Browser extension support
-│   ├── create-checkout-session.cjs     # Stripe payments
-│   ├── stripe-webhook.js        # Payment processing
-│   ├── contact-submit.ts        # Contact form
-│   ├── welcome-email.ts         # User onboarding
-│   ├── check-expiring-subscriptions.ts  # Subscription management
-│   ├── cleanup-expired-subscriptions.ts
-│   ├── getSupportedLanguages.ts
-│   ├── saveDishFromExtension.ts
-│   └── shared/
-│       ├── emailService.ts      # Centralized email handling
-│       └── emailTemplates.ts    # Email templates
-├── testing/             # Load testing and QA
-│   ├── ai-load-test.js
-│   ├── auth-testing.js
-│   ├── basic-test.js
-│   └── [various load test files]
-├── types.ts             # TypeScript type definitions
-├── App.tsx             # Main app component with routing
-└── index.tsx           # App entry point
+â"œâ"€â"€ components/           # Shared and app-specific components
+â"‚   â"œâ"€â"€ CONSUMER APP (WhatTheMenu):
+â"‚   â"‚   â"œâ"€â"€ Header.tsx       # Main navigation
+â"‚   â"‚   â"œâ"€â"€ LanguageSelector.tsx
+â"‚   â"‚   â"œâ"€â"€ LoginModal.tsx
+â"‚   â"‚   â"œâ"€â"€ DemoSection.tsx  # âœ… WORKING - French menu demo
+â"‚   â"‚   â""â"€â"€ ShareWidget.tsx
+â"‚   â""â"€â"€ BUSINESS APP (AccessMenu):
+â"‚       â"œâ"€â"€ AccessMenuTest.tsx           # âœ… COMPLETE - Main interface
+â"‚       â"œâ"€â"€ AccessMenuLanguageSelector.tsx # âœ… COMPLETE - 4 languages
+â"‚       â"œâ"€â"€ AccessMenuFilterBar.tsx      # âœ… COMPLETE - Smart filtering
+â"‚       â"œâ"€â"€ AccessMenuDishExplanation.tsx # âœ… COMPLETE - Dish details
+â"‚       â"œâ"€â"€ AccessMenuStickyOrderBar.tsx  # âœ… COMPLETE - Order tracking
+â"‚       â"œâ"€â"€ AccessMenuOrderDrawer.tsx     # âœ… COMPLETE - Order management
+â"‚       â""â"€â"€ EnhancedVisualComponents.tsx  # âœ… COMPLETE - Accessibility
+â"œâ"€â"€ contexts/            # React contexts
+â"‚   â""â"€â"€ AuthContext.tsx  # Consumer authentication âœ… WORKING
+â"œâ"€â"€ pages/               # Route components - ALL WORKING
+â"‚   â"œâ"€â"€ CONSUMER ROUTES:
+â"‚   â"‚   â"œâ"€â"€ HomePage.tsx     # âœ… WORKING - Main scanning interface
+â"‚   â"‚   â"œâ"€â"€ UserProfile.tsx  # âœ… WORKING - User management
+â"‚   â"‚   â"œâ"€â"€ PaymentSuccessPage.tsx
+â"‚   â"‚   â""â"€â"€ PaymentCancelledPage.tsx
+â"‚   â""â"€â"€ SHARED ROUTES:
+â"‚       â"œâ"€â"€ ContactPage.tsx
+â"‚       â"œâ"€â"€ LegalPages.tsx
+â"‚       â"œâ"€â"€ AuthVerify.tsx   # Email verification
+â"‚       â""â"€â"€ RefundsandFaq.tsx
+â"œâ"€â"€ services/            # Business logic and API calls
+â"‚   â"œâ"€â"€ CONSUMER SERVICES:
+â"‚   â"‚   â"œâ"€â"€ supabaseClient.ts     # âœ… WORKING - Dual client setup
+â"‚   â"‚   â"œâ"€â"€ geminiService.ts      # âœ… WORKING - AI menu analysis
+â"‚   â"‚   â"œâ"€â"€ counterService.ts     # âœ… WORKING - Usage tracking
+â"‚   â"‚   â""â"€â"€ anonymousUsageTracking.ts
+â"‚   â"œâ"€â"€ BUSINESS SERVICES:
+â"‚   â"‚   â"œâ"€â"€ accessMenuService.ts         # âœ… COMPLETE - Data fetching
+â"‚   â"‚   â""â"€â"€ accessMenuTranslationService.ts # âœ… COMPLETE - Translations
+â"‚   â""â"€â"€ SHARED SERVICES:
+â"‚       â"œâ"€â"€ restaurantService.ts  # Restaurant functionality
+â"‚       â""â"€â"€ errorTracking.ts      # Error monitoring
+â"œâ"€â"€ netlify/functions/    # Serverless backend - ALL WORKING
+â"‚   â"œâ"€â"€ CONSUMER FUNCTIONS:
+â"‚   â"‚   â"œâ"€â"€ getDishExplanation.ts     # âœ… CRITICAL - Main AI/cache function
+â"‚   â"‚   â"œâ"€â"€ create-checkout-session.cjs # Stripe payments
+â"‚   â"‚   â""â"€â"€ stripe-webhook.js        # Payment processing
+â"‚   â""â"€â"€ SHARED FUNCTIONS:
+â"‚       â"œâ"€â"€ contact-submit.ts        # Contact form
+â"‚       â"œâ"€â"€ welcome-email.ts         # User onboarding
+â"‚       â""â"€â"€ shared/emailService.ts   # Centralized email handling
+â"œâ"€â"€ types.ts             # TypeScript type definitions
+â"œâ"€â"€ App.tsx             # Main app component with routing
+â""â"€â"€ index.tsx           # App entry point
 ```
 
-## 🗄 Database Schema (Supabase) - **WORKING, DON'T MODIFY**
+---
 
-### Consumer Tables - **STABLE**
+## ðŸ—„ **Database Schema (Supabase) - WORKING, DON'T MODIFY**
+
+### **Consumer App Tables - STABLE**
 - **user_profiles**: Consumer accounts and subscription management
 - **orders**: Consumer purchase history
 - **dishes**: Cached dish explanations with fuzzy matching (**CRITICAL TABLE**)
 - **restaurants**: Restaurant discovery and analytics
 - **global_counters**: Platform-wide usage statistics (**CRITICAL TABLE**)
 
-### Restaurant Tables - **STABLE**
+### **Business App Tables - STABLE**
+- **accessmenu_menus**: Restaurant menu configurations for AccessMenu
+- **accessmenu_dishes**: Multilingual dish data with allergen/dietary information
+- **accessmenu_orders**: Order tracking and analytics (future use)
+
+### **Restaurant Management Tables - STABLE**
 - **restaurant_accounts**: Restaurant business accounts
 - **restaurant_menu_requests**: Menu update tracking
 - **restaurant_page_views**: Analytics for restaurant pages
 - **restaurant_orders**: Restaurant subscription billing
 
-### Key Features - **TESTED AND WORKING**
-- **Fuzzy Dish Matching**: Universal string similarity algorithm for all languages (85% threshold)
-- **Restaurant Context Caching**: Prioritize dishes from same restaurant
-- **Real-time Subscriptions**: Live counter updates
-- **Atomic Operations**: RPC functions for reliable counter increments
+---
 
-## ⚙️ Service Layer - **CURRENT IMPLEMENTATION**
+## ðŸ¤– **AI Integration - GOOGLE GEMINI STABLE**
 
-### Consumer Services - **ALL WORKING**
-- **counterService.ts**: Usage tracking with dynamic limits (**Frontend reads, backend writes via RPC**)
-- **geminiService.ts**: AI integration for menu analysis
-- **supabaseClient.ts**: Configured with proper auth and error handling
+### **Consumer App AI Features**
+- **Menu Analysis**: Extract restaurant names, cuisine types, and dishes
+- **Dish Explanations**: Detailed descriptions with ingredients and allergens
+- **Multi-language Support**: Generate explanations in 4 languages
+- **Smart Caching**: 85% similarity threshold for database matches
 
-### Restaurant Services - **ALL WORKING**
-- **restaurantService.ts**: Restaurant account management
-- **qrCodeService.ts**: QR code generation and management
-- **menuProcessingService.ts**: Restaurant menu analysis and storage
+### **Business App AI Features**
+- **Menu Translation**: AI-powered translation of dish content
+- **Allergen Detection**: Automatic allergen identification
+- **Cuisine Analysis**: Cultural context and dish explanations
+- **Content Optimization**: SEO-friendly descriptions
 
-## 🌐 Serverless Functions (Netlify) - **ACTIVE ENDPOINTS**
+---
 
-### Consumer API Endpoints - **PRODUCTION READY**
-- **getDishExplanation.ts**: AI-powered dish analysis with caching (**CRITICAL - handles both DB cache and AI fallback**)
-- **create-checkout-session.cjs**: Consumer subscription payments
-- **stripe-webhook.js**: Payment confirmation and user activation
+## ðŸ"± **User Experience - OPTIMIZED FOR DIFFERENT AUDIENCES**
 
-### Restaurant API Endpoints - **PRODUCTION READY**
-- **processRestaurantMenu.ts**: Restaurant menu analysis and storage
-- **generateQRCode.ts**: QR code creation and management
-- **restaurantAuth.ts**: Restaurant authentication
-- **restaurantAnalytics.ts**: Page view tracking
+### **Consumer App (WhatTheMenu) - TOURIST-FOCUSED**
+- **Mobile-First Design**: Optimized for travelers on-the-go
+- **Camera Integration**: Native camera access for menu photos
+- **Real-time Processing**: Live updates during menu analysis
+- **Demo Section**: Interactive French menu demonstration
+- **Quick Onboarding**: Anonymous usage with instant results
 
-### Shared Services - **WORKING**
-- **welcome-email.ts**: Automated onboarding emails
-- **contact-submit.ts**: Contact form processing
-- **emailService.ts**: Centralized email handling via Resend
+### **Business App (AccessMenu) - ACCESSIBILITY-FOCUSED**
+- **Visual-Only Interface**: Perfect for deaf/hard-of-hearing customers
+- **Large Touch Targets**: WCAG AA compliant interactions
+- **High Contrast Design**: Optimized for visual impairments
+- **Server-Friendly**: Clear communication tools for staff
+- **Professional Appearance**: Restaurant-quality design standards
 
-## 🔐 Authentication Systems - **FULLY OPERATIONAL**
+---
 
-### Consumer Authentication
-- Email/password with instant account creation
-- Anonymous usage tracking with browser fingerprinting (5 free scans)
-- Password reset via magic links
-- Automatic subscription management
+## ðŸ'³ **Payment Integration - STRIPE LIVE**
 
-### Restaurant Authentication
-- Business account creation with email verification
-- Restaurant profile management
-- Subscription and billing integration
-- Menu management permissions
-
-## 💳 Payment Integration - **STRIPE LIVE**
-
-### Consumer Payments (Stripe) - **WORKING**
+### **Consumer Payments (WhatTheMenu) - WORKING**
 - **Daily Pass**: $1 for 10 menu scans + unlimited explanations (24 hours)
 - **Weekly Pass**: $5 for 70 menu scans + unlimited explanations (7 days)
 - One-time purchases, no recurring subscriptions
 
-### Restaurant Payments (Stripe) - **WORKING**
-- **Monthly Subscription**: $25/month
+### **Business Payments (AccessMenu) - PLANNED**
+- **AccessMenu Add-on**: $10-15/month addition to restaurant subscriptions
+- **Standalone AccessMenu**: $25/month for accessibility-focused restaurants
+- **Enterprise Package**: Custom pricing for restaurant chains
 - 7-day free trial for new restaurants
-- Automatic billing and subscription management
-- Includes menu hosting, translations, QR codes, and analytics
 
-## 🤖 AI Integration - **GOOGLE GEMINI STABLE**
+---
 
-### Google Gemini AI - **PRODUCTION CONFIG**
-- **Menu Analysis**: Extract restaurant names, cuisine types, and dishes
-- **Dish Explanations**: Detailed descriptions with ingredients and allergens
-- **Multi-language Support**: Generate explanations in 4 languages
-- **Structured Output**: JSON schema enforcement for consistent data
+## ðŸŒ **Internationalization - 4 LANGUAGES ACTIVE**
 
-### Smart Caching Strategy - **PROVEN ALGORITHM**
-- **Fuzzy Matching**: 85% similarity threshold for database matches (**DO NOT CHANGE THIS VALUE**)
-- **Restaurant Context**: Prioritize dishes from same restaurant
-- **Universal Language Support**: Works with Latin, Chinese, Arabic scripts
-- **AI Fallback**: Gemini API called only when no database match found
-
-### ⚠️ CRITICAL: Fuzzy Matching Implementation
-```typescript
-// This algorithm is PROVEN to work across all languages - DO NOT MODIFY
-const calculateSimilarity = (str1: string, str2: string): number => {
-    const cleanString = (str: string) => str.toLowerCase().replace(/[.,!?;:"()[\]{}]/g, '').replace(/\s+/g, ' ').trim();
-    
-    const clean1 = cleanString(str1);
-    const clean2 = cleanString(str2);
-    
-    if (clean1 === clean2) return 1.0;
-    
-    // Check if one string contains the other
-    if (clean1.includes(clean2) || clean2.includes(clean1)) return 0.8;
-    
-    // Simple word matching - WORKS FOR ALL LANGUAGES
-    const words1 = clean1.split(' ');
-    const words2 = clean2.split(' ');
-    const commonWords = words1.filter(word => words2.includes(word));
-    
-    return commonWords.length / Math.max(words1.length, words2.length);
-};
-```
-
-## 📱 User Experience - **OPTIMIZED**
-
-### Consumer App - **MOBILE-FIRST WORKING**
-- **Mobile-First Design**: Responsive interface optimized for tourists
-- **Camera Integration**: Native camera access for menu photos
-- **Real-time Processing**: Live updates during menu analysis
-- **Demo Section**: Interactive French menu with pre-loaded dishes
-
-### Restaurant Platform - **BUSINESS-READY**
-- **Professional Design**: Clean, business-focused interface
-- **QR Code Management**: Download high-quality codes for printing
-- **Analytics Dashboard**: Track customer engagement and popular dishes
-- **Simple Updates**: Email-based menu update workflow
-
-### Public Restaurant Pages - **SEO OPTIMIZED**
-- **SEO Optimized**: Rich schema markup for search engines
-- **Mobile Responsive**: Perfect viewing on all device sizes
-- **Fast Loading**: Optimized for international tourists on slow connections
-- **Multi-language Toggle**: Instant language switching
-
-## 🚀 Performance Optimizations - **IMPLEMENTED**
-
-### Loading Strategies
-- Code splitting by user type (consumer vs restaurant)
-- Lazy loading for non-critical components
-- Image optimization with progressive loading
-- CDN delivery via Netlify Edge
-
-### Caching Systems - **MULTI-LAYER**
-- **AI Response Caching**: Database-first with intelligent fallbacks
-- **Real-time Updates**: Live subscriptions without polling
-- **Browser Caching**: Aggressive caching for static resources
-- **QR Code Caching**: Permanent, reliable QR codes
-
-## 🔒 Security Features - **PRODUCTION HARDENED**
-
-### Data Protection
-- Input validation at all API endpoints
-- XSS prevention with React's built-in protections
-- SQL injection prevention via Supabase parameterized queries
-- File upload security with type and size validation
-
-### Business Security
-- Restaurant account isolation
-- Secure QR code generation
-- Analytics data privacy
-- GDPR compliance for international users
-
-## 🌍 Internationalization - **4 LANGUAGES ACTIVE**
-
-### Supported Languages - **FULLY IMPLEMENTED**
+### **Consumer App (WhatTheMenu)**
 - **Interface**: English (primary)
 - **AI Explanations**: English, Spanish, Chinese, French
 - **Menu Processing**: Universal (any language with text)
 
-### Restaurant Benefits
-- Attract international tourists
-- Reduce language barriers
-- Professional multilingual presence
-- Improved customer experience
+### **Business App (AccessMenu)**
+- **Complete UI Translation**: All interface elements in 4 languages
+- **Menu Content**: Full dish information in 4 languages
+- **Server Interface**: English-only for staff clarity
+- **Customer Interface**: Customer's selected language
 
-## 📊 Analytics & Monitoring - **LIVE TRACKING**
+---
 
-### Consumer Analytics
+## ðŸ"Š **Analytics & Monitoring - LIVE TRACKING**
+
+### **Consumer Analytics (WhatTheMenu)**
 - Global counters (menus scanned, dish explanations)
 - User subscription tracking
 - Anonymous usage monitoring
+- AI response times and accuracy
 
-### Restaurant Analytics
-- Page view tracking per restaurant
-- Popular dish identification
-- Customer engagement metrics
+### **Business Analytics (AccessMenu)**
+- Order completion rates
+- Language usage statistics
+- Accessibility feature usage
+- Server response times
+- Customer satisfaction metrics
 
-## 🛠 Development Guidelines
+---
 
-### Environment Setup
+## ðŸš€ **Performance Optimizations - IMPLEMENTED**
+
+### **Shared Optimizations**
+- Code splitting by application type (consumer vs business)
+- Lazy loading for non-critical components
+- Image optimization with progressive loading
+- CDN delivery via Netlify Edge
+
+### **Consumer App Optimizations**
+- **AI Response Caching**: Database-first with intelligent fallbacks
+- **Camera Optimization**: Efficient image processing
+- **Real-time Updates**: Live subscriptions without polling
+
+### **Business App Optimizations**
+- **Accessibility Performance**: Optimized for screen readers
+- **Touch Interface**: Smooth interactions on all devices
+- **Visual Loading**: Clear progress indicators
+
+---
+
+## ðŸ"ˆ **Business Model - DUAL REVENUE STREAMS**
+
+### **Consumer Revenue (WhatTheMenu) - LIVE**
+1. **Individual Subscriptions**: Daily and weekly passes
+2. **Target Market**: International travelers and tourists
+3. **Value Proposition**: Understand any menu, anywhere
+
+### **Business Revenue (AccessMenu) - READY TO LAUNCH**
+1. **Restaurant Subscriptions**: Monthly accessibility packages
+2. **Target Market**: Restaurants in tourist areas, accessibility-focused businesses
+3. **Value Proposition**: Serve all customers, increase accessibility compliance
+
+### **Combined Value Propositions**
+- **For Consumers**: Understand any menu, anywhere
+- **For Restaurants**: Attract international customers, serve all abilities
+- **For Society**: Bridge language and accessibility barriers in dining
+
+---
+
+## ðŸ"® **Roadmap**
+
+### **âœ… Completed Features (August 2025)**
+**Consumer App (WhatTheMenu):**
+- Menu scanning with AI analysis ✅
+- Dish explanations in 4 languages ✅
+- Smart database caching ✅
+- User authentication and subscriptions ✅
+- Payment processing (Stripe) ✅
+
+**Business App (AccessMenu):**
+- Complete multilingual interface ✅
+- Smart filtering system ✅
+- Order management with server communication ✅
+- Full accessibility compliance (WCAG AA) ✅
+- Visual-only communication system ✅
+
+### **ðŸš§ Next Phase (Integration)**
+- **AccessMenu Business Integration**: Add to WhatTheMenu restaurant admin
+- **QR Code Generation**: Direct AccessMenu access for customers
+- **Restaurant Onboarding**: Streamlined setup process
+- **Analytics Dashboard**: Combined consumer and business insights
+
+### **ðŸš« DO NOT IMPLEMENT (Will Break Platform)**
+- Microservices architecture (current monolith works)
+- Different database (Supabase integration is proven)
+- Alternative AI providers (Gemini integration is stable)
+- Real-time collaborative editing (not needed, adds complexity)
+
+---
+
+## ðŸ›  **Development Guidelines**
+
+### **Environment Setup**
 ```bash
 npm install
-npm run dev        # Start development server
+npm run dev        # Start development server (both apps)
 npm run build      # Production build
 npm run preview    # Preview production build
 ```
 
-### Environment Variables - **REQUIRED FOR PRODUCTION**
+### **Environment Variables - REQUIRED FOR PRODUCTION**
 ```env
-# Frontend (Vite) - REQUIRED
+# Frontend (Vite) - REQUIRED FOR BOTH APPS
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_GEMINI_API_KEY=your_gemini_api_key
@@ -394,147 +398,62 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 RESEND_API_KEY=re_xxx
 ```
 
-## 🚦 Deployment - **NETLIFY CONFIGURATION**
+---
 
-### Netlify Configuration - **WORKING SETUP**
-- **Build Command**: `npm run build`
-- **Publish Directory**: `dist`
-- **Functions Directory**: `netlify/functions`
-- **Redirects**: SPA routing for both consumer and restaurant sections
+## ðŸ¤ **Contributing - SAFETY GUIDELINES**
 
-### Database Setup - **CRITICAL STEPS**
-1. **Verify RPC function has SECURITY DEFINER**:
-   ```sql
-   SELECT proname, prosecdef FROM pg_proc WHERE proname = 'increment_global_counter';
-   ```
-   Should return `prosecdef = true`
+### **Before Making Changes**
+1. **Identify which app** you're modifying (Consumer vs Business)
+2. **Test in development environment first**
+3. **Never modify database schema without backup**
+4. **Test both applications** to ensure no cross-contamination
+5. **Verify all 4 languages still work in both apps**
 
-2. **Verify RLS policies exist**:
-   ```sql
-   SELECT policyname, tablename FROM pg_policies WHERE tablename IN ('global_counters', 'restaurants');
-   ```
-
-3. **Test anon user permissions**:
-   ```sql
-   -- This should work without errors
-   SELECT increment_global_counter('test_counter');
-   ```
-
-## 📈 Business Model - **REVENUE ACTIVE**
-
-### Revenue Streams - **LIVE**
-1. **Consumer Subscriptions**: Daily and weekly passes
-2. **Restaurant Subscriptions**: Monthly business plans
-3. **Target Markets**: Tourist destinations worldwide
-
-### Value Propositions
-- **For Consumers**: Understand any menu, anywhere
-- **For Restaurants**: Attract international customers, reduce service overhead
-
-## 🔮 Roadmap
-
-### ✅ Completed Features (August 2025)
-- Menu scanning with AI analysis
-- Dish explanations in 4 languages
-- Smart database caching
-- Demo section with French menu
-- User authentication and subscriptions
-- Restaurant platform with QR codes
-- Payment processing (Stripe)
-
-### 🚧 Safe Improvements (Won't Break Existing)
-- Enhanced mobile responsiveness
-- Additional language support (beyond EN/ES/ZH/FR)
-- Restaurant analytics dashboard improvements
-- Advanced QR code customization
-
-### 🚫 DO NOT IMPLEMENT (Will Break Platform)
-- Microservices architecture (current monolith works)
-- Different database (Supabase integration is proven)
-- Alternative AI providers (Gemini integration is stable)
-- Real-time collaborative editing (not needed, adds complexity)
-
-## ⚠️ TROUBLESHOOTING GUIDE
-
-### Common Issues and Solutions
-
-#### Database Permission Errors
-**Symptom**: `permission denied for table global_counters`
-**Solution**: 
-```sql
--- Fix RPC function
-CREATE OR REPLACE FUNCTION increment_global_counter(counter_name text)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER  -- This line is CRITICAL
-AS $
-BEGIN
-    INSERT INTO global_counters (counter_type, count)
-    VALUES (counter_name, 1)
-    ON CONFLICT (counter_type)
-    DO UPDATE SET 
-        count = global_counters.count + 1,
-        updated_at = now();
-END;
-$;
-```
-
-#### Demo Section Not Loading
-**Symptom**: French dishes not getting explanations
-**Solution**: Check console for RPC errors, verify dishes exist in database:
-```sql
-SELECT * FROM dishes WHERE language = 'fr' LIMIT 10;
-```
-
-#### AI Analysis Failing
-**Symptom**: Menu upload doesn't return dishes
-**Solution**: Check Gemini API key in environment variables, verify quota
-
-## 🤝 Contributing - **SAFETY GUIDELINES**
-
-### Before Making Changes
-1. **Test in development environment first**
-2. **Never modify database schema without backup**
-3. **Always test with real menu images**
-4. **Verify all 4 languages still work**
-
-### Development Workflow - **MANDATORY STEPS**
+### **Development Workflow - MANDATORY STEPS**
 1. Fork repository and create feature branch
 2. Test both consumer and restaurant flows
-3. Verify demo section still works
-4. Check database permissions remain intact
-5. Submit pull request with detailed testing notes
-
-### Code Standards - **ENFORCED**
-- TypeScript strict mode with proper interfaces
-- Functional React components with hooks
-- Comprehensive error handling
-- Performance optimization for mobile
-- **Never bypass the caching layer**
-- **Always use the established fuzzy matching algorithm**
-
-## 📞 Support & Contact
-
-### For Consumers
-- In-app contact form
-- Email: support@whatthemenu.com
-
-### For Restaurants
-- Dedicated restaurant support
-- Onboarding assistance
-- Menu update help
-
-### For Developers
-- **Before modifying core functionality, create an issue**
-- **Test changes with real French menu data**
-- **Verify database permissions after any Supabase changes**
+3. Verify demo section still works (consumer app)
+4. Test AccessMenu system (business app)
+5. Check database permissions remain intact
+6. Submit pull request with detailed testing notes
 
 ---
 
-## 🔥 FINAL WARNING
+## ðŸ"ž **Support & Contact**
 
-**This platform is WORKING in production. The architecture choices (Supabase RPC, fuzzy matching algorithm, dual client setup) are PROVEN. Resist the urge to "improve" core functionality unless there's a specific bug. Focus improvements on user experience, new features, and performance optimizations that don't touch the core data flow.**
+### **For Consumers (WhatTheMenu Users)**
+- In-app contact form
+- Email: support@whatthemenu.com
+- Focus: Menu scanning, dish explanations, subscriptions
 
-**Built with ❤️ for travelers and restaurants worldwide**
+### **For Restaurants (AccessMenu Users)**
+- Dedicated restaurant support
+- Email: restaurants@whatthemenu.com
+- Focus: Accessibility setup, staff training, menu management
 
-*This platform bridges language barriers in dining, making every meal an opportunity for cultural connection.*
+### **For Developers**
+- **Before modifying core functionality, create an issue**
+- **Specify which app** you're working on (Consumer vs Business)
+- **Test changes with real data** from both applications
+- **Verify database permissions** after any Supabase changes
+
+---
+
+## ðŸ"¥ **FINAL WARNING**
+
+**This platform contains TWO WORKING APPLICATIONS in production:**
+
+1. **WhatTheMenu (Consumer)** - Proven AI menu analysis system
+2. **AccessMenu (Business)** - Complete accessibility ordering system
+
+**Both share core infrastructure** (Supabase, AI, payments) but serve different purposes. The architecture choices (Supabase RPC, fuzzy matching algorithm, dual client setup) are PROVEN across both applications.
+
+**Focus improvements on:**
+- User experience enhancements
+- New features for either application
+- Integration between the two systems
+- Performance optimizations that don't touch core data flow
+
+**Built with â¤ï¸ for travelers and restaurants worldwide**
+
+*This dual platform bridges language and accessibility barriers in dining, making every meal an opportunity for cultural connection and inclusive service.*
