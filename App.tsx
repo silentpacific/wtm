@@ -22,6 +22,7 @@ import PaymentCancelledPage from './pages/PaymentCancelledPage';
 import AccessMenuTest from './components/AccessMenuTest';
 import RestaurantQRPage from './pages/RestaurantQRPage';
 import './services/errorBoundary';
+import QRCodeGenerator from './components/QRCodeGenerator';
 
 
 const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
@@ -441,6 +442,7 @@ const AppContent: FC = () => {
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
 		  <Route path="/test-accessmenu" element={<AccessMenuTest />} />
 		  <Route path="/r/:slug" element={<RestaurantQRPage />} />
+		  <Route path="/test-qr-generator" element={<QRCodeGenerator />} /
         </Routes>
       </main>
       
