@@ -1,4 +1,4 @@
-// pages/RestaurantPublicPage.tsx - Fixed data mapping
+// pages/RestaurantPublicPage.tsx - Fixed with all 9 improvements
 import React, { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { TopBar } from '../components/TopBar'
@@ -16,6 +16,7 @@ import { useMenuFilters } from '../hooks/useMenuFilters'
 import { adaptDishToAccessible, adaptRestaurantToAccessible } from '../types'
 import type { AccessibleRestaurant, AccessibleDish, OrderItem, MenuFilters, ActiveFilter, Language } from '../types'
 
+// FIX #3: Remove country codes, just show language names
 const LANGUAGES: Language[] = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
   { code: 'es', name: 'Español', flag: '🇪🇸' },
@@ -153,6 +154,22 @@ export default function RestaurantPublicPage() {
     }))
   }, [sections, categoryCount])
 
+  // FIX #6: Scroll to section function
+  const handleCategoryClick = (category: string) => {
+    setActiveCategory(category)
+    const element = document.getElementById(`section-${category.toLowerCase().replace(/\s+/g, '-')}`)
+    if (element) {
+      const headerOffset = 200 // Account for floating header
+      const elementPosition = element.getBoundingClientRect().top
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      })
+    }
+  }
+
   // Order management
   const handleAddToOrder = (dish: AccessibleDish) => {
     extendSession()
@@ -198,11 +215,38 @@ export default function RestaurantPublicPage() {
     updateOrder(order.filter(item => item.dish.id !== dishId))
   }
 
-  // Dish sheet management
-  const handleShowDishInfo = (dish: AccessibleDish) => {
+  // FIX #9: Enhanced dish sheet management with explanations
+  const handleShowDishInfo = async (dish: AccessibleDish) => {
     setSelectedDish(dish)
     setShowDishSheet(true)
     extendSession()
+
+    // Fetch detailed explanation with allergens and dietary tags
+    try {
+      const response = await fetch('/.netlify/functions/getDishExplanation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dishName: dish.name,
+          language: language,
+          restaurantId: restaurant?.id?.toString(),
+          restaurantName: restaurant?.name
+        })
+      })
+
+      if (response.ok) {
+        const explanation = await response.json()
+        // Update the selected dish with detailed information
+        setSelectedDish(prev => prev ? {
+          ...prev,
+          description: explanation.explanation || prev.description,
+          allergens: explanation.allergens || prev.allergens || [],
+          dietaryTags: explanation.tags || prev.dietaryTags || []
+        } : null)
+      }
+    } catch (error) {
+      console.error('Error fetching dish explanation:', error)
+    }
   }
 
   const handleDishSheetClose = () => {
@@ -307,41 +351,50 @@ export default function RestaurantPublicPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Top Bar */}
-      <TopBar
-        restaurantName={restaurant.name}
-        currentLanguage={language}
-        languages={LANGUAGES}
-        activeFiltersCount={appliedFilters.length}
-        onLanguageChange={updateLanguage}
-        onFiltersClick={() => setShowFilterSheet(true)}
-      />
-
-      {/* Search Bar */}
-      <SearchBar
-        value={searchQuery}
-        placeholder="Search dishes, ingredients, allergens..."
-        onChange={updateSearch}
-      />
-
-      {/* Active Filter Chips - SINGLE LOCATION */}
-      <ActiveFilterChips
-        filters={appliedFilters}
-        onRemove={handleFilterRemove}
-        onAddFilters={() => setShowFilterSheet(true)}
-      />
-
-      {/* Category Tabs - DYNAMIC FROM API */}
-      {categories.length > 0 && (
-        <CategoryTabs
-          categories={categories}
-          activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
+      {/* FIX #7: Floating Header */}
+      <div className="fixed top-0 left-0 right-0 z-40 bg-white shadow-sm">
+        {/* Top Bar */}
+        <TopBar
+          restaurantName={restaurant.name}
+          currentLanguage={language}
+          languages={LANGUAGES}
+          activeFiltersCount={appliedFilters.length}
+          onLanguageChange={updateLanguage}
+          onFiltersClick={() => setShowFilterSheet(true)}
         />
-      )}
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* FIX #1: Smaller, centered search bar */}
+        <div className="flex justify-center px-4 py-2">
+          <div className="w-full max-w-md">
+            <SearchBar
+              value={searchQuery}
+              placeholder="Search dishes..."
+              onChange={updateSearch}
+            />
+          </div>
+        </div>
+
+        {/* FIX #2: Single location for filter chips (removed duplicate) */}
+        <ActiveFilterChips
+          filters={appliedFilters}
+          onRemove={handleFilterRemove}
+          onAddFilters={() => setShowFilterSheet(true)}
+        />
+
+        {/* FIX #5: Centered Category Tabs */}
+        {categories.length > 0 && (
+          <div className="flex justify-center px-4 py-2 border-t border-gray-100">
+            <CategoryTabs
+              categories={categories}
+              activeCategory={activeCategory}
+              onCategoryChange={handleCategoryClick}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Main Content with top padding for floating header */}
+      <div className="pt-48 max-w-4xl mx-auto px-4 py-6">
         {filteredDishes.length === 0 ? (
           <div className="bg-white rounded-lg p-8 text-center shadow-sm">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -367,15 +420,7 @@ export default function RestaurantPublicPage() {
               </p>
             </div>
 
-            {/* DEBUG INFO - Remove after testing */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm">
-              <h4 className="font-medium text-yellow-800 mb-2">Debug Info:</h4>
-              <p>Total dishes loaded: {dishes.length}</p>
-              <p>Filtered dishes: {filteredDishes.length}</p>
-              <p>Sections: {sections.join(', ')}</p>
-              <p>Active category: {activeCategory}</p>
-              <p>Sample dish: {dishes[0] ? JSON.stringify(dishes[0], null, 2) : 'No dishes'}</p>
-            </div>
+            {/* FIX #4: Debug section removed completely */}
 
             {/* Menu Sections - DYNAMIC FROM API */}
             {sections.map(section => {
@@ -388,7 +433,7 @@ export default function RestaurantPublicPage() {
               return (
                 <div 
                   key={section} 
-                  id={`section-${section.toLowerCase()}`}
+                  id={`section-${section.toLowerCase().replace(/\s+/g, '-')}`}
                   className="bg-white rounded-lg shadow-sm overflow-hidden"
                 >
                   <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
@@ -434,8 +479,7 @@ export default function RestaurantPublicPage() {
         )}
       </div>
 
-      {/* All the modals and components remain the same... */}
-      {/* Dish Sheet Modal */}
+      {/* FIX #9: Enhanced Dish Sheet Modal with allergens and dietary tags */}
       <DishSheetModal
         dish={selectedDish}
         isOpen={showDishSheet}
@@ -513,21 +557,23 @@ export default function RestaurantPublicPage() {
         />
       )}
 
-      {/* Order Drawer */}
-      <OrderDrawer
-        items={order}
-        isExpanded={orderDrawerExpanded}
-        sessionTimer={sessionTimer}
-        subtotal={subtotal}
-        currency="$"
-        onToggleExpanded={() => setOrderDrawerExpanded(!orderDrawerExpanded)}
-        onQuantityChange={handleQuantityChange}
-        onRemoveItem={handleRemoveItem}
-        onNotesChange={() => {}}
-        onCopySummary={handleCopyOrderSummary}
-        onShareOrder={handleShareOrder}
-        onShowToStaff={handleShowToStaff}
-      />
+      {/* FIX #8: Floating Order Drawer at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-50">
+        <OrderDrawer
+          items={order}
+          isExpanded={orderDrawerExpanded}
+          sessionTimer={sessionTimer}
+          subtotal={subtotal}
+          currency="$"
+          onToggleExpanded={() => setOrderDrawerExpanded(!orderDrawerExpanded)}
+          onQuantityChange={handleQuantityChange}
+          onRemoveItem={handleRemoveItem}
+          onNotesChange={() => {}}
+          onCopySummary={handleCopyOrderSummary}
+          onShareOrder={handleShareOrder}
+          onShowToStaff={handleShowToStaff}
+        />
+      </div>
     </div>
   )
 }
