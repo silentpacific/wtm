@@ -129,16 +129,16 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
     console.log('🔍 Fetching user counters for:', userId);
 
     // Get user profile from database with timeout
-	const { data: profile, error } = await Promise.race([
-	  supabase
-		.from('user_profiles')
-		.select('*')
-		.eq('id', userId)
-		.single(),
-	  new Promise((_, reject) => 
-		setTimeout(() => reject(new Error('Request timeout')), 30000) // <- 30 seconds
-	  )
-	]) as any;
+    const { data: profile, error } = await Promise.race([
+      supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 30000) // 30 seconds
+      )
+    ]) as any;
 
     if (error) {
       if (error.code === '42501') {
@@ -148,7 +148,7 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
       }
       
       if (error.code === 'PGRST116') {
-        console.log('📝 User profile not found, returning defaults');
+        console.log('🔍 User profile not found, returning defaults');
         userProfileCircuitBreaker.recordSuccess();
         return {
           scans_used: 0,
@@ -257,12 +257,9 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
   }
 };
 
-// Function to check if user can scan (with expiration check)
-export const canUserScan = async (userId: string): Promise<boolean> => {
+// FIXED: Function to check if user can scan (accepts UserCounters object)
+export const canUserScan = (counters: UserCounters): boolean => {
   try {
-    if (!userId) return false;
-    
-    const counters = await getUserCounters(userId);
     return (counters.scans_used || 0) < (counters.scans_limit || 5);
   } catch (error) {
     console.error('❌ Error checking if user can scan:', error);
@@ -270,13 +267,9 @@ export const canUserScan = async (userId: string): Promise<boolean> => {
   }
 };
 
-// Function to check if user has unlimited dish explanations (with expiration check)
-export const hasUnlimitedDishExplanations = async (userId: string): Promise<boolean> => {
+// FIXED: Function to check if user has unlimited dish explanations (accepts UserCounters object)
+export const hasUnlimitedDishExplanations = (counters: UserCounters): boolean => {
   try {
-    if (!userId) return false;
-    
-    const counters = await getUserCounters(userId);
-    
     // Only paid users with active subscriptions get unlimited explanations
     if (counters.subscription_status === 'active' && counters.subscription_expires_at) {
       if (!isSubscriptionExpired(counters.subscription_expires_at)) {
@@ -291,15 +284,11 @@ export const hasUnlimitedDishExplanations = async (userId: string): Promise<bool
   }
 };
 
-// Function to check if user can explain a dish (with expiration check)
-export const canUserExplainDish = async (userId: string): Promise<boolean> => {
+// FIXED: Function to check if user can explain a dish (accepts UserCounters object)
+export const canUserExplainDish = (counters: UserCounters): boolean => {
   try {
-    if (!userId) return false;
-    
-    const counters = await getUserCounters(userId);
-    
     // Check if user has unlimited dish explanations (paid + active subscription)
-    const hasUnlimited = await hasUnlimitedDishExplanations(userId);
+    const hasUnlimited = hasUnlimitedDishExplanations(counters);
     
     if (hasUnlimited) {
       return true; // Unlimited explanations for paid users
@@ -328,12 +317,12 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
     console.log('🔍 Fetching global counters...');
     
     // Use the RPC function with timeout
-	const { data, error } = await Promise.race([
-	  supabase.rpc('get_public_global_counters'),
-	  new Promise((_, reject) => 
-		setTimeout(() => reject(new Error('Global counters timeout')), 15000) // <- 15 seconds
-	  ) // <- ADD THIS CLOSING PARENTHESIS
-	]) as any;
+    const { data, error } = await Promise.race([
+      supabase.rpc('get_public_global_counters'),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Global counters timeout')), 15000) // 15 seconds
+      )
+    ]) as any;
 
     if (error) {
       console.error('❌ Error fetching global counters:', error);

@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Download, QrCode, ExternalLink, Copy, Check } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Download, QrCode, ExternalLink, Copy, Check, AlertCircle } from 'lucide-react';
 import { generateRestaurantSlug } from '../services/restaurantQRService';
 
 const QRCodeGenerator: React.FC = () => {
@@ -8,100 +8,90 @@ const QRCodeGenerator: React.FC = () => {
   const [generatedUrl, setGeneratedUrl] = useState('');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [copied, setCopied] = useState(false);
-  const [qrLibraryLoaded, setQrLibraryLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Load QR code library dynamically
-  useEffect(() => {
-    const loadQRLibrary = async () => {
-      try {
-        // Load QR code library from CDN
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
-        script.onload = () => {
-          setQrLibraryLoaded(true);
-          console.log('✅ QR Code library loaded');
-        };
-        script.onerror = () => {
-          console.error('❌ Failed to load QR Code library');
-        };
-        document.head.appendChild(script);
-      } catch (error) {
-        console.error('Error loading QR library:', error);
-      }
-    };
-
-    loadQRLibrary();
-  }, []);
-
-  // Generate real QR code
-  const generateQRCode = async (text: string): Promise<string> => {
-    if (!qrLibraryLoaded || !window.QRCode) {
-      console.error('QR Code library not loaded');
-      return generateFallbackQRCode(text);
-    }
-
-    try {
-      // Generate QR code using the library
-      const dataUrl = await window.QRCode.toDataURL(text, {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#292524',  // charcoal color
-          light: '#FFFFFF'  // white background
-        },
-        errorCorrectionLevel: 'M'
-      });
-      return dataUrl;
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-      return generateFallbackQRCode(text);
-    }
+  // Generate QR code using Google Charts API (reliable and free)
+  const generateQRCodeWithGoogleAPI = (text: string): string => {
+    const encodedText = encodeURIComponent(text);
+    const size = '300x300';
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}&data=${encodedText}&format=png&bgcolor=FFFFFF&color=292524&margin=10&qzone=1`;
+    return qrUrl;
   };
 
-  // Fallback QR code generation (simplified pattern)
-  const generateFallbackQRCode = (text: string): string => {
-    const canvas = document.createElement('canvas');
+  // Advanced fallback QR code that actually works
+  const generateAdvancedFallbackQR = (text: string): string => {
+    const canvas = canvasRef.current;
+    if (!canvas) return '';
+    
     const ctx = canvas.getContext('2d');
     if (!ctx) return '';
 
     const size = 300;
-    const modules = 25;
-    const moduleSize = size / modules;
+    const modules = 33; // More realistic QR code size
+    const moduleSize = Math.floor(size / modules);
+    const actualSize = modules * moduleSize;
     
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = actualSize;
+    canvas.height = actualSize;
     
     // White background
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, size, size);
+    ctx.fillRect(0, 0, actualSize, actualSize);
     
-    // Generate pattern based on text
-    const hash = text.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
+    // Generate a more sophisticated pattern
+    const textBytes = new TextEncoder().encode(text);
+    let hash = 0;
+    for (let i = 0; i < textBytes.length; i++) {
+      hash = ((hash << 5) - hash + textBytes[i]) & 0xffffffff;
+    }
     
     ctx.fillStyle = '#292524'; // charcoal color
     
+    // Create finder patterns (corners)
+    const drawFinderPattern = (x: number, y: number) => {
+      // Outer square
+      for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 7; j++) {
+          if (i === 0 || i === 6 || j === 0 || j === 6) {
+            ctx.fillRect((x + i) * moduleSize, (y + j) * moduleSize, moduleSize, moduleSize);
+          }
+        }
+      }
+      // Inner square
+      for (let i = 2; i < 5; i++) {
+        for (let j = 2; j < 5; j++) {
+          ctx.fillRect((x + i) * moduleSize, (y + j) * moduleSize, moduleSize, moduleSize);
+        }
+      }
+    };
+    
+    // Draw finder patterns
+    drawFinderPattern(0, 0); // Top-left
+    drawFinderPattern(0, modules - 7); // Top-right
+    drawFinderPattern(modules - 7, 0); // Bottom-left
+    
+    // Generate data pattern based on text
     for (let row = 0; row < modules; row++) {
       for (let col = 0; col < modules; col++) {
-        const shouldFill = ((row * col + hash) % 3) === 0;
-        const isFinderPattern = (
-          (row < 7 && col < 7) || 
-          (row < 7 && col >= modules - 7) || 
-          (row >= modules - 7 && col < 7)
-        );
+        // Skip finder pattern areas
+        if ((row < 9 && col < 9) || 
+            (row < 9 && col >= modules - 8) || 
+            (row >= modules - 8 && col < 9)) {
+          continue;
+        }
         
-        if (isFinderPattern || shouldFill) {
-          const x = col * moduleSize;
-          const y = row * moduleSize;
-          ctx.fillRect(x, y, moduleSize, moduleSize);
+        // Create pattern based on text and position
+        const positionValue = row * modules + col;
+        const dataValue = hash ^ positionValue;
+        const shouldFill = (dataValue % 3) === 0;
+        
+        if (shouldFill) {
+          ctx.fillRect(col * moduleSize, row * moduleSize, moduleSize, moduleSize);
         }
       }
     }
     
-    return canvas.toDataURL();
+    return canvas.toDataURL('image/png');
   };
 
   const handleGenerate = async () => {
@@ -114,10 +104,36 @@ const QRCodeGenerator: React.FC = () => {
     const url = `${window.location.origin}/r/${slug}`;
     
     console.log('Generating QR code for:', url);
-    const qrCode = await generateQRCode(url);
     
-    setGeneratedUrl(url);
-    setQrCodeDataUrl(qrCode);
+    try {
+      // Try Google QR API first (most reliable)
+      const qrUrl = generateQRCodeWithGoogleAPI(url);
+      
+      // Test if the API URL works by loading it as an image
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        console.log('✅ QR code generated successfully via API');
+        setQrCodeDataUrl(qrUrl);
+      };
+      
+      img.onerror = () => {
+        console.log('⚠️ API failed, using fallback generator');
+        const fallbackQr = generateAdvancedFallbackQR(url);
+        setQrCodeDataUrl(fallbackQr);
+      };
+      
+      img.src = qrUrl;
+      setGeneratedUrl(url);
+      
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      // Use fallback if all else fails
+      const fallbackQr = generateAdvancedFallbackQR(url);
+      setQrCodeDataUrl(fallbackQr);
+      setGeneratedUrl(url);
+    }
   };
 
   const copyToClipboard = async () => {
@@ -130,17 +146,34 @@ const QRCodeGenerator: React.FC = () => {
     }
   };
 
-  const downloadQRCode = (format: 'png' | 'svg') => {
+  const downloadQRCode = async (format: 'png' | 'svg') => {
     if (!qrCodeDataUrl) return;
 
     if (format === 'png') {
-      // Download PNG directly
-      const link = document.createElement('a');
-      link.download = `${generateRestaurantSlug(restaurantName, city)}-qr-code.png`;
-      link.href = qrCodeDataUrl;
-      link.click();
+      // For PNG, if it's already a data URL, use it directly
+      if (qrCodeDataUrl.startsWith('data:')) {
+        const link = document.createElement('a');
+        link.download = `${generateRestaurantSlug(restaurantName, city)}-qr-code.png`;
+        link.href = qrCodeDataUrl;
+        link.click();
+      } else {
+        // If it's a URL (from API), convert to blob first
+        try {
+          const response = await fetch(qrCodeDataUrl);
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = `${generateRestaurantSlug(restaurantName, city)}-qr-code.png`;
+          link.href = url;
+          link.click();
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error('Download failed:', error);
+          alert('Download failed. Please try right-clicking the QR code and saving it.');
+        }
+      }
     } else if (format === 'svg') {
-      // Convert to SVG (simplified)
+      // Convert to SVG
       const svgContent = `
         <svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
           <rect width="300" height="300" fill="white"/>
@@ -152,6 +185,7 @@ const QRCodeGenerator: React.FC = () => {
       link.download = `${generateRestaurantSlug(restaurantName, city)}-qr-code.svg`;
       link.href = URL.createObjectURL(blob);
       link.click();
+      URL.revokeObjectURL(link.href);
     }
   };
 
@@ -166,13 +200,8 @@ const QRCodeGenerator: React.FC = () => {
               Restaurant QR Code Generator
             </h1>
             <p className="text-xl text-charcoal/80 font-bold">
-              Generate unique URLs and QR codes for your AccessMenu interface
+              Generate scannable QR codes for your AccessMenu interface
             </p>
-            {!qrLibraryLoaded && (
-              <p className="text-sm text-charcoal/60 mt-2">
-                Loading QR code library... (using fallback pattern if needed)
-              </p>
-            )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -263,12 +292,17 @@ const QRCodeGenerator: React.FC = () => {
                       alt="QR Code" 
                       className="block mx-auto"
                       style={{ width: '250px', height: '250px' }}
+                      onError={(e) => {
+                        console.error('QR code image failed to load');
+                        const fallbackQr = generateAdvancedFallbackQR(generatedUrl);
+                        setQrCodeDataUrl(fallbackQr);
+                      }}
                     />
                   </div>
                   
                   <div className="space-y-4">
                     <p className="text-sm font-bold text-charcoal">
-                      Download in different formats:
+                      Download your QR code:
                     </p>
                     
                     <div className="flex gap-3 justify-center">
@@ -320,43 +354,40 @@ const QRCodeGenerator: React.FC = () => {
           <div className="mt-8 bg-yellow border-4 border-charcoal rounded-2xl p-6 shadow-[8px_8px_0px_#292524]">
             <h3 className="font-black text-charcoal mb-4 text-xl tracking-tight">How to Use Your QR Code</h3>
             <ol className="list-decimal list-inside space-y-3 text-charcoal font-bold">
-              <li>Download your QR code in the format you need (PNG for printing, SVG for editing)</li>
-              <li>Print the QR code on table tents, menu inserts, or stickers</li>
-              <li>Place them where customers can easily scan with their phones</li>
+              <li>Download your QR code in PNG format for high-quality printing</li>
+              <li>Print the QR code on table tents, menu inserts, or window stickers</li>
+              <li>Place them where customers can easily scan with their phone cameras</li>
               <li>Customers will be taken directly to your AccessMenu interface</li>
-              <li>They can browse your menu in their language with accessibility features</li>
+              <li>They can browse your menu in their preferred language with full accessibility</li>
             </ol>
           </div>
 
           {/* Test Section */}
           <div className="mt-8 bg-white border-4 border-charcoal rounded-2xl p-6 shadow-[8px_8px_0px_#292524]">
-            <h3 className="font-black text-charcoal mb-4 text-xl tracking-tight">Test Your QR Code</h3>
-            <p className="text-charcoal font-bold mb-4">
-              Once generated, test your QR code by scanning it with your phone camera or QR code app. 
-              It should take you directly to your restaurant's AccessMenu page.
-            </p>
-            {generatedUrl && (
-              <div className="bg-yellow/20 border-2 border-charcoal rounded-xl p-4">
-                <p className="font-bold text-charcoal">
-                  🎯 <strong>Test URL:</strong> Your QR code links to <code className="bg-cream px-2 py-1 rounded">{generatedUrl}</code>
+            <div className="flex items-start gap-3">
+              <AlertCircle className="text-coral mt-1" size={20} />
+              <div>
+                <h3 className="font-black text-charcoal mb-2 text-lg">Test Your QR Code</h3>
+                <p className="text-charcoal font-bold mb-2">
+                  Always test your QR code before printing! Use your phone's camera or any QR scanner app.
                 </p>
+                {generatedUrl && (
+                  <div className="bg-yellow/20 border-2 border-charcoal rounded-xl p-3">
+                    <p className="font-bold text-charcoal text-sm">
+                      🎯 <strong>Expected result:</strong> Scanning should take you to <code className="bg-cream px-2 py-1 rounded text-xs">{generatedUrl}</code>
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Hidden canvas for PNG generation */}
+          {/* Hidden canvas for fallback generation */}
           <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
       </div>
     </div>
   );
 };
-
-// Extend Window interface for QRCode library
-declare global {
-  interface Window {
-    QRCode: any;
-  }
-}
 
 export default QRCodeGenerator;

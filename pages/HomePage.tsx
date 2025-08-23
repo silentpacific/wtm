@@ -32,6 +32,94 @@ import {
   canAnonymousUserExplainDish 
 } from '../services/anonymousUsageTracking';
 
+// FIXED: Add missing getUserLocation function
+const getUserLocation = async (): Promise<{
+  city?: string;
+  country?: string;
+  state?: string;
+  latitude?: number;
+  longitude?: number;
+}> => {
+  try {
+    const response = await fetch('https://ipapi.co/json/', {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (response.ok) {
+      const locationData = await response.json();
+      return {
+        city: locationData.city,
+        country: locationData.country_name,
+        state: locationData.region,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude
+      };
+    }
+  } catch (error) {
+    console.warn('Could not get user location:', error);
+  }
+  return {};
+};
+
+// FIXED: Add missing findOrCreateRestaurant function
+const findOrCreateRestaurant = async (
+  name: string, 
+  cuisine: string, 
+  location: any, 
+  dishCount: number
+): Promise<number | null> => {
+  try {
+    console.log('Finding or creating restaurant:', { name, cuisine, location, dishCount });
+    
+    // Use the restaurant service if available
+    if (restaurantService?.findOrCreateRestaurant) {
+      return await restaurantService.findOrCreateRestaurant(name, cuisine, location, dishCount);
+    }
+    
+    // Fallback: simple restaurant lookup/creation
+    const { data: existingRestaurant, error: searchError } = await supabase
+      .from('restaurants')
+      .select('id')
+      .ilike('name', name)
+      .limit(1)
+      .single();
+    
+    if (existingRestaurant) {
+      return existingRestaurant.id;
+    }
+    
+    if (searchError && searchError.code !== 'PGRST116') {
+      console.error('Error searching for restaurant:', searchError);
+      return null;
+    }
+    
+    // Create new restaurant
+    const { data: newRestaurant, error: createError } = await supabase
+      .from('restaurants')
+      .insert({
+        name: name.trim(),
+        cuisine: cuisine.trim(),
+        location_data: location,
+        total_dishes_scanned: dishCount,
+        first_scanned_at: new Date().toISOString(),
+        last_scanned_at: new Date().toISOString()
+      })
+      .select('id')
+      .single();
+    
+    if (createError) {
+      console.error('Error creating restaurant:', createError);
+      return null;
+    }
+    
+    return newRestaurant?.id || null;
+  } catch (error) {
+    console.error('Error in findOrCreateRestaurant:', error);
+    return null;
+  }
+};
+
 interface HomePageProps {
   onScanSuccess: () => void;
   onExplanationSuccess: () => void;
@@ -157,57 +245,6 @@ const ScanLimitModal: React.FC<ScanLimitModalProps> = ({
                         </p>
                         
                         {/* Payment options for anonymous users */}
-                        <div className="space-y-3">
-                            <button 
-                                onClick={() => onPurchase('daily')}
-                                disabled={loadingPlan === 'daily'}
-                                className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                {loadingPlan === 'daily' ? (
-                                    <div className="flex items-center justify-center">
-                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                                        Processing...
-                                    </div>
-                                ) : (
-                                    '🚀 Get Daily Pass - $1'
-                                )}
-                            </button>
-                            
-                            <button 
-                                onClick={() => onPurchase('weekly')}
-                                disabled={loadingPlan === 'weekly'}
-                                className="w-full py-3 bg-yellow text-charcoal font-bold rounded-lg border-2 border-charcoal hover:bg-yellow/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                {loadingPlan === 'weekly' ? (
-                                    <div className="flex items-center justify-center">
-                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-charcoal mr-2"></div>
-                                        Processing...
-                                    </div>
-                                ) : (
-                                    '⭐ Get Weekly Pass - $5 (Best Value!)'
-                                )}
-                            </button>
-                        </div>
-
-                        {/* Signup option for anonymous users */}
-						<div className="border-t-2 border-charcoal/20 pt-4 mt-4">
-							<p className="text-sm text-charcoal/70 text-center mb-3">
-								Or sign up to purchase a plan
-							</p>
-							<button
-								onClick={onSignUp}
-								className="w-full py-2 bg-gray-200 text-charcoal font-bold rounded-lg border-2 border-charcoal hover:bg-gray-300 transition-colors"
-							>
-								Purchase Plan
-							</button>
-						</div>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        <p className="text-charcoal/80">
-                            You've used all {userProfile?.scans_limit || 5} free scans. Upgrade to continue scanning menus!
-                        </p>
-                        
                         <div className="space-y-3">
                             <button 
                                 onClick={() => onPurchase('daily')}
@@ -483,6 +520,7 @@ const MenuResults: React.FC<{
         { code: 'fr', name: 'Français' },
     ];
 
+    // FIXED: handleDishClick with proper counter checking
     const handleDishClick = async (dishName: string) => {
         if (!explanations[dishName]) {
             explanations[dishName] = {};
@@ -499,7 +537,7 @@ const MenuResults: React.FC<{
         if (user) {
             try {
                 const counters = await getUserCounters(user.id);
-                canExplain = canUserExplainDish(counters);
+                canExplain = canUserExplainDish(counters); // ✅ FIXED: Pass counters object
             } catch (error) {
                 console.error('Error checking user dish explanation capability:', error);
                 canExplain = false;
@@ -547,85 +585,85 @@ const MenuResults: React.FC<{
         }
         
         // Helper function to make the secure API request
-		const makeRequest = async (): Promise<DishExplanation> => {
-			const requestStartTime = Date.now();
-			const requestId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-			
-			// Track explanation request start
-			gtag('event', 'dish_explanation_started', {
-				'request_id': requestId,
-				'dish_name': dishName,
-				'language': selectedLanguage,
-				'user_type': user ? 'authenticated' : 'anonymous',
-				'restaurant_name': restaurantInfo?.name || 'unknown',
-				'timestamp': Date.now()
-			});
+        const makeRequest = async (): Promise<DishExplanation> => {
+            const requestStartTime = Date.now();
+            const requestId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            
+            // Track explanation request start
+            gtag('event', 'dish_explanation_started', {
+                'request_id': requestId,
+                'dish_name': dishName,
+                'language': selectedLanguage,
+                'user_type': user ? 'authenticated' : 'anonymous',
+                'restaurant_name': restaurantInfo?.name || 'unknown',
+                'timestamp': Date.now()
+            });
 
-			// Prepare request headers
-			const headers: Record<string, string> = {
-				'Content-Type': 'application/json'
-			};
+            // Prepare request headers
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json'
+            };
 
-			// Add authorization header if user is logged in
-			if (user) {
-				const { data: { session } } = await supabase.auth.getSession();
-				if (session?.access_token) {
-					headers['Authorization'] = `Bearer ${session.access_token}`;
-				}
-			}
+            // Add authorization header if user is logged in
+            if (user) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                    headers['Authorization'] = `Bearer ${session.access_token}`;
+                }
+            }
 
-			// Prepare request body
-			const requestBody = {
-				dishName,
-				language: selectedLanguage,
-				...(restaurantInfo?.id && { restaurantId: restaurantInfo.id.toString() }),
-				...(restaurantInfo?.name && { restaurantName: restaurantInfo.name })
-			};
+            // Prepare request body
+            const requestBody = {
+                dishName,
+                language: selectedLanguage,
+                ...(restaurantInfo?.id && { restaurantId: restaurantInfo.id.toString() }),
+                ...(restaurantInfo?.name && { restaurantName: restaurantInfo.name })
+            };
 
-			const response = await fetch('/.netlify/functions/getDishExplanation', {
-				method: 'POST',
-				headers,
-				body: JSON.stringify(requestBody)
-			});
-			
-			// Calculate timing AFTER getting response
-			const requestEndTime = Date.now();
-			const totalTime = requestEndTime - requestStartTime;
-			const backendTime = parseInt(response.headers.get('X-Processing-Time') || '0');
-			
-			if (!response.ok) {
-				// Track failed explanation request
-				gtag('event', 'dish_explanation_failed', {
-					'request_id': requestId,
-					'dish_name': dishName,
-					'language': selectedLanguage,
-					'total_time_ms': totalTime,
-					'total_time_seconds': Math.round(totalTime / 1000 * 100) / 100,
-					'backend_time_ms': backendTime,
-					'backend_time_seconds': Math.round(backendTime / 1000 * 100) / 100,
-					'error_status': response.status,
-					'error_type': response.status === 429 ? 'rate_limit' : 
-								 response.status === 401 ? 'auth_error' : 
-								 response.status === 403 ? 'permission_error' : 'other',
-					'user_type': user ? 'authenticated' : 'anonymous',
-					'restaurant_name': restaurantInfo?.name || 'unknown',
-					'timestamp': Date.now()
-				});
+            const response = await fetch('/.netlify/functions/getDishExplanation', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(requestBody)
+            });
+            
+            // Calculate timing AFTER getting response
+            const requestEndTime = Date.now();
+            const totalTime = requestEndTime - requestStartTime;
+            const backendTime = parseInt(response.headers.get('X-Processing-Time') || '0');
+            
+            if (!response.ok) {
+                // Track failed explanation request
+                gtag('event', 'dish_explanation_failed', {
+                    'request_id': requestId,
+                    'dish_name': dishName,
+                    'language': selectedLanguage,
+                    'total_time_ms': totalTime,
+                    'total_time_seconds': Math.round(totalTime / 1000 * 100) / 100,
+                    'backend_time_ms': backendTime,
+                    'backend_time_seconds': Math.round(backendTime / 1000 * 100) / 100,
+                    'error_status': response.status,
+                    'error_type': response.status === 429 ? 'rate_limit' : 
+                                 response.status === 401 ? 'auth_error' : 
+                                 response.status === 403 ? 'permission_error' : 'other',
+                    'user_type': user ? 'authenticated' : 'anonymous',
+                    'restaurant_name': restaurantInfo?.name || 'unknown',
+                    'timestamp': Date.now()
+                });
 
-				if (response.status === 429) {
-					throw new Error('RATE_LIMIT');
-				} else if (response.status === 401) {
-					throw new Error('Authentication failed. Please try logging in again.');
-				} else if (response.status === 403) {
-					throw new Error('Access denied. Please check your permissions.');
-				} else {
-					const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
-					throw new Error(errorData.error || `Request failed`);
-				}
-			}
-			
-			return await response.json();
-		};
+                if (response.status === 429) {
+                    throw new Error('RATE_LIMIT');
+                } else if (response.status === 401) {
+                    throw new Error('Authentication failed. Please try logging in again.');
+                } else if (response.status === 403) {
+                    throw new Error('Access denied. Please check your permissions.');
+                } else {
+                    const errorData = await response.json().catch(() => ({error: `Request failed with status ${response.status}`}));
+                    throw new Error(errorData.error || `Request failed`);
+                }
+            }
+            
+            return await response.json();
+        };
 
         // Auto-retry logic with friendly messages
         const startTime = Date.now();
@@ -641,119 +679,111 @@ const MenuResults: React.FC<{
             }
         }));
 
-		const attemptRequest = async (): Promise<void> => {
-			try {
-				const data = await makeRequest();
-				const requestEndTime = Date.now();
-				const totalTime = requestEndTime - startTime;
-				// This assumes backend time and data source are needed here.
-				// For simplicity, we'll imagine they are part of the 'data' payload or re-fetch headers if needed.
-				// A better approach is to return more info from makeRequest.
-				
-				// Track successful explanation request (ONLY ONCE HERE)
-				gtag('event', 'dish_explanation_success', {
-					'request_id': startTime + '-' + dishName, // Simplified request ID
-					'dish_name': dishName,
-					'language': selectedLanguage,
-					'total_time_ms': totalTime,
-					'total_time_seconds': Math.round(totalTime / 1000 * 100) / 100,
-					// 'backend_time_ms': backendTime, // Note: Not easily available here without modifying makeRequest
-					// 'network_time_ms': totalTime - backendTime,
-					// 'data_source': dataSource,
-					// 'cache_hit': dataSource === 'Database',
-					'user_type': user ? 'authenticated' : 'anonymous',
-					'restaurant_name': restaurantInfo?.name || 'unknown',
-					'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
-					'retry_count': retryCount,
-					'timestamp': Date.now()
-				});
-				
-				// Update user-specific counters
-				try {
-					if (user) {
-						await incrementUserDishExplanation(user.id);
-					} else {
-						incrementAnonymousExplanation();
-					}
-					
-					onExplanationSuccess();
-				} catch (error) {
-					console.error('Error updating explanation counter:', error);
-				}
-				
-				setExplanations(prev => ({
-					...prev,
-					[dishName]: {
-						...prev[dishName],
-						[selectedLanguage]: { data, isLoading: false, error: null }
-					}
-				}));
+        const attemptRequest = async (): Promise<void> => {
+            try {
+                const data = await makeRequest();
+                const requestEndTime = Date.now();
+                const totalTime = requestEndTime - startTime;
+                
+                // Track successful explanation request (ONLY ONCE HERE)
+                gtag('event', 'dish_explanation_success', {
+                    'request_id': startTime + '-' + dishName, // Simplified request ID
+                    'dish_name': dishName,
+                    'language': selectedLanguage,
+                    'total_time_ms': totalTime,
+                    'total_time_seconds': Math.round(totalTime / 1000 * 100) / 100,
+                    'user_type': user ? 'authenticated' : 'anonymous',
+                    'restaurant_name': restaurantInfo?.name || 'unknown',
+                    'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+                    'retry_count': retryCount,
+                    'timestamp': Date.now()
+                });
+                
+                // Update user-specific counters
+                try {
+                    if (user) {
+                        await incrementUserDishExplanation(user.id);
+                    } else {
+                        incrementAnonymousExplanation();
+                    }
+                    
+                    onExplanationSuccess();
+                } catch (error) {
+                    console.error('Error updating explanation counter:', error);
+                }
+                
+                setExplanations(prev => ({
+                    ...prev,
+                    [dishName]: {
+                        ...prev[dishName],
+                        [selectedLanguage]: { data, isLoading: false, error: null }
+                    }
+                }));
 
-			} catch (err) {
-				if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
-					const isFirstRetry = retryCount === 0;
-					const message = isFirstRetry ? t.serversBusy : t.stillTrying;
-					
-					setExplanations(prev => ({
-						...prev,
-						[dishName]: {
-							...prev[dishName],
-							[selectedLanguage]: { data: null, isLoading: true, error: message }
-						}
-					}));
+            } catch (err) {
+                if (err instanceof Error && err.message === 'RATE_LIMIT' && retryCount < maxRetries) {
+                    const isFirstRetry = retryCount === 0;
+                    const message = isFirstRetry ? t.serversBusy : t.stillTrying;
+                    
+                    setExplanations(prev => ({
+                        ...prev,
+                        [dishName]: {
+                            ...prev[dishName],
+                            [selectedLanguage]: { data: null, isLoading: true, error: message }
+                        }
+                    }));
 
-					const delay = retryDelays[retryCount];
-					retryCount++;
-					
-					setTimeout(() => {
-						setExplanations(prev => ({
-							...prev,
-							[dishName]: {
-								...prev[dishName],
-								[selectedLanguage]: { data: null, isLoading: true, error: null }
-							}
-						}));
-						
-						attemptRequest();
-					}, delay);
+                    const delay = retryDelays[retryCount];
+                    retryCount++;
+                    
+                    setTimeout(() => {
+                        setExplanations(prev => ({
+                            ...prev,
+                            [dishName]: {
+                                ...prev[dishName],
+                                [selectedLanguage]: { data: null, isLoading: true, error: null }
+                            }
+                        }));
+                        
+                        attemptRequest();
+                    }, delay);
 
-				} else {
-					const loadTime = Date.now() - startTime;
-					let errorMessage = t.finalError;
-					
-					if (err instanceof Error && err.message !== 'RATE_LIMIT') {
-						errorMessage = err.message;
-					}
-					
-					// Track failed dish explanation (final failure)
-					gtag('event', 'dish_explanation_error', {
-						'dish_name': dishName,
-						'language': selectedLanguage,
-						'load_time_ms': loadTime,
-						'error_message': errorMessage,
-						'error_type': err instanceof Error && err.message === 'RATE_LIMIT' ? 'rate_limit_final' : 'other',
-						'restaurant_name': restaurantInfo?.name || 'unknown',
-						'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
-						'retry_count': retryCount,
-						'user_type': user ? 'authenticated' : 'anonymous'
-					});
-					
-					setExplanations(prev => ({
-						...prev,
-						[dishName]: {
-							...prev[dishName],
-							[selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
-						}
-					}));
-				}
-			}
-		};
+                } else {
+                    const loadTime = Date.now() - startTime;
+                    let errorMessage = t.finalError;
+                    
+                    if (err instanceof Error && err.message !== 'RATE_LIMIT') {
+                        errorMessage = err.message;
+                    }
+                    
+                    // Track failed dish explanation (final failure)
+                    gtag('event', 'dish_explanation_error', {
+                        'dish_name': dishName,
+                        'language': selectedLanguage,
+                        'load_time_ms': loadTime,
+                        'error_message': errorMessage,
+                        'error_type': err instanceof Error && err.message === 'RATE_LIMIT' ? 'rate_limit_final' : 'other',
+                        'restaurant_name': restaurantInfo?.name || 'unknown',
+                        'restaurant_cuisine': restaurantInfo?.cuisine || 'unknown',
+                        'retry_count': retryCount,
+                        'user_type': user ? 'authenticated' : 'anonymous'
+                    });
+                    
+                    setExplanations(prev => ({
+                        ...prev,
+                        [dishName]: {
+                            ...prev[dishName],
+                            [selectedLanguage]: { data: null, isLoading: false, error: errorMessage }
+                        }
+                    }));
+                }
+            }
+        };
 
         attemptRequest();
     };
-	
 
-// Handle mobile accordion click
+    // Handle mobile accordion click
     const handleMobileAccordionClick = (dishName: string) => {
         toggleDishExpansion(dishName);
         
@@ -762,7 +792,7 @@ const MenuResults: React.FC<{
         }
     };
 
-// Render explanation content
+    // Render explanation content
     const renderExplanationContent = (dish: any) => {
         const dishExplanation = explanations[dish.name]?.[selectedLanguage];
         
@@ -860,7 +890,7 @@ const MenuResults: React.FC<{
                         <div className="text-center">
                             {restaurantInfo.name && (
                                 <h3 className="font-black text-2xl text-coral mb-2">
-                                    🏪 {restaurantInfo.name}
+                                    🪅 {restaurantInfo.name}
                                 </h3>
                             )}
                             {restaurantInfo.cuisine && (
@@ -981,7 +1011,7 @@ const MenuResults: React.FC<{
                                     </table>
                                 </div>
 
-								{/* MOBILE ACCORDION LAYOUT with hints */}
+                                {/* MOBILE ACCORDION LAYOUT with hints */}
                                 <div className="md:hidden space-y-3">
                                     {section.dishes.map((dish, dishIndex) => {
                                         const globalDishIndex = sectionIndex * 1000 + dishIndex;
@@ -1027,19 +1057,20 @@ const MenuResults: React.FC<{
                         </p>
                     )}
                 </div>
-				{/* NEW: Share Widget */}
-				<div className="mt-8">
-					<ShareWidget 
-						location="post-scan" 
-						size="large" 
-						orientation="vertical"
-						userType={user ? 'authenticated' : 'anonymous'}
-					/>
-				</div>
-			</div>
-		</div>
+                {/* NEW: Share Widget */}
+                <div className="mt-8">
+                    <ShareWidget 
+                        location="post-scan" 
+                        size="large" 
+                        orientation="vertical"
+                        userType={user ? 'authenticated' : 'anonymous'}
+                    />
+                </div>
+            </div>
+        </div>
     );
 }
+
 interface PricingTierProps {
   title: string;
   description: string;
@@ -1084,23 +1115,23 @@ const PricingTier: React.FC<PricingTierProps> = ({
         </li>
       ))}
     </ul>
-	<button 
-	  onClick={isFree ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : onPurchase}
-	  disabled={isLoading && !isFree}  // Only disable if loading AND not free
-		className={`mt-8 w-full py-4 rounded-full font-bold border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed ${
-		  isFree ? 'bg-green-600 text-white hover:bg-green-700' : 
-		  'bg-blue-600 text-white hover:bg-blue-700'
-		}`}
-	>
-	  {isLoading && !isFree ? (  // Only show loading if not free
-		<div className="flex items-center justify-center">
-		  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white mr-2"></div>
-		  Processing...
-		</div>
-	  ) : (
-		buttonText
-	  )}
-	</button>
+    <button 
+      onClick={isFree ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : onPurchase}
+      disabled={isLoading && !isFree}  // Only disable if loading AND not free
+        className={`mt-8 w-full py-4 rounded-full font-bold border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[6px_6px_0px_#292524] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+          isFree ? 'bg-green-600 text-white hover:bg-green-700' : 
+          'bg-blue-600 text-white hover:bg-blue-700'
+        }`}
+    >
+      {isLoading && !isFree ? (  // Only show loading if not free
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white mr-2"></div>
+          Processing...
+        </div>
+      ) : (
+        buttonText
+      )}
+    </button>
   </div>
 );
 
@@ -1286,9 +1317,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
           </div>
         </div>
 
-
-
-	{/* Mobile Layout: Stacked Cards */}
+        {/* Mobile Layout: Stacked Cards */}
         <div className="lg:hidden space-y-6">
           
           {/* Try It Free Card */}
@@ -1306,7 +1335,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({ user, loadingPlan, hand
               </div>
               <div className="flex items-center justify-between py-2">
                 <span className="font-bold text-charcoal">Limited Dish Explanations</span>
-                <span className="text-xl">📝</span>
+                <span className="text-xl">📋</span>
               </div>
               <div className="flex items-center justify-between py-2">
                 <span className="font-bold text-charcoal">No Signup Required</span>
@@ -1569,13 +1598,14 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
         fetchUserProfile();
     }, [user]);
 
+    // FIXED: checkCanScan with proper parameter passing
     const checkCanScan = useCallback(async () => {
         if (!user) {
             return canAnonymousUserScan();
         }
         try {
             const counters = await getUserCounters(user.id);
-            return canUserScan(counters);
+            return canUserScan(counters); // ✅ FIXED: Pass counters object instead of userId
         } catch (error) {
             console.error('Error checking scan capability:', error);
             return false;
@@ -1943,3 +1973,55 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
 };
 
 export default HomePage;
+                                    '🚀 Get Daily Pass - $1'
+                                )}
+                            </button>
+                            
+                            <button 
+                                onClick={() => onPurchase('weekly')}
+                                disabled={loadingPlan === 'weekly'}
+                                className="w-full py-3 bg-yellow text-charcoal font-bold rounded-lg border-2 border-charcoal hover:bg-yellow/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {loadingPlan === 'weekly' ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-charcoal mr-2"></div>
+                                        Processing...
+                                    </div>
+                                ) : (
+                                    '⭐ Get Weekly Pass - $5 (Best Value!)'
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Signup option for anonymous users */}
+                        <div className="border-t-2 border-charcoal/20 pt-4 mt-4">
+                            <p className="text-sm text-charcoal/70 text-center mb-3">
+                                Or sign up to purchase a plan
+                            </p>
+                            <button
+                                onClick={onSignUp}
+                                className="w-full py-2 bg-gray-200 text-charcoal font-bold rounded-lg border-2 border-charcoal hover:bg-gray-300 transition-colors"
+                            >
+                                Purchase Plan
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <p className="text-charcoal/80">
+                            You've used all {userProfile?.scans_limit || 5} free scans. Upgrade to continue scanning menus!
+                        </p>
+                        
+                        <div className="space-y-3">
+                            <button 
+                                onClick={() => onPurchase('daily')}
+                                disabled={loadingPlan === 'daily'}
+                                className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {loadingPlan === 'daily' ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                                        Processing...
+                                    </div>
+                                ) : (
+                                
