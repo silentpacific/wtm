@@ -2023,7 +2023,7 @@ const HomePage: React.FC<HomePageProps> = ({ onScanSuccess, onExplanationSuccess
 
 export default HomePage;
                                     '🚀 Get Daily Pass - $1'
-                                )}
+                                }
                             </button>
                             
                             <button 
