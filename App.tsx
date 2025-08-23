@@ -442,7 +442,7 @@ const AppContent: FC = () => {
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
 		  <Route path="/test-accessmenu" element={<AccessMenuTest />} />
 		  <Route path="/r/:slug" element={<RestaurantQRPage />} />
-		  <Route path="/test-qr-generator" element={<QRCodeGenerator />} /
+		  <Route path="/test-qr-generator" element={<QRCodeGenerator />} />
         </Routes>
       </main>
       

@@ -42,7 +42,7 @@ const QRCodeGenerator: React.FC = () => {
         if (isFinderPattern || shouldFill) {
           const x = col * moduleSize;
           const y = row * moduleSize;
-          svg += `<rect x="${x}" y="${y}" width="${moduleSize}" height="${moduleSize}" fill="black"/>`;
+          svg += `<rect x="${x}" y="${y}" width="${moduleSize}" height="${moduleSize}" fill="#292524"/>`;
         }
       }
     }
@@ -115,168 +115,173 @@ const QRCodeGenerator: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white">
-      <div className="text-center mb-8">
-        <QrCode className="mx-auto mb-4 text-blue-600" size={48} />
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          Restaurant QR Code Generator
-        </h1>
-        <p className="text-gray-600">
-          Generate unique URLs and QR codes for your AccessMenu interface
-        </p>
-      </div>
+    <div className="min-h-screen bg-cream">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <QrCode className="mx-auto mb-4 text-charcoal" size={48} />
+            <h1 className="text-4xl font-black text-charcoal mb-4 tracking-tight">
+              Restaurant QR Code Generator
+            </h1>
+            <p className="text-xl text-charcoal/80 font-bold">
+              Generate unique URLs and QR codes for your AccessMenu interface
+            </p>
+          </div>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Input Section */}
-        <div className="space-y-6">
-          <div className="bg-gray-50 p-6 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">
-              Restaurant Details
-            </h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Restaurant Name
-                </label>
-                <input
-                  type="text"
-                  value={restaurantName}
-                  onChange={(e) => setRestaurantName(e.target.value)}
-                  placeholder="e.g., Joe's Pizza Palace"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Input Section */}
+            <div className="space-y-6">
+              <div className="bg-white border-4 border-charcoal rounded-2xl p-6 shadow-[8px_8px_0px_#292524]">
+                <h2 className="text-2xl font-black mb-6 text-charcoal tracking-tight">
+                  Restaurant Details
+                </h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-charcoal mb-2">
+                      Restaurant Name
+                    </label>
+                    <input
+                      type="text"
+                      value={restaurantName}
+                      onChange={(e) => setRestaurantName(e.target.value)}
+                      placeholder="e.g., Joe's Pizza Palace"
+                      className="w-full px-4 py-3 border-4 border-charcoal rounded-xl focus:outline-none focus:ring-0 focus:border-coral font-bold"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-bold text-charcoal mb-2">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="e.g., Adelaide"
+                      className="w-full px-4 py-3 border-4 border-charcoal rounded-xl focus:outline-none focus:ring-0 focus:border-coral font-bold"
+                    />
+                  </div>
+                  
+                  <button
+                    onClick={handleGenerate}
+                    className="w-full bg-coral text-cream py-3 px-6 rounded-xl font-black text-lg border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[2px_2px_0px_#292524] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-3"
+                  >
+                    <QrCode size={24} />
+                    Generate QR Code
+                  </button>
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  City
-                </label>
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g., Adelaide"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <button
-                onClick={handleGenerate}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <QrCode size={20} />
-                Generate QR Code
-              </button>
+
+              {/* URL Preview */}
+              {generatedUrl && (
+                <div className="bg-yellow border-4 border-charcoal rounded-2xl p-4 shadow-[4px_4px_0px_#292524]">
+                  <h3 className="font-black text-charcoal mb-3">Generated URL</h3>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-sm bg-cream px-3 py-2 rounded-lg border-2 border-charcoal font-bold text-charcoal break-all">
+                      {generatedUrl}
+                    </code>
+                    <button
+                      onClick={copyToClipboard}
+                      className="p-2 text-charcoal hover:text-coral transition-colors border-2 border-charcoal rounded-lg bg-cream hover:bg-yellow"
+                      title="Copy URL"
+                    >
+                      {copied ? <Check size={16} /> : <Copy size={16} />}
+                    </button>
+                    <a
+                      href={generatedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 text-charcoal hover:text-coral transition-colors border-2 border-charcoal rounded-lg bg-cream hover:bg-yellow"
+                      title="Open URL"
+                    >
+                      <ExternalLink size={16} />
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* QR Code Display */}
+            <div className="space-y-6">
+              {qrCodeSvg ? (
+                <div className="bg-white border-4 border-charcoal rounded-2xl p-6 text-center shadow-[8px_8px_0px_#292524]">
+                  <h3 className="text-2xl font-black mb-6 text-charcoal tracking-tight">
+                    Your QR Code
+                  </h3>
+                  
+                  <div 
+                    className="inline-block p-4 bg-cream rounded-2xl shadow-[4px_4px_0px_#292524] border-4 border-charcoal mb-6"
+                    dangerouslySetInnerHTML={{ __html: qrCodeSvg }}
+                  />
+                  
+                  <div className="space-y-4">
+                    <p className="text-sm font-bold text-charcoal">
+                      Download in different formats:
+                    </p>
+                    
+                    <div className="flex gap-3 justify-center">
+                      <button
+                        onClick={() => downloadQRCode('png')}
+                        className="flex items-center gap-2 px-6 py-3 bg-coral text-cream rounded-xl font-black border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[2px_2px_0px_#292524] hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
+                      >
+                        <Download size={16} />
+                        PNG
+                      </button>
+                      
+                      <button
+                        onClick={() => downloadQRCode('svg')}
+                        className="flex items-center gap-2 px-6 py-3 bg-yellow text-charcoal rounded-xl font-black border-4 border-charcoal shadow-[4px_4px_0px_#292524] hover:shadow-[2px_2px_0px_#292524] hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
+                      >
+                        <Download size={16} />
+                        SVG
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 text-xs text-charcoal/80 font-bold mt-4">
+                      <div className="text-center">
+                        <div className="font-black">Table Tent</div>
+                        <div>A5 Size</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-black">Menu Insert</div>
+                        <div>A6 Size</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-black">Sticker</div>
+                        <div>Square</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border-4 border-charcoal rounded-2xl p-6 text-center shadow-[8px_8px_0px_#292524]">
+                  <QrCode className="mx-auto mb-4 text-charcoal/40" size={64} />
+                  <p className="text-charcoal/80 font-bold">
+                    Enter restaurant details and click "Generate QR Code" to create your unique code
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* URL Preview */}
-          {generatedUrl && (
-            <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-              <h3 className="font-medium text-green-800 mb-2">Generated URL</h3>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm bg-white px-2 py-1 rounded border text-green-700 break-all">
-                  {generatedUrl}
-                </code>
-                <button
-                  onClick={copyToClipboard}
-                  className="p-2 text-green-600 hover:text-green-800 transition-colors"
-                  title="Copy URL"
-                >
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                </button>
-                <a
-                  href={generatedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 text-green-600 hover:text-green-800 transition-colors"
-                  title="Open URL"
-                >
-                  <ExternalLink size={16} />
-                </a>
-              </div>
-            </div>
-          )}
-        </div>
+          {/* Instructions */}
+          <div className="mt-8 bg-yellow border-4 border-charcoal rounded-2xl p-6 shadow-[8px_8px_0px_#292524]">
+            <h3 className="font-black text-charcoal mb-4 text-xl tracking-tight">How to Use Your QR Code</h3>
+            <ol className="list-decimal list-inside space-y-3 text-charcoal font-bold">
+              <li>Download your QR code in the format you need (PNG for printing, SVG for editing)</li>
+              <li>Print the QR code on table tents, menu inserts, or stickers</li>
+              <li>Place them where customers can easily scan with their phones</li>
+              <li>Customers will be taken directly to your AccessMenu interface</li>
+              <li>They can browse your menu in their language with accessibility features</li>
+            </ol>
+          </div>
 
-        {/* QR Code Display */}
-        <div className="space-y-6">
-          {qrCodeSvg ? (
-            <div className="bg-gray-50 p-6 rounded-lg text-center">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">
-                Your QR Code
-              </h3>
-              
-              <div 
-                className="inline-block p-4 bg-white rounded-lg shadow-sm border-2 border-gray-200"
-                dangerouslySetInnerHTML={{ __html: qrCodeSvg }}
-              />
-              
-              <div className="mt-6 space-y-3">
-                <p className="text-sm text-gray-600">
-                  Download in different formats:
-                </p>
-                
-                <div className="flex gap-2 justify-center">
-                  <button
-                    onClick={() => downloadQRCode('png')}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                  >
-                    <Download size={16} />
-                    PNG
-                  </button>
-                  
-                  <button
-                    onClick={() => downloadQRCode('svg')}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                  >
-                    <Download size={16} />
-                    SVG
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-2 text-xs text-gray-500 mt-4">
-                  <div className="text-center">
-                    <div className="font-medium">Table Tent</div>
-                    <div>A5 Size</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">Menu Insert</div>
-                    <div>A6 Size</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">Sticker</div>
-                    <div>Square</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-gray-50 p-6 rounded-lg text-center">
-              <QrCode className="mx-auto mb-4 text-gray-400" size={64} />
-              <p className="text-gray-500">
-                Enter restaurant details and click "Generate QR Code" to create your unique code
-              </p>
-            </div>
-          )}
+          {/* Hidden canvas for PNG generation */}
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
       </div>
-
-      {/* Instructions */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 p-6 rounded-lg">
-        <h3 className="font-semibold text-blue-800 mb-3">How to Use Your QR Code</h3>
-        <ol className="list-decimal list-inside space-y-2 text-blue-700 text-sm">
-          <li>Download your QR code in the format you need (PNG for printing, SVG for editing)</li>
-          <li>Print the QR code on table tents, menu inserts, or stickers</li>
-          <li>Place them where customers can easily scan with their phones</li>
-          <li>Customers will be taken directly to your AccessMenu interface</li>
-          <li>They can browse your menu in their language with accessibility features</li>
-        </ol>
-      </div>
-
-      {/* Hidden canvas for PNG generation */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
     </div>
   );
 };
