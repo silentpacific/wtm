@@ -2062,15 +2062,18 @@ export default HomePage;
                         </p>
                         
                         <div className="space-y-3">
-                            <button 
-                                onClick={() => onPurchase('daily')}
-                                disabled={loadingPlan === 'daily'}
-                                className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                {loadingPlan === 'daily' ? (
-                                    <div className="flex items-center justify-center">
-                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                                        Processing...
-                                    </div>
-                                ) : (
+                            <button
+								onClick={() => onPurchase('daily')}
+								disabled={loadingPlan === 'daily'}
+								className="w-full py-3 bg-coral text-white font-bold rounded-lg border-2 border-charcoal hover:bg-coral/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+							>
+								{loadingPlan === 'daily' ? (
+									<div className="flex items-center justify-center">
+										<div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+										Processing...
+									</div>
+								) : (
+									'🚀 Get Daily Pass - $1'
+								)}
+							</button>
                                 
