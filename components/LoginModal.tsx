@@ -276,3 +276,5 @@ const handleSubmit = async (e: React.FormEvent) => {
     </div>
   );
 };
+
+export default LoginModal;
