@@ -1,10 +1,11 @@
-// Updated App.tsx - Consumer Platform Only (Restaurant References Removed)
+// Fixed App.tsx with correct imports and component names
 import React, { useState, useCallback, useEffect, type FC } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ContactPage from './pages/ContactPage';
 import UserProfile from './pages/UserProfile';
 import AuthVerify from './pages/AuthVerify';
+// FIXED: Import correct component names
 import { PrivacyPolicyPage, TermsOfUsePage } from './pages/LegalPages';
 import { FaqPage, RefundsPolicyPage } from './pages/RefundsandFaq';
 import { AuthProvider } from './contexts/AuthContext';
@@ -100,7 +101,7 @@ const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
                   </li>
                   <li>
                     <Link 
-                      to="/refund-policy" 
+                      to="/refunds" 
                       onClick={() => window.scrollTo(0, 0)}
                       className="text-charcoal/80 hover:text-coral font-bold text-lg hover:underline focus:text-coral focus:underline focus:outline-none transition-colors"
                     >
@@ -208,7 +209,7 @@ const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
                       </li>
                       <li>
                         <Link 
-                          to="/refund-policy" 
+                          to="/refunds" 
                           onClick={() => window.scrollTo(0, 0)}
                           className="block text-charcoal/80 hover:text-coral font-bold hover:underline focus:text-coral focus:underline focus:outline-none transition-colors"
                         >
@@ -431,10 +432,9 @@ const AppContent: FC = () => {
               <Route path="/payment/cancelled" element={<PaymentCancelledPage />} />
               <Route path="/faq" element={<FaqPage />} />
               
-              {/* Legal Routes */}
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/refund-policy" element={<RefundPolicy />} />
+              {/* FIXED: Legal Routes with correct component names */}
+              <Route path="/terms" element={<TermsOfUsePage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
               <Route path="/refunds" element={<RefundsPolicyPage />} />
               
               {/* Restaurant Business Routes */}
