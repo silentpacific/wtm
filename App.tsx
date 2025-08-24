@@ -25,6 +25,7 @@ import RestaurantQRPage from './pages/RestaurantQRPage';
 import './services/errorBoundary';
 import QRCodeGenerator from './components/QRCodeGenerator';
 import RestaurantLandingPage from './pages/RestaurantLandingPage';
+import ConsumersPage from './pages/ConsumersPage';
 
 
 const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
@@ -422,41 +423,48 @@ const AppContent: FC = () => {
       />
       
       <main className="flex-grow">
-            <Routes>
-              {/* Consumer Routes */}
-              <Route path="/" element={<HomePage />} />
-              <Route path="/profile" element={<UserProfile />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/auth/verify" element={<AuthVerify />} />
-              <Route path="/payment/success" element={<PaymentSuccessPage />} />
-              <Route path="/payment/cancelled" element={<PaymentCancelledPage />} />
-              <Route path="/faq" element={<FaqPage />} />
-              
-              {/* FIXED: Legal Routes with correct component names */}
-              <Route path="/terms" element={<TermsOfUsePage />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-              <Route path="/refunds" element={<RefundsPolicyPage />} />
-              
-              {/* Restaurant Business Routes */}
-              <Route path="/restaurants" element={<RestaurantLandingPage />} />
-              <Route path="/restaurants/signup" element={<div>Restaurant Signup Coming Soon</div>} />
-              <Route path="/directory" element={<div>Restaurant Directory Coming Soon</div>} />
-              
-              {/* AccessMenu Routes */}
-              <Route path="/r/:restaurantSlug" element={<AccessMenuTest />} />
-              <Route path="/demo" element={<AccessMenuTest />} />
-              
-              {/* QR Code Generator Routes */}
-              <Route path="/test-qr-generator" element={<QRCodeGenerator />} />
-              
-              {/* Restaurant Admin Routes (Future) */}
-              <Route path="/restaurant/dashboard" element={<div>Restaurant Dashboard Coming Soon</div>} />
-              <Route path="/restaurant/menu-editor" element={<div>Menu Editor Coming Soon</div>} />
-              <Route path="/restaurant/analytics" element={<div>Analytics Coming Soon</div>} />
-              
-              {/* Legacy/Test Routes */}
-              <Route path="/restaurant-qr/:restaurantName/:city" element={<RestaurantQRPage />} />
-            </Routes>
+		<Routes>
+		  {/* Homepage - Now Restaurant Landing Page */}
+		  <Route path="/" element={<RestaurantLandingPage />} />
+		  
+		  {/* Restaurant Routes (B2B) */}
+		  <Route path="/restaurants" element={<RestaurantLandingPage />} />
+		  {/* Future restaurant routes will go here:
+		  <Route path="/restaurants/signup" element={<RestaurantSignup />} />
+		  <Route path="/restaurant/dashboard" element={<RestaurantDashboard />} />
+		  <Route path="/restaurant/menu" element={<RestaurantMenuEditor />} />
+		  */}
+		  
+		  {/* Consumer Routes (Demo/Preserved) */}
+		  <Route path="/consumers" element={<ConsumersPage />} />
+		  <Route path="/profile" element={<UserProfile />} />
+		  
+		  {/* Restaurant Menu Access Routes */}
+		  <Route path="/r/:restaurantSlug" element={<AccessMenuTest />} />
+		  <Route path="/access-menu/:restaurantId" element={<AccessMenuTest />} />
+		  
+		  {/* Shared Routes */}
+		  <Route path="/contact" element={<ContactPage />} />
+		  <Route path="/faq" element={<RefundsandFaq />} />
+		  <Route path="/refunds" element={<RefundsandFaq />} />
+		  
+		  {/* Legal Pages */}
+		  <Route path="/terms" element={<LegalPages />} />
+		  <Route path="/privacy" element={<LegalPages />} />
+		  
+		  {/* Legacy Redirects (to preserve old bookmarks) */}
+		  <Route path="/demo" element={<Navigate to="/consumers" replace />} />
+		  <Route path="/home" element={<Navigate to="/" replace />} />
+		  
+		  {/* Keep any other existing routes you have */}
+		  <Route path="/auth-verify" element={<AuthVerify />} />
+		  <Route path="/payment-success" element={<PaymentSuccessPage />} />
+		  <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
+		  {/* ... any other routes you currently have ... */}
+		  
+		  {/* Catch-all redirect to homepage */}
+		  <Route path="*" element={<Navigate to="/" replace />} />
+		</Routes>
       </main>
       
       <Footer globalCounters={globalCounters} />
