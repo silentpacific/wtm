@@ -15,52 +15,42 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables');
 }
 
-// Enhanced Supabase client with better configuration for rate limiting and reliability
+// FIXED: Simplified Supabase client configuration without problematic global fetch override
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     // Configure auth settings to be more resilient
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-	  storage: window.localStorage, // Explicitly use localStorage
-    // Add retry logic for auth requests
-    retryAttempts: 2, // Reduced from 3 to avoid excessive retries
-    // Increase timeout for auth requests to handle slow responses
-    timeout: 15000, // 15 seconds timeout
-    // Configure storage key to avoid conflicts
+    storage: isBrowser ? window.localStorage : undefined, // Conditional storage
+    // Removed problematic timeout and retry settings
     storageKey: 'whatthemenu-auth',
-    // Configure flow type for better compatibility
     flowType: 'pkce'
   },
-  // Add global request options
+  // FIXED: Removed global fetch override that was causing timer issues
   global: {
     headers: {
       'x-client-info': 'whatthemenu-web',
       'x-client-version': '1.0.0'
-    },
-    // Add fetch options for better error handling
-    fetch: (url, options = {}) => {
-      return fetch(url, {
-        ...options,
-        // Add timeout to all requests
-        signal: AbortSignal.timeout(30000), // 30 second timeout for all requests
-      });
     }
+    // Removed the problematic global fetch override
   },
-  // Configure realtime settings
+  // FIXED: Simplified realtime settings
   realtime: {
-    // Reduce reconnection attempts to avoid spamming
+    // Use default settings, don't override
     heartbeatIntervalMs: 30000,
-    reconnectAfterMs: 3000,
+    reconnectAfterMs: (tries) => {
+      // Exponential backoff for reconnections
+      return Math.min(tries * 1000, 10000);
+    }
   },
   // Database configuration
   db: {
-    // Configure schema if needed
     schema: 'public'
   }
 });
 
-// Helper function to handle auth requests with exponential backoff
+// FIXED: Simplified auth helper without complex retry logic
 export const authWithRetry = async (
   authFunction: () => Promise<any>,
   maxRetries: number = 2,
@@ -81,7 +71,6 @@ export const authWithRetry = async (
       
       // If it's a rate limit error and we have retries left
       if (error?.status === 429 && attempt < maxRetries - 1) {
-        // Exponential backoff: 2s, 4s
         const delay = baseDelay * Math.pow(2, attempt);
         console.log(`Rate limited, retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -151,7 +140,7 @@ export const handleSupabaseError = (error: any): string => {
   return error.message || 'An unexpected error occurred. Please try again.';
 };
 
-// Utility function to check if Supabase is properly configured
+// FIXED: Simplified connection check without timeout override
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
     const { data, error } = await supabase.from('user_profiles').select('count').limit(1);
@@ -200,7 +189,7 @@ export interface Order {
   currency: string;
   status: string;
   plan_type: string;
-  stripe_session_id?: string;
+  stripe_payment_intent_id?: string;
   created_at: string;
   updated_at: string;
 }

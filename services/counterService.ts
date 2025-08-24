@@ -1,4 +1,4 @@
-// services/counterService.ts - FIXED VERSION with proper error handling and circuit breaker
+// services/counterService.ts - FIXED VERSION with proper error handling and simplified approach
 
 import { supabase } from './supabaseClient';
 
@@ -18,7 +18,7 @@ export interface GlobalCounters {
   dish_explanations: number;
 }
 
-// Circuit breaker to prevent infinite loops
+// Simplified circuit breaker with better defaults
 class CircuitBreaker {
   private failureCount = 0;
   private failureThreshold = 3;
@@ -103,7 +103,7 @@ const handleExpiredSubscription = async (userId: string): Promise<void> => {
   }
 };
 
-// FIXED: Get user counters with circuit breaker and proper error handling
+// FIXED: Get user counters with better timeout handling
 export const getUserCounters = async (userId: string): Promise<UserCounters> => {
   // Check circuit breaker
   if (!userProfileCircuitBreaker.canExecute()) {
@@ -128,19 +128,27 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
 
     console.log('🔍 Fetching user counters for:', userId);
 
-    // Get user profile from database with timeout
-    const { data: profile, error } = await Promise.race([
-      supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single(),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 30000) // 30 seconds
-      )
-    ]) as any;
+    // FIXED: Use AbortController for proper timeout control
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds
+
+    // Get user profile from database with proper timeout
+    const { data: profile, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .abortSignal(controller.signal)
+      .single();
+
+    clearTimeout(timeoutId);
 
     if (error) {
+      if (error.name === 'AbortError') {
+        console.error('❌ User profile request timed out');
+        userProfileCircuitBreaker.recordFailure();
+        throw new Error('Request timeout');
+      }
+      
       if (error.code === '42501') {
         console.error('❌ Permission denied for user_profiles table');
         userProfileCircuitBreaker.recordFailure();
@@ -257,7 +265,7 @@ export const getUserCounters = async (userId: string): Promise<UserCounters> => 
   }
 };
 
-// FIXED: Function to check if user can scan (accepts UserCounters object)
+// FIXED: Function to check if user can scan
 export const canUserScan = (counters: UserCounters): boolean => {
   try {
     return (counters.scans_used || 0) < (counters.scans_limit || 5);
@@ -267,7 +275,7 @@ export const canUserScan = (counters: UserCounters): boolean => {
   }
 };
 
-// FIXED: Function to check if user has unlimited dish explanations (accepts UserCounters object)
+// FIXED: Function to check if user has unlimited dish explanations
 export const hasUnlimitedDishExplanations = (counters: UserCounters): boolean => {
   try {
     // Only paid users with active subscriptions get unlimited explanations
@@ -284,7 +292,7 @@ export const hasUnlimitedDishExplanations = (counters: UserCounters): boolean =>
   }
 };
 
-// FIXED: Function to check if user can explain a dish (accepts UserCounters object)
+// FIXED: Function to check if user can explain a dish
 export const canUserExplainDish = (counters: UserCounters): boolean => {
   try {
     // Check if user has unlimited dish explanations (paid + active subscription)
@@ -302,35 +310,47 @@ export const canUserExplainDish = (counters: UserCounters): boolean => {
   }
 };
 
-// FIXED: Get global counters with circuit breaker
+// FIXED: Get global counters with simplified approach and better error handling
 export const getGlobalCounters = async (): Promise<GlobalCounters> => {
   // Check circuit breaker
   if (!globalCountersCircuitBreaker.canExecute()) {
     console.warn('🚫 Circuit breaker open for global counters, returning defaults');
     return {
-      menus_scanned: 185,
-      dish_explanations: 615
+      menus_scanned: 186,
+      dish_explanations: 616
     };
   }
 
   try {
     console.log('🔍 Fetching global counters...');
     
-    // Use the RPC function with timeout
-    const { data, error } = await Promise.race([
-      supabase.rpc('get_public_global_counters'),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Global counters timeout')), 15000) // 15 seconds
-      )
-    ]) as any;
+    // FIXED: Use AbortController instead of Promise.race for cleaner timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 seconds
+
+    const { data, error } = await supabase
+      .rpc('get_public_global_counters')
+      .abortSignal(controller.signal);
+
+    clearTimeout(timeoutId);
 
     if (error) {
+      if (error.name === 'AbortError') {
+        console.error('❌ Global counters request timed out');
+        globalCountersCircuitBreaker.recordFailure();
+        // Return defaults on timeout instead of throwing
+        return {
+          menus_scanned: 186,
+          dish_explanations: 616
+        };
+      }
+      
       console.error('❌ Error fetching global counters:', error);
       globalCountersCircuitBreaker.recordFailure();
       // Return defaults on error instead of throwing
       return {
-        menus_scanned: 185,
-        dish_explanations: 615
+        menus_scanned: 186,
+        dish_explanations: 616
       };
     }
 
@@ -339,8 +359,8 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
 
     // Convert array to object with default values
     const counters: GlobalCounters = {
-      menus_scanned: 0,
-      dish_explanations: 0
+      menus_scanned: 186,
+      dish_explanations: 616
     };
 
     if (data && Array.isArray(data)) {
@@ -355,18 +375,15 @@ export const getGlobalCounters = async (): Promise<GlobalCounters> => {
       });
     }
 
-    console.log('✅ Successfully fetched global counters');
-    return {
-      menus_scanned: counters.menus_scanned || 185,
-      dish_explanations: counters.dish_explanations || 615
-    };
+    console.log('✅ Successfully fetched global counters:', counters);
+    return counters;
   } catch (error) {
     console.error('❌ Error in getGlobalCounters:', error);
     globalCountersCircuitBreaker.recordFailure();
     // Return safe defaults on error
     return {
-      menus_scanned: 185,
-      dish_explanations: 615
+      menus_scanned: 186,
+      dish_explanations: 616
     };
   }
 };
@@ -380,7 +397,8 @@ export const incrementMenuScans = async (): Promise<void> => {
     
     if (error) {
       console.error('❌ Error incrementing menu scans:', error);
-      throw error;
+      // Don't throw, let the app continue
+      return;
     }
     
     console.log('✅ Global menu scan counter incremented');
@@ -398,7 +416,8 @@ export const incrementDishExplanations = async (): Promise<void> => {
     
     if (error) {
       console.error('❌ Error incrementing dish explanations:', error);
-      throw error;
+      // Don't throw, let the app continue
+      return;
     }
     
     console.log('✅ Global dish explanations counter incremented');
@@ -408,89 +427,76 @@ export const incrementDishExplanations = async (): Promise<void> => {
   }
 };
 
-// FIXED: Safe function to set up real-time counter updates with unsubscribe tracking
+// FIXED: Simplified subscription setup without complex real-time that causes timer issues
 export const setupRealtimeCounters = (callback: (counters: GlobalCounters) => void) => {
   try {
-    const subscription = supabase
-      .channel('global_counters_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'global_counters'
-        },
-        async () => {
-          try {
-            // When counters change, fetch latest and call callback
-            const updatedCounters = await getGlobalCounters();
-            if (callback && typeof callback === 'function') {
-              callback(updatedCounters);
-            }
-          } catch (error) {
-            console.error('❌ Error updating real-time counters:', error);
-          }
+    // Instead of complex real-time subscription, use simple polling
+    const pollInterval = 30000; // 30 seconds
+    
+    const intervalId = setInterval(async () => {
+      try {
+        const updatedCounters = await getGlobalCounters();
+        if (callback && typeof callback === 'function') {
+          callback(updatedCounters);
         }
-      )
-      .subscribe();
+      } catch (error) {
+        console.error('❌ Error updating polled counters:', error);
+      }
+    }, pollInterval);
 
-    return subscription;
+    // Return cleanup function
+    return {
+      unsubscribe: () => {
+        clearInterval(intervalId);
+        console.log('✅ Counter polling stopped');
+      }
+    };
   } catch (error) {
-    console.error('❌ Error setting up real-time counters:', error);
-    // Return a mock subscription object
+    console.error('❌ Error setting up counter polling:', error);
+    // Return safe mock subscription
     return {
       unsubscribe: () => console.log('Mock unsubscribe called')
     };
   }
 };
 
-// FIXED: Subscribe to counter updates with proper cleanup
+// FIXED: Simplified subscription using polling instead of problematic real-time
 export const subscribeToCounters = (callback: (counters: GlobalCounters) => void) => {
   try {
-    console.log('📡 Setting up counter subscription...');
+    console.log('🔄 Setting up counter polling...');
     
-    const subscription = supabase
-      .channel('global_counters_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'global_counters'
-        },
-        async () => {
-          try {
-            if (callback && typeof callback === 'function') {
-              const updatedCounters = await getGlobalCounters();
-              callback(updatedCounters);
-            }
-          } catch (error) {
-            console.error('❌ Error in subscription callback:', error);
-          }
+    // Use polling instead of real-time subscription to avoid timer issues
+    const pollInterval = 30000; // 30 seconds
+    
+    const intervalId = setInterval(async () => {
+      try {
+        if (callback && typeof callback === 'function') {
+          const updatedCounters = await getGlobalCounters();
+          callback(updatedCounters);
         }
-      )
-      .subscribe();
+      } catch (error) {
+        console.error('❌ Error in polling callback:', error);
+      }
+    }, pollInterval);
 
-    console.log('✅ Counter subscription established');
+    console.log('✅ Counter polling established');
 
-    // Return proper unsubscribe function that matches expected interface
+    // Return proper unsubscribe function
     return {
       unsubscribe: () => {
         try {
-          if (subscription && subscription.unsubscribe && typeof subscription.unsubscribe === 'function') {
-            subscription.unsubscribe();
-            console.log('✅ Successfully unsubscribed from counters');
-          }
+          clearInterval(intervalId);
+          console.log('✅ Successfully stopped counter polling');
         } catch (error) {
-          console.error('❌ Error unsubscribing:', error);
+          console.error('❌ Error stopping polling:', error);
         }
       }
     };
   } catch (error) {
-    console.error('❌ Error setting up counter subscription:', error);
+    console.error('❌ Error setting up counter polling:', error);
     // Return safe mock subscription that won't crash
     return {
-      unsubscribe: () => console.log('Mock unsubscribe called - subscription setup failed')
+      unsubscribe: () => console.log('Mock unsubscribe called - polling setup failed')
     };
   }
 };
