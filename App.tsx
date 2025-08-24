@@ -23,6 +23,7 @@ import AccessMenuTest from './components/AccessMenuTest';
 import RestaurantQRPage from './pages/RestaurantQRPage';
 import './services/errorBoundary';
 import QRCodeGenerator from './components/QRCodeGenerator';
+import RestaurantLandingPage from './pages/RestaurantLandingPage';
 
 
 const Footer: FC<{ globalCounters: GlobalCounters }> = ({ globalCounters }) => {
@@ -420,30 +421,41 @@ const AppContent: FC = () => {
       />
       
       <main className="flex-grow">
-        <Routes>
-          {/* Consumer routes only */}
-          <Route 
-            path="/" 
-            element={
-              <HomePage 
-                onScanSuccess={handleScanSuccess}
-                onExplanationSuccess={handleExplanationSuccess}
-              />
-            } 
-          />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/profile" element={<UserProfile />} />
-          <Route path="/auth/verify" element={<AuthVerify />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-          <Route path="/terms" element={<TermsOfUsePage />} />
-          <Route path="/faq" element={<FaqPage />} />
-          <Route path="/refund-policy" element={<RefundsPolicyPage />} />
-          <Route path="/payment-success" element={<PaymentSuccessPage />} />
-          <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
-		  <Route path="/test-accessmenu" element={<AccessMenuTest />} />
-		  <Route path="/r/:slug" element={<RestaurantQRPage />} />
-		  <Route path="/test-qr-generator" element={<QRCodeGenerator />} />
-        </Routes>
+            <Routes>
+              {/* Consumer Routes */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/profile" element={<UserProfile />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/auth/verify" element={<AuthVerify />} />
+              <Route path="/payment/success" element={<PaymentSuccessPage />} />
+              <Route path="/payment/cancelled" element={<PaymentCancelledPage />} />
+              <Route path="/faq" element={<RefundsandFaq />} />
+              
+              {/* Legal Routes */}
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/refund-policy" element={<RefundPolicy />} />
+              
+              {/* Restaurant Business Routes */}
+              <Route path="/restaurants" element={<RestaurantLandingPage />} />
+              <Route path="/restaurants/signup" element={<div>Restaurant Signup Coming Soon</div>} />
+              <Route path="/directory" element={<div>Restaurant Directory Coming Soon</div>} />
+              
+              {/* AccessMenu Routes */}
+              <Route path="/r/:restaurantSlug" element={<AccessMenuTest />} />
+              <Route path="/demo" element={<AccessMenuTest />} />
+              
+              {/* QR Code Generator Routes */}
+              <Route path="/test-qr-generator" element={<QRCodeGenerator />} />
+              
+              {/* Restaurant Admin Routes (Future) */}
+              <Route path="/restaurant/dashboard" element={<div>Restaurant Dashboard Coming Soon</div>} />
+              <Route path="/restaurant/menu-editor" element={<div>Menu Editor Coming Soon</div>} />
+              <Route path="/restaurant/analytics" element={<div>Analytics Coming Soon</div>} />
+              
+              {/* Legacy/Test Routes */}
+              <Route path="/restaurant-qr/:restaurantName/:city" element={<RestaurantQRPage />} />
+            </Routes>
       </main>
       
       <Footer globalCounters={globalCounters} />

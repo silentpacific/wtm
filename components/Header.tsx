@@ -249,7 +249,7 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
               </h1>
             </button>
 
-            {/* Desktop Navigation Links (Fixed with proper click handlers) */}
+            {/* Desktop Navigation Links (Updated with Restaurant link) */}
             <div className="hidden lg:flex items-center space-x-6 flex-1 justify-center">
               <button 
                 onClick={handleLogoClick}
@@ -264,6 +264,13 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
               >
                 Pricing
               </button>
+              
+              <Link 
+                to="/restaurants"
+                className="font-bold text-charcoal hover:text-coral transition-colors px-3 py-2 bg-coral/10 rounded-lg border-2 border-coral/20"
+              >
+                🍽️ For Restaurants
+              </Link>
               
               <Link 
                 to="/faq"
@@ -391,7 +398,7 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
             </div>
           </div>
 
-          {/* Mobile Menu Dropdown (Fixed with proper handlers) */}
+          {/* Mobile Menu Dropdown (Updated with Restaurant link) */}
           {isMobileMenuOpen && (
             <div className="lg:hidden border-t-2 border-charcoal bg-cream/90 backdrop-blur-sm">
               <div className="py-4 space-y-2">
@@ -413,6 +420,15 @@ const Header: React.FC<HeaderProps> = ({ onCounterUpdate, anonymousCounters }) =
                 >
                   Pricing
                 </button>
+                
+                {/* Restaurant Link */}
+                <Link 
+                  to="/restaurants"
+                  onClick={closeMobileMenu}
+                  className="block py-3 px-4 font-bold text-coral hover:text-charcoal transition-colors border-b border-charcoal/10 bg-coral/10 rounded-lg mx-4"
+                >
+                  🍽️ For Restaurants
+                </Link>
                 
                 {user && (
                   <Link 
