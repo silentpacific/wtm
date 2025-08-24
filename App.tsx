@@ -429,12 +429,13 @@ const AppContent: FC = () => {
               <Route path="/auth/verify" element={<AuthVerify />} />
               <Route path="/payment/success" element={<PaymentSuccessPage />} />
               <Route path="/payment/cancelled" element={<PaymentCancelledPage />} />
-              <Route path="/faq" element={<RefundsandFaq />} />
+              <Route path="/faq" element={<FaqPage />} />
               
               {/* Legal Routes */}
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/refund-policy" element={<RefundPolicy />} />
+              <Route path="/refunds" element={<RefundsPolicyPage />} />
               
               {/* Restaurant Business Routes */}
               <Route path="/restaurants" element={<RestaurantLandingPage />} />
