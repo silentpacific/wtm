@@ -10,13 +10,6 @@ import { PrivacyPolicyPage, TermsOfUsePage } from './pages/LegalPages';
 import { FaqPage, RefundsPolicyPage } from './pages/RefundsandFaq';
 import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
-import { 
-  getGlobalCounters, 
-  GlobalCounters, 
-  incrementMenuScans, 
-  incrementDishExplanations,
-  subscribeToCounters
-} from './services/counterService';
 import { getAnonymousUsage } from './services/anonymousUsageTracking';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
