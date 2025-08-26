@@ -28,10 +28,11 @@ const ProfilePage: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning'; text: string } | null>(null);
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [restaurantData, setRestaurantData] = useState<RestaurantData | null>(null);
+  const [hasRestaurantPermissions, setHasRestaurantPermissions] = useState(true);
 
   useEffect(() => {
     if (authLoading || !user) {
@@ -42,7 +43,7 @@ const ProfilePage: React.FC = () => {
       setLoading(true);
 
       try {
-        // 1. User profile
+        // 1. User profile - always try this first
         const { data: profile, error: profileError } = await supabase
           .from('user_profiles')
           .select('id, full_name, subscription_type, email')
@@ -60,7 +61,7 @@ const ProfilePage: React.FC = () => {
           email: user.email || undefined
         });
 
-        // 2. Restaurant profile - try to fetch but don't fail if permissions are wrong
+        // 2. Restaurant profile - test permissions
         try {
           const { data: restaurant, error: restaurantError } = await supabase
             .from('restaurants')
@@ -70,35 +71,32 @@ const ProfilePage: React.FC = () => {
             .maybeSingle();
 
           if (restaurantError) {
-            console.warn('Restaurant fetch failed:', restaurantError);
-            // Set empty restaurant data if fetch fails
-            setRestaurantData({
-              name: '',
-              cuisine_type: '',
-              city: '',
-              state: '',
-              country: '',
-              phone: '',
-              address: '',
-              owner_name: '',
-            });
-          } else if (!restaurant) {
-            // No restaurant found, set empty data for form
-            setRestaurantData({
-              name: '',
-              cuisine_type: '',
-              city: '',
-              state: '',
-              country: '',
-              phone: '',
-              address: '',
-              owner_name: '',
-            });
+            // Check if it's a permissions error
+            if (restaurantError.code === 'PGRST116' || restaurantError.message?.includes('permission') || restaurantError.message?.includes('policy')) {
+              setHasRestaurantPermissions(false);
+              setMessage({ 
+                type: 'warning', 
+                text: 'Restaurant data is not accessible due to database permissions. Contact support if you need to manage restaurant information.' 
+              });
+            } else {
+              throw new Error(`Failed to load restaurant data: ${restaurantError.message}`);
+            }
           } else {
-            setRestaurantData(restaurant);
+            setHasRestaurantPermissions(true);
+            setRestaurantData(restaurant || {
+              name: '',
+              cuisine_type: '',
+              city: '',
+              state: '',
+              country: '',
+              phone: '',
+              address: '',
+              owner_name: '',
+            });
           }
-        } catch (restaurantError) {
-          console.warn('Restaurant data unavailable due to permissions');
+        } catch (restaurantError: any) {
+          console.warn('Restaurant data unavailable:', restaurantError);
+          setHasRestaurantPermissions(false);
           setRestaurantData({
             name: '',
             cuisine_type: '',
@@ -128,58 +126,102 @@ const ProfilePage: React.FC = () => {
     setMessage(null);
 
     try {
-      // Always try to save user profile
-      const { error: userError } = await supabase
-        .from('user_profiles')
-        .upsert({
-          id: user.id,
-          full_name: userProfile.full_name?.trim() || '',
-          subscription_type: userProfile.subscription_type || 'free',
-        }, {
-          onConflict: 'id'
-        });
+      let userSaved = false;
+      let restaurantSaved = false;
 
-      if (userError) {
-        throw new Error('Failed to update user profile');
+      // Try to save user profile
+      try {
+        const { error: userError } = await supabase
+          .from('user_profiles')
+          .upsert({
+            id: user.id,
+            full_name: userProfile.full_name?.trim() || '',
+            subscription_type: userProfile.subscription_type || 'free',
+          }, {
+            onConflict: 'id'
+          });
+
+        if (userError) {
+          throw new Error(`User profile save failed: ${userError.message}`);
+        }
+        userSaved = true;
+      } catch (userError: any) {
+        console.error('User profile save error:', userError);
+        throw new Error(`Failed to save user profile: ${userError.message}`);
       }
 
-      // Try to save restaurant data if it exists and has an ID
-      let restaurantSaved = false;
-      if (restaurantData && restaurantData.id) {
+      // Try to save restaurant data if permissions allow and data exists
+      if (hasRestaurantPermissions && restaurantData) {
         try {
-          const { error: restError } = await supabase
-            .from('restaurants')
-            .update({
-              name: restaurantData.name?.trim() || '',
-              cuisine_type: restaurantData.cuisine_type?.trim() || '',
-              city: restaurantData.city?.trim() || '',
-              state: restaurantData.state?.trim() || '',
-              country: restaurantData.country?.trim() || '',
-              phone: restaurantData.phone?.trim() || '',
-              address: restaurantData.address?.trim() || '',
-              owner_name: restaurantData.owner_name?.trim() || '',
-            })
-            .eq('id', restaurantData.id);
+          if (restaurantData.id) {
+            // Update existing restaurant
+            const { error: restError } = await supabase
+              .from('restaurants')
+              .update({
+                name: restaurantData.name?.trim() || '',
+                cuisine_type: restaurantData.cuisine_type?.trim() || '',
+                city: restaurantData.city?.trim() || '',
+                state: restaurantData.state?.trim() || '',
+                country: restaurantData.country?.trim() || '',
+                phone: restaurantData.phone?.trim() || '',
+                address: restaurantData.address?.trim() || '',
+                owner_name: restaurantData.owner_name?.trim() || '',
+              })
+              .eq('id', restaurantData.id);
 
-          if (!restError) {
+            if (restError) {
+              throw new Error(`Restaurant update failed: ${restError.message}`);
+            }
+            restaurantSaved = true;
+          } else {
+            // Try to create new restaurant
+            const { data: newRestaurant, error: insertError } = await supabase
+              .from('restaurants')
+              .insert([{
+                auth_user_id: user.id,
+                name: restaurantData.name?.trim() || '',
+                cuisine_type: restaurantData.cuisine_type?.trim() || '',
+                city: restaurantData.city?.trim() || '',
+                state: restaurantData.state?.trim() || '',
+                country: restaurantData.country?.trim() || '',
+                phone: restaurantData.phone?.trim() || '',
+                address: restaurantData.address?.trim() || '',
+                owner_name: restaurantData.owner_name?.trim() || '',
+              }])
+              .select()
+              .single();
+
+            if (insertError) {
+              throw new Error(`Restaurant creation failed: ${insertError.message}`);
+            }
+            
+            setRestaurantData(prev => prev ? { ...prev, id: newRestaurant.id } : null);
             restaurantSaved = true;
           }
-        } catch (restError) {
-          console.warn('Restaurant save failed due to permissions');
+        } catch (restError: any) {
+          console.error('Restaurant save error:', restError);
+          // Don't fail the entire save if only restaurant fails
+          console.warn('Restaurant data could not be saved:', restError.message);
         }
       }
 
-      const successMessage = restaurantSaved 
-        ? 'Profile and restaurant information saved successfully!'
-        : 'User profile saved successfully!';
+      // Show appropriate success message
+      if (userSaved && restaurantSaved) {
+        setMessage({ type: 'success', text: 'Profile and restaurant information saved successfully!' });
+      } else if (userSaved && !hasRestaurantPermissions) {
+        setMessage({ type: 'success', text: 'User profile saved successfully! Restaurant data is not accessible due to permissions.' });
+      } else if (userSaved) {
+        setMessage({ type: 'warning', text: 'User profile saved successfully! Restaurant data could not be saved - check permissions.' });
+      } else {
+        throw new Error('Failed to save any data');
+      }
       
-      setMessage({ type: 'success', text: successMessage });
     } catch (err: any) {
       console.error('Save error:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to save changes' });
     } finally {
       setSaving(false);
-      setTimeout(() => setMessage(null), 5000);
+      setTimeout(() => setMessage(null), 8000);
     }
   };
 
@@ -223,6 +265,8 @@ const ProfilePage: React.FC = () => {
             className={`mb-6 p-4 rounded-lg border ${
               message.type === 'success' 
                 ? 'bg-green-50 text-green-700 border-green-200' 
+                : message.type === 'warning'
+                ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
                 : 'bg-red-50 text-red-700 border-red-200'
             }`}
           >
@@ -280,8 +324,13 @@ const ProfilePage: React.FC = () => {
           </div>
 
           {/* Restaurant Profile Section */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h2 className="text-lg font-semibold mb-4 text-gray-900">Restaurant Information</h2>
+          <div className={`bg-white p-6 rounded-lg shadow-sm border ${!hasRestaurantPermissions ? 'opacity-75' : ''}`}>
+            <h2 className="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+              Restaurant Information
+              {!hasRestaurantPermissions && (
+                <span className="ml-2 text-sm text-yellow-600 font-normal">(Limited Access)</span>
+              )}
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -292,7 +341,12 @@ const ProfilePage: React.FC = () => {
                   value={restaurantData?.name || ''}
                   onChange={(e) => setRestaurantData(prev => prev ? { ...prev, name: e.target.value } : null)}
                   placeholder="Enter restaurant name"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                  disabled={!hasRestaurantPermissions}
+                  className={`w-full border rounded-lg px-3 py-2 ${
+                    hasRestaurantPermissions 
+                      ? 'border-gray-300 focus:ring-2 focus:ring-coral-500 focus:border-coral-500' 
+                      : 'border-gray-200 bg-gray-50 text-gray-400'
+                  }`}
                 />
               </div>
               
@@ -305,7 +359,12 @@ const ProfilePage: React.FC = () => {
                   value={restaurantData?.cuisine_type || ''}
                   onChange={(e) => setRestaurantData(prev => prev ? { ...prev, cuisine_type: e.target.value } : null)}
                   placeholder="e.g., Italian, Asian, American"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                  disabled={!hasRestaurantPermissions}
+                  className={`w-full border rounded-lg px-3 py-2 ${
+                    hasRestaurantPermissions 
+                      ? 'border-gray-300 focus:ring-2 focus:ring-coral-500 focus:border-coral-500' 
+                      : 'border-gray-200 bg-gray-50 text-gray-400'
+                  }`}
                 />
               </div>
               
@@ -318,7 +377,12 @@ const ProfilePage: React.FC = () => {
                   value={restaurantData?.owner_name || ''}
                   onChange={(e) => setRestaurantData(prev => prev ? { ...prev, owner_name: e.target.value } : null)}
                   placeholder="Restaurant owner name"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                  disabled={!hasRestaurantPermissions}
+                  className={`w-full border rounded-lg px-3 py-2 ${
+                    hasRestaurantPermissions 
+                      ? 'border-gray-300 focus:ring-2 focus:ring-coral-500 focus:border-coral-500' 
+                      : 'border-gray-200 bg-gray-50 text-gray-400'
+                  }`}
                 />
               </div>
               
@@ -331,7 +395,12 @@ const ProfilePage: React.FC = () => {
                   value={restaurantData?.phone || ''}
                   onChange={(e) => setRestaurantData(prev => prev ? { ...prev, phone: e.target.value } : null)}
                   placeholder="+1 (555) 123-4567"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                  disabled={!hasRestaurantPermissions}
+                  className={`w-full border rounded-lg px-3 py-2 ${
+                    hasRestaurantPermissions 
+                      ? 'border-gray-300 focus:ring-2 focus:ring-coral-500 focus:border-coral-500' 
+                      : 'border-gray-200 bg-gray-50 text-gray-400'
+                  }`}
                 />
               </div>
               
@@ -344,7 +413,12 @@ const ProfilePage: React.FC = () => {
                   value={restaurantData?.address || ''}
                   onChange={(e) => setRestaurantData(prev => prev ? { ...prev, address: e.target.value } : null)}
                   placeholder="Street address"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                  disabled={!hasRestaurantPermissions}
+                  className={`w-full border rounded-lg px-3 py-2 ${
+                    hasRestaurantPermissions 
+                      ? 'border-gray-300 focus:ring-2 focus:ring-coral-500 focus:border-coral-500' 
+                      : 'border-gray-200 bg-gray-50 text-gray-400'
+                  }`}
                 />
               </div>
               
@@ -357,7 +431,12 @@ const ProfilePage: React.FC = () => {
                   value={restaurantData?.city || ''}
                   onChange={(e) => setRestaurantData(prev => prev ? { ...prev, city: e.target.value } : null)}
                   placeholder="City"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                  disabled={!hasRestaurantPermissions}
+                  className={`w-full border rounded-lg px-3 py-2 ${
+                    hasRestaurantPermissions 
+                      ? 'border-gray-300 focus:ring-2 focus:ring-coral-500 focus:border-coral-500' 
+                      : 'border-gray-200 bg-gray-50 text-gray-400'
+                  }`}
                 />
               </div>
               
@@ -370,7 +449,12 @@ const ProfilePage: React.FC = () => {
                   value={restaurantData?.state || ''}
                   onChange={(e) => setRestaurantData(prev => prev ? { ...prev, state: e.target.value } : null)}
                   placeholder="State or Province"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                  disabled={!hasRestaurantPermissions}
+                  className={`w-full border rounded-lg px-3 py-2 ${
+                    hasRestaurantPermissions 
+                      ? 'border-gray-300 focus:ring-2 focus:ring-coral-500 focus:border-coral-500' 
+                      : 'border-gray-200 bg-gray-50 text-gray-400'
+                  }`}
                 />
               </div>
               
@@ -381,7 +465,12 @@ const ProfilePage: React.FC = () => {
                 <select
                   value={restaurantData?.country || ''}
                   onChange={(e) => setRestaurantData(prev => prev ? { ...prev, country: e.target.value } : null)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                  disabled={!hasRestaurantPermissions}
+                  className={`w-full border rounded-lg px-3 py-2 ${
+                    hasRestaurantPermissions 
+                      ? 'border-gray-300 focus:ring-2 focus:ring-coral-500 focus:border-coral-500' 
+                      : 'border-gray-200 bg-gray-50 text-gray-400'
+                  }`}
                 >
                   <option value="">Select a country</option>
                   <option value="Australia">Australia</option>
