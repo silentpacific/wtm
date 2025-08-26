@@ -37,7 +37,7 @@ interface ScanStats {
 }
 
 const MenuEditorPage: React.FC = () => {
-  const { user } = useAuth(); // Changed from useContext(AuthContext) to useAuth()
+  const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -298,15 +298,22 @@ const MenuEditorPage: React.FC = () => {
     }
   };
 
+  const getChipClass = (type: 'dietary' | 'allergen') => {
+    return type === 'dietary' ? 'chip--veg' : 'chip--shell';
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Menu Editor</h1>
+        <div className="card p-6 mb-8">
+          <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--wtm-text)' }}>
+            Menu Editor
+          </h1>
           
           {/* File Upload Section */}
           <div className="mb-8">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <div className="border-2 border-dashed rounded-lg p-8 text-center" 
+                 style={{ borderColor: 'var(--wtm-muted)' }}>
               <input
                 type="file"
                 id="menu-file"
@@ -316,11 +323,11 @@ const MenuEditorPage: React.FC = () => {
               />
               <label htmlFor="menu-file" className="cursor-pointer">
                 <div className="flex flex-col items-center">
-                  <Upload className="w-12 h-12 text-gray-400 mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">
+                  <Upload className="w-12 h-12 mb-4" style={{ color: 'var(--wtm-muted)' }} />
+                  <p className="text-lg font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
                     Upload Menu Image or PDF
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>
                     Supports JPG, PNG, and PDF files up to 10MB
                   </p>
                 </div>
@@ -328,16 +335,17 @@ const MenuEditorPage: React.FC = () => {
             </div>
 
             {file && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg flex items-center justify-between">
+              <div className="mt-4 p-4 rounded-lg flex items-center justify-between" 
+                   style={{ backgroundColor: 'var(--chip-shell-bg)' }}>
                 <div className="flex items-center">
                   {file.type === 'application/pdf' ? (
-                    <FileText className="w-8 h-8 text-blue-600 mr-3" />
+                    <FileText className="w-8 h-8 mr-3" style={{ color: 'var(--chip-shell-fg)' }} />
                   ) : (
-                    <FileImage className="w-8 h-8 text-blue-600 mr-3" />
+                    <FileImage className="w-8 h-8 mr-3" style={{ color: 'var(--chip-shell-fg)' }} />
                   )}
                   <div>
-                    <p className="font-medium text-blue-900">{file.name}</p>
-                    <p className="text-sm text-blue-600">
+                    <p className="font-medium" style={{ color: 'var(--chip-shell-fg)' }}>{file.name}</p>
+                    <p className="text-sm" style={{ color: 'var(--chip-shell-fg)' }}>
                       {(file.size / 1024 / 1024).toFixed(1)} MB
                     </p>
                   </div>
@@ -345,7 +353,9 @@ const MenuEditorPage: React.FC = () => {
                 <button
                   onClick={scanMenu}
                   disabled={isScanning}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                  className={`btn flex items-center ${
+                    isScanning ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-primary'
+                  }`}
                 >
                   {isScanning ? (
                     <>
@@ -360,39 +370,57 @@ const MenuEditorPage: React.FC = () => {
             )}
 
             {scanError && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
-                <AlertCircle className="w-5 h-5 text-red-600 mr-3 mt-0.5" />
+              <div className="mt-4 p-4 rounded-lg flex items-start" 
+                   style={{ 
+                     backgroundColor: 'var(--chip-gluten-bg)', 
+                     border: `1px solid var(--chip-gluten-fg)`
+                   }}>
+                <AlertCircle className="w-5 h-5 mr-3 mt-0.5" style={{ color: 'var(--chip-gluten-fg)' }} />
                 <div>
-                  <p className="text-red-800 font-medium">Scan Error</p>
-                  <p className="text-red-700 text-sm">{scanError}</p>
+                  <p className="font-medium" style={{ color: 'var(--chip-gluten-fg)' }}>Scan Error</p>
+                  <p className="text-sm" style={{ color: 'var(--chip-gluten-fg)' }}>{scanError}</p>
                 </div>
               </div>
             )}
 
             {saveSuccess && (
-              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                <p className="text-green-800 font-medium">Menu saved successfully!</p>
+              <div className="mt-4 p-4 rounded-lg flex items-center" 
+                   style={{ 
+                     backgroundColor: 'var(--chip-veg-bg)', 
+                     border: `1px solid var(--chip-veg-fg)`
+                   }}>
+                <CheckCircle className="w-5 h-5 mr-3" style={{ color: 'var(--chip-veg-fg)' }} />
+                <p className="font-medium" style={{ color: 'var(--chip-veg-fg)' }}>
+                  Menu saved successfully!
+                </p>
               </div>
             )}
           </div>
 
           {/* Scan Stats */}
           {scanStats && (
-            <div className="mb-6 p-4 bg-green-50 rounded-lg">
-              <h3 className="font-semibold text-green-900 mb-2">Scan Results</h3>
+            <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: 'var(--chip-veg-bg)' }}>
+              <h3 className="font-semibold mb-2" style={{ color: 'var(--chip-veg-fg)' }}>
+                Scan Results
+              </h3>
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div className="text-center">
-                  <p className="font-medium text-green-800">{scanStats.sections}</p>
-                  <p className="text-green-600">Sections</p>
+                  <p className="font-medium" style={{ color: 'var(--chip-veg-fg)' }}>
+                    {scanStats.sections}
+                  </p>
+                  <p style={{ color: 'var(--chip-veg-fg)' }}>Sections</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-medium text-green-800">{scanStats.totalDishes}</p>
-                  <p className="text-green-600">Dishes</p>
+                  <p className="font-medium" style={{ color: 'var(--chip-veg-fg)' }}>
+                    {scanStats.totalDishes}
+                  </p>
+                  <p style={{ color: 'var(--chip-veg-fg)' }}>Dishes</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-medium text-green-800">{(scanStats.processingTime / 1000).toFixed(1)}s</p>
-                  <p className="text-green-600">Processing Time</p>
+                  <p className="font-medium" style={{ color: 'var(--chip-veg-fg)' }}>
+                    {(scanStats.processingTime / 1000).toFixed(1)}s
+                  </p>
+                  <p style={{ color: 'var(--chip-veg-fg)' }}>Processing Time</p>
                 </div>
               </div>
             </div>
@@ -404,31 +432,37 @@ const MenuEditorPage: React.FC = () => {
           <div className="space-y-6">
             {/* Restaurant Info */}
             {menuData.restaurant && Object.keys(menuData.restaurant).length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Restaurant Information</h2>
+              <div className="card p-6">
+                <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--wtm-text)' }}>
+                  Restaurant Information
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {menuData.restaurant.name && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                      <p className="text-gray-900">{menuData.restaurant.name}</p>
+                      <label className="block text-sm font-medium mb-1" 
+                             style={{ color: 'var(--wtm-text)' }}>Name</label>
+                      <p style={{ color: 'var(--wtm-text)' }}>{menuData.restaurant.name}</p>
                     </div>
                   )}
                   {menuData.restaurant.address && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                      <p className="text-gray-900">{menuData.restaurant.address}</p>
+                      <label className="block text-sm font-medium mb-1" 
+                             style={{ color: 'var(--wtm-text)' }}>Address</label>
+                      <p style={{ color: 'var(--wtm-text)' }}>{menuData.restaurant.address}</p>
                     </div>
                   )}
                   {menuData.restaurant.phone && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                      <p className="text-gray-900">{menuData.restaurant.phone}</p>
+                      <label className="block text-sm font-medium mb-1" 
+                             style={{ color: 'var(--wtm-text)' }}>Phone</label>
+                      <p style={{ color: 'var(--wtm-text)' }}>{menuData.restaurant.phone}</p>
                     </div>
                   )}
                   {menuData.restaurant.website && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-                      <p className="text-gray-900">{menuData.restaurant.website}</p>
+                      <label className="block text-sm font-medium mb-1" 
+                             style={{ color: 'var(--wtm-text)' }}>Website</label>
+                      <p style={{ color: 'var(--wtm-text)' }}>{menuData.restaurant.website}</p>
                     </div>
                   )}
                 </div>
@@ -437,12 +471,14 @@ const MenuEditorPage: React.FC = () => {
 
             {/* Menu Sections */}
             {menuData.sections.map((section, sectionIndex) => (
-              <div key={sectionIndex} className="bg-white rounded-lg shadow-sm p-6">
+              <div key={sectionIndex} className="card p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">{section.name}</h2>
+                  <h2 className="text-xl font-bold" style={{ color: 'var(--wtm-text)' }}>
+                    {section.name}
+                  </h2>
                   <button
                     onClick={() => addDish(sectionIndex)}
-                    className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-700 flex items-center"
+                    className="btn-secondary flex items-center text-sm"
                   >
                     <Plus className="w-4 h-4 mr-1" />
                     Add Dish
@@ -451,27 +487,18 @@ const MenuEditorPage: React.FC = () => {
 
                 <div className="space-y-4">
                   {section.dishes.map((dish, dishIndex) => (
-                    <div key={dishIndex} className="border border-gray-200 rounded-lg p-4">
+                    <div key={dishIndex} className="p-4 rounded-lg" 
+                         style={{ border: `1px solid #EFE7E2` }}>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         {/* Dish Name */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Dish Name</label>
-                          <input
-                            type="text"
-                            value={dish.name}
-                            onChange={(e) => updateDish(sectionIndex, dishIndex, { ...dish, name: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
-                          />
-                        </div>
-
-                        {/* Price */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+                          <label className="block text-sm font-medium mb-1" 
+                                 style={{ color: 'var(--wtm-text)' }}>Dish Name</label>
                           <input
                             type="text"
                             value={dish.price}
                             onChange={(e) => updateDish(sectionIndex, dishIndex, { ...dish, price: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                            className="input-field w-full"
                           />
                         </div>
 
@@ -479,7 +506,7 @@ const MenuEditorPage: React.FC = () => {
                         <div className="flex items-end">
                           <button
                             onClick={() => deleteDish(sectionIndex, dishIndex)}
-                            className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 flex items-center"
+                            className="btn-danger-ghost flex items-center"
                           >
                             <Trash2 className="w-4 h-4 mr-1" />
                             Delete
@@ -489,28 +516,31 @@ const MenuEditorPage: React.FC = () => {
 
                       {/* Description */}
                       <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <label className="block text-sm font-medium mb-1" 
+                               style={{ color: 'var(--wtm-text)' }}>Description</label>
                         <textarea
                           value={dish.description}
                           onChange={(e) => updateDish(sectionIndex, dishIndex, { ...dish, description: e.target.value })}
                           rows={2}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                          className="input-field w-full"
                         />
                       </div>
 
                       {/* Dietary Tags */}
                       <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Tags</label>
+                        <label className="block text-sm font-medium mb-2" 
+                               style={{ color: 'var(--wtm-text)' }}>Dietary Tags</label>
                         <div className="flex flex-wrap gap-2 mb-2">
                           {dish.dietaryTags.map((tag, tagIndex) => (
                             <span
                               key={tagIndex}
-                              className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm flex items-center"
+                              className="chip chip--veg flex items-center"
                             >
                               {tag}
                               <button
                                 onClick={() => removeDietaryTag(sectionIndex, dishIndex, tag)}
-                                className="ml-1 text-green-600 hover:text-green-800"
+                                className="ml-1 hover:opacity-80"
+                                style={{ color: 'var(--chip-veg-fg)' }}
                               >
                                 ×
                               </button>
@@ -521,7 +551,7 @@ const MenuEditorPage: React.FC = () => {
                           <input
                             type="text"
                             placeholder="Add dietary tag..."
-                            className="flex-1 px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                            className="input-field flex-1 text-sm"
                             onKeyPress={(e) => {
                               if (e.key === 'Enter') {
                                 addDietaryTag(sectionIndex, dishIndex, e.currentTarget.value);
@@ -534,17 +564,19 @@ const MenuEditorPage: React.FC = () => {
 
                       {/* Allergens */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Allergens</label>
+                        <label className="block text-sm font-medium mb-2" 
+                               style={{ color: 'var(--wtm-text)' }}>Allergens</label>
                         <div className="flex flex-wrap gap-2 mb-2">
                           {dish.allergens.map((allergen, allergenIndex) => (
                             <span
                               key={allergenIndex}
-                              className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-sm flex items-center"
+                              className="chip chip--gluten flex items-center"
                             >
                               {allergen}
                               <button
                                 onClick={() => removeAllergen(sectionIndex, dishIndex, allergen)}
-                                className="ml-1 text-red-600 hover:text-red-800"
+                                className="ml-1 hover:opacity-80"
+                                style={{ color: 'var(--chip-gluten-fg)' }}
                               >
                                 ×
                               </button>
@@ -555,7 +587,7 @@ const MenuEditorPage: React.FC = () => {
                           <input
                             type="text"
                             placeholder="Add allergen..."
-                            className="flex-1 px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                            className="input-field flex-1 text-sm"
                             onKeyPress={(e) => {
                               if (e.key === 'Enter') {
                                 addAllergen(sectionIndex, dishIndex, e.currentTarget.value);
@@ -569,7 +601,7 @@ const MenuEditorPage: React.FC = () => {
                   ))}
 
                   {section.dishes.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8" style={{ color: 'var(--wtm-muted)' }}>
                       No dishes in this section. Click "Add Dish" to get started.
                     </div>
                   )}
@@ -578,16 +610,22 @@ const MenuEditorPage: React.FC = () => {
             ))}
 
             {/* Save Button */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="card p-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Ready to save your menu?</h3>
-                  <p className="text-sm text-gray-600">This will create a new menu in your restaurant dashboard.</p>
+                  <h3 className="text-lg font-semibold" style={{ color: 'var(--wtm-text)' }}>
+                    Ready to save your menu?
+                  </h3>
+                  <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>
+                    This will create a new menu in your restaurant dashboard.
+                  </p>
                 </div>
                 <button
                   onClick={saveMenu}
                   disabled={isSaving}
-                  className="bg-coral-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-coral-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                  className={`btn flex items-center px-8 py-3 text-lg ${
+                    isSaving ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-primary'
+                  }`}
                 >
                   {isSaving ? (
                     <>
@@ -608,11 +646,13 @@ const MenuEditorPage: React.FC = () => {
 
         {/* Empty State */}
         {!menuData && !isScanning && !scanError && (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+          <div className="card p-8 text-center">
             <div className="max-w-md mx-auto">
-              <FileImage className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No menu uploaded yet</h3>
-              <p className="text-gray-600">
+              <FileImage className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--wtm-muted)' }} />
+              <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
+                No menu uploaded yet
+              </h3>
+              <p style={{ color: 'var(--wtm-muted)' }}>
                 Upload a menu image or PDF to get started. Our AI will automatically extract all the dishes, 
                 descriptions, prices, and add dietary information.
               </p>

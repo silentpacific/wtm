@@ -7,7 +7,24 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Professional B2B color palette (existing)
+        // New WhatTheMenu design system (primary)
+        'wtm-primary': '#E75A2F',     // warm orange CTAs
+        'wtm-primary-600': '#d44e26', // hover
+        'wtm-secondary': '#2E7E6F',   // calming teal (trust)
+        'wtm-bg': '#FFF8F3',          // warm paper tint sections
+        'wtm-surface': '#FFFFFF',
+        'wtm-text': '#1C1C1C',
+        'wtm-muted': '#6B7280',
+
+        // Chip colors (AA-compliant)
+        'chip-gluten': { bg: '#FCEDEA', fg: '#7A2E21' },
+        'chip-dairy': { bg: '#E9F6F3', fg: '#1A5A50' },
+        'chip-nuts': { bg: '#FFF4D6', fg: '#7A5A07' },
+        'chip-shell': { bg: '#EAF2FF', fg: '#1A3E73' },
+        'chip-veg': { bg: '#EAF8E6', fg: '#235A1E' },
+        'chip-spicy': { bg: '#FEE2E2', fg: '#7F1D1D' },
+
+        // Professional B2B color palette (existing - keeping for backwards compatibility)
         coral: {
           50: '#fef7f2',
           100: '#feeee5',
@@ -35,7 +52,7 @@ export default {
         },
         // Sophisticated secondary colors (existing)
         sage: {
-          50: '#f6f7f6',
+          50: '#f6f6f6',
           100: '#e3e7e3',
           200: '#c7d0c7',
           300: '#a3b2a3',
@@ -88,11 +105,14 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['Inter', 'system-ui', 'sans-serif'],
+        // New design system fonts
+        heading: ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         'xs': ['0.75rem', { lineHeight: '1rem' }],
         'sm': ['0.875rem', { lineHeight: '1.25rem' }],
-        'base': ['1rem', { lineHeight: '1.5rem' }],
+        'base': ['1rem', { lineHeight: '1.6rem' }], // Updated line height for better readability
         'lg': ['1.125rem', { lineHeight: '1.75rem' }],
         'xl': ['1.25rem', { lineHeight: '1.75rem' }],
         '2xl': ['1.5rem', { lineHeight: '2rem' }],

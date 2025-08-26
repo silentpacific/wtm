@@ -1,4 +1,4 @@
-// src/pages/FAQPage.tsx - Comprehensive FAQ
+// src/pages/FAQPage.tsx - Updated with new design system
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Search, Phone, Mail } from 'lucide-react';
 
@@ -30,7 +30,7 @@ const FAQPage: React.FC = () => {
       id: 'getting-started-1',
       category: 'getting-started',
       question: 'How do I get started with WhatTheMenu?',
-      answer: 'Getting started is easy! Simply sign up for an account, upload your menu (PDF or image), and we\'ll process it with AI to create accessible versions in 4 languages. You\'ll get QR codes to print and place on your tables within minutes.'
+      answer: 'Create an account, upload your menu (PDF or image), and we\'ll generate a shareable web menu with QR codes.'
     },
     {
       id: 'getting-started-2',
@@ -42,27 +42,27 @@ const FAQPage: React.FC = () => {
       id: 'getting-started-3',
       category: 'getting-started',
       question: 'Do I need technical skills to use WhatTheMenu?',
-      answer: 'Not at all! WhatTheMenu is designed to be user-friendly. If you can send an email, you can use our platform. Our AI handles the technical complexity, and our interface is intuitive for restaurant owners.'
+      answer: 'Not at all! If you can send an email, you can use our platform. Our AI handles the technical complexity, and our interface is intuitive for restaurant owners.'
     },
 
     // Menu Management
     {
       id: 'menu-1',
       category: 'menu-management',
-      question: 'What menu formats can I upload?',
-      answer: 'You can upload PDF files, JPG images, or PNG images of your menu. Our AI can read text from photos, scanned documents, or digital menus. The clearer the image, the better the results.'
+      question: 'Can I customize translations?',
+      answer: 'Yes - review and edit any item name or description.'
     },
     {
       id: 'menu-2',
       category: 'menu-management',
-      question: 'How do I update my menu when prices change?',
-      answer: 'You can update individual menu items through your dashboard at any time. Changes appear immediately on your customer-facing menu. You can edit dish names, descriptions, prices, and allergen information without re-uploading your entire menu.'
+      question: 'What menu formats can I upload?',
+      answer: 'You can upload PDF files, JPG images, or PNG images of your menu. Our AI can read text from photos, scanned documents, or digital menus. The clearer the image, the better the results.'
     },
     {
       id: 'menu-3',
       category: 'menu-management',
-      question: 'Can I customize the translations?',
-      answer: 'Yes! While our AI provides high-quality translations in Spanish, Chinese, and French, you can edit any translation to match your preferences or add cultural context that\'s specific to your restaurant.'
+      question: 'How do I update my menu when prices change?',
+      answer: 'You can update individual menu items through your dashboard at any time. Changes appear immediately on your customer-facing menu.'
     },
 
     // QR Codes
@@ -70,19 +70,13 @@ const FAQPage: React.FC = () => {
       id: 'qr-1',
       category: 'qr-codes',
       question: 'How do QR codes work for my customers?',
-      answer: 'Customers simply point their phone camera at the QR code (no app needed). They\'ll see a link to tap, which opens your accessible menu in their browser. They can then choose their preferred language and browse your menu with full accessibility features.'
+      answer: 'Customers simply point their phone camera at the QR code (no app needed). They\'ll see a link to tap, which opens your accessible menu in their browser.'
     },
     {
       id: 'qr-2',
       category: 'qr-codes',
       question: 'What sizes of QR codes can I download?',
-      answer: 'We provide QR codes in 4 sizes: Small (200x200) for business cards, Medium (400x400) for table tents, Large (800x800) for posters, and Jumbo (1200x1200) for large displays. All formats are print-ready and high-resolution.'
-    },
-    {
-      id: 'qr-3',
-      category: 'qr-codes',
-      question: 'Can I customize the appearance of my QR codes?',
-      answer: 'Yes! You can change the colors of your QR codes to match your restaurant\'s branding. You can customize both the QR code color and background color, and download in PNG, SVG, or PDF formats.'
+      answer: 'We provide QR codes in 4 sizes: Small (200x200) for business cards, Medium (400x400) for table tents, Large (800x800) for posters, and Jumbo (1200x1200) for large displays.'
     },
 
     // Customer Experience
@@ -90,39 +84,33 @@ const FAQPage: React.FC = () => {
       id: 'customer-1',
       category: 'customers',
       question: 'What languages are supported?',
-      answer: 'We currently support English, Spanish (Español), Chinese (中文), and French (Français). These languages cover the majority of international visitors and are commonly requested by restaurants in Australia.'
+      answer: 'English, Spanish, Chinese, French, and more as we expand. Ask us if you need a specific language.'
     },
     {
       id: 'customer-2',
       category: 'customers',
-      question: 'How does this help customers with hearing impairments?',
-      answer: 'Our platform provides a completely visual experience. Customers can browse your menu, read detailed descriptions, filter by dietary needs, and even communicate their order visually - all without needing to hear or speak with staff.'
+      question: 'How does this help Deaf customers?',
+      answer: 'Menus are visual-first. Guests can point, use preset phrases, and confirm their order on screen.'
     },
     {
       id: 'customer-3',
       category: 'customers',
       question: 'What accessibility features are included?',
-      answer: 'We include high contrast colors, large readable fonts, clear allergen warnings, dietary filtering (vegetarian, vegan, gluten-free), and a visual-only interface that works with screen readers for visually impaired customers.'
+      answer: 'High contrast colors, large readable fonts, clear allergen warnings, dietary filtering (vegetarian, vegan, gluten-free), and a visual-only interface that works with screen readers.'
     },
 
     // Billing
     {
       id: 'billing-1',
       category: 'billing',
-      question: 'How much does WhatTheMenu cost?',
-      answer: 'We offer flexible pricing starting around $25/month, with a 30-day free trial. Pricing may vary based on your restaurant size and needs. Contact us for a personalized quote that fits your budget.'
+      question: 'How much does it cost? Is there a free trial?',
+      answer: 'Simple monthly plan with a free trial. Cancel anytime.'
     },
     {
       id: 'billing-2',
       category: 'billing',
-      question: 'Is there a free trial?',
-      answer: 'Yes! We offer a 30-day free trial so you can test all features with your actual menu before committing. No credit card required for the trial - just sign up and start using the platform immediately.'
-    },
-    {
-      id: 'billing-3',
-      category: 'billing',
       question: 'Can I cancel anytime?',
-      answer: 'Absolutely. There are no long-term contracts or cancellation fees. You can cancel your subscription at any time through your dashboard, and you\'ll continue to have access until the end of your current billing period.'
+      answer: 'Absolutely. There are no long-term contracts or cancellation fees. You can cancel your subscription at any time through your dashboard.'
     },
 
     // Technical
@@ -130,19 +118,19 @@ const FAQPage: React.FC = () => {
       id: 'tech-1',
       category: 'technical',
       question: 'Do customers need to download an app?',
-      answer: 'No! Customers just scan the QR code with their phone\'s built-in camera. The menu opens in their web browser - no app download required. This makes it accessible to everyone, regardless of their technical comfort level.'
+      answer: 'No! Customers just scan the QR code with their phone\'s built-in camera. The menu opens in their web browser - no app download required.'
     },
     {
       id: 'tech-2',
       category: 'technical',
       question: 'What if my internet connection is slow?',
-      answer: 'Our menus are optimized for fast loading even on slow connections. We use compressed images and efficient loading techniques so customers can access your menu quickly, even in areas with poor cell coverage.'
+      answer: 'Our menus are optimized for fast loading even on slow connections. We use compressed images and efficient loading techniques.'
     },
     {
       id: 'tech-3',
       category: 'technical',
       question: 'Is my restaurant data secure?',
-      answer: 'Yes, we take security seriously. All data is encrypted in transit and at rest. We use enterprise-grade security practices and comply with Australian privacy laws. Your menu data and customer information are fully protected.'
+      answer: 'Yes, we take security seriously. All data is encrypted in transit and at rest. We use enterprise-grade security practices and comply with Australian privacy laws.'
     }
   ];
 
@@ -164,13 +152,13 @@ const FAQPage: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-warm">
       {/* Header */}
-      <div className="bg-white shadow-sm">
+      <div className="bg-wtm-surface shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <h1 className="heading-primary mb-4">Frequently Asked Questions</h1>
+            <p className="text-lg text-wtm-muted max-w-2xl mx-auto">
               Find answers to common questions about WhatTheMenu, or contact us if you need additional help.
             </p>
           </div>
@@ -181,16 +169,16 @@ const FAQPage: React.FC = () => {
         {/* Search and Filters */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
+            {/* Search - Client-side search filters visible questions */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-wtm-muted" size={20} />
                 <input
                   type="text"
                   placeholder="Search FAQs..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                  className="input-field pl-10"
                 />
               </div>
             </div>
@@ -200,7 +188,7 @@ const FAQPage: React.FC = () => {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
+                className="input-field"
               >
                 {categories.map(category => (
                   <option key={category.id} value={category.id}>
@@ -215,17 +203,17 @@ const FAQPage: React.FC = () => {
         <div className="grid lg:grid-cols-4 gap-8">
           {/* Category Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Categories</h3>
+            <div className="card p-6 sticky top-6">
+              <h3 className="text-lg font-semibold text-wtm-text mb-4 font-heading">Categories</h3>
               <nav className="space-y-2">
                 {categories.map(category => (
                   <button
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
-                    className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                    className={`block w-full text-left px-3 py-2 rounded-xl text-sm transition-colors focus-ring ${
                       selectedCategory === category.id
-                        ? 'bg-coral-50 text-coral-700 font-medium'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        ? 'bg-wtm-primary/10 text-wtm-primary font-medium'
+                        : 'text-wtm-muted hover:bg-gray-50'
                     }`}
                   >
                     {category.name}
@@ -234,22 +222,15 @@ const FAQPage: React.FC = () => {
               </nav>
 
               {/* Contact Info */}
-              <div className="mt-8 p-4 bg-coral-50 rounded-lg">
-                <h4 className="text-sm font-semibold text-coral-900 mb-2">Still need help?</h4>
+              <div className="mt-8 p-4 bg-wtm-primary/10 rounded-xl">
+                <h4 className="text-sm font-semibold text-wtm-primary mb-2">Still need help?</h4>
                 <div className="space-y-2">
                   <a 
                     href="/contact" 
-                    className="flex items-center text-coral-700 hover:text-coral-800 text-sm"
+                    className="flex items-center text-wtm-primary hover:text-wtm-primary-600 text-sm transition-colors focus-ring rounded px-2 py-1"
                   >
                     <Mail size={14} className="mr-2" />
                     Contact Support
-                  </a>
-                  <a 
-                    href="tel:+61812345678" 
-                    className="flex items-center text-coral-700 hover:text-coral-800 text-sm"
-                  >
-                    <Phone size={14} className="mr-2" />
-                    Call Us
                   </a>
                 </div>
               </div>
@@ -258,9 +239,9 @@ const FAQPage: React.FC = () => {
 
           {/* FAQ Items */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-sm">
+            <div className="card">
               {filteredFaqs.length > 0 ? (
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-gray-100">
                   {filteredFaqs.map((faq) => {
                     const isOpen = openItems.includes(faq.id);
                     
@@ -268,20 +249,21 @@ const FAQPage: React.FC = () => {
                       <div key={faq.id} className="p-6">
                         <button
                           onClick={() => toggleItem(faq.id)}
-                          className="flex items-center justify-between w-full text-left"
+                          className="flex items-center justify-between w-full text-left focus-ring rounded-lg p-2 -m-2"
+                          aria-expanded={isOpen}
                         >
-                          <h3 className="text-lg font-semibold text-gray-900 pr-4">
+                          <h3 className="text-lg font-semibold text-wtm-text pr-4 font-heading">
                             {faq.question}
                           </h3>
                           {isOpen ? (
-                            <ChevronUp className="text-coral-600 flex-shrink-0" size={24} />
+                            <ChevronUp className="text-wtm-primary flex-shrink-0 transition-transform" size={24} />
                           ) : (
-                            <ChevronDown className="text-gray-400 flex-shrink-0" size={24} />
+                            <ChevronDown className="text-wtm-muted flex-shrink-0 transition-transform" size={24} />
                           )}
                         </button>
                         
                         {isOpen && (
-                          <div className="mt-4 text-gray-600 leading-relaxed">
+                          <div className="mt-4 text-wtm-muted leading-relaxed animate-fade-in">
                             {faq.answer}
                           </div>
                         )}
@@ -291,13 +273,13 @@ const FAQPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="p-12 text-center">
-                  <p className="text-gray-500 mb-4">No FAQs found matching your search.</p>
+                  <p className="text-wtm-muted mb-4">No FAQs found matching your search.</p>
                   <button
                     onClick={() => {
                       setSearchTerm('');
                       setSelectedCategory('all');
                     }}
-                    className="text-coral-600 hover:text-coral-700 font-medium"
+                    className="btn btn-ghost"
                   >
                     Clear search and filters
                   </button>

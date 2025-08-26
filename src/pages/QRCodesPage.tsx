@@ -1,15 +1,10 @@
-// src/pages/QRCodesPage.tsx - Generate and Download QR Codes
-import React, { useState, useRef } from 'react';
+// src/pages/QRCodesPage.tsx - Updated with new design system
+import React, { useState } from 'react';
 import { 
   Download, 
-  QrCode, 
-  Printer,
   Copy,
   Check,
-  ExternalLink,
-  Settings,
-  Palette,
-  Maximize2
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
@@ -17,26 +12,25 @@ import DashboardLayout from '../components/DashboardLayout';
 const QRCodesPage: React.FC = () => {
   const { restaurant } = useAuth();
   const [copied, setCopied] = useState(false);
-  const [selectedSize, setSelectedSize] = useState('medium');
   const [selectedFormat, setSelectedFormat] = useState('png');
-  const [qrColor, setQrColor] = useState('#000000');
+  const [qrColor, setQrColor] = useState('#E75A2F'); // Default to wtm-primary
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   
-  // Generate restaurant menu URL - in real app, this would be dynamic
-  const restaurantSlug = restaurant?.name?.toLowerCase().replace(/\s+/g, '-') || 'demo-restaurant';
+  // Generate restaurant menu URL
+  const restaurantSlug = restaurant?.restaurant_name?.toLowerCase().replace(/\s+/g, '-') || 'demo-restaurant';
   const menuUrl = `${window.location.origin}/r/${restaurantSlug}`;
   
   const qrSizes = [
-    { id: 'small', name: 'Small (200x200)', size: 200, description: 'Perfect for receipts or business cards' },
-    { id: 'medium', name: 'Medium (400x400)', size: 400, description: 'Great for table tents or menus' },
-    { id: 'large', name: 'Large (800x800)', size: 800, description: 'Ideal for posters or window displays' },
-    { id: 'jumbo', name: 'Jumbo (1200x1200)', size: 1200, description: 'Maximum size for large displays' }
+    { id: 'small', name: 'Small (200×200)', size: 200, description: 'Business cards' },
+    { id: 'medium', name: 'Medium (400×400)', size: 400, description: 'Table tents' },
+    { id: 'large', name: 'Large (800×800)', size: 800, description: 'Posters' },
+    { id: 'jumbo', name: 'Jumbo (1200×1200)', size: 1200, description: 'Large displays' }
   ];
 
   const formats = [
-    { id: 'png', name: 'PNG', description: 'Best for digital use' },
-    { id: 'svg', name: 'SVG', description: 'Vector format, scales perfectly' },
-    { id: 'pdf', name: 'PDF', description: 'Ready for professional printing' }
+    { id: 'png', name: 'PNG', description: 'Digital use' },
+    { id: 'svg', name: 'SVG', description: 'Vector format' },
+    { id: 'pdf', name: 'PDF', description: 'Professional printing' }
   ];
 
   const copyToClipboard = async () => {
@@ -50,8 +44,6 @@ const QRCodesPage: React.FC = () => {
   };
 
   const generateQRCode = (size: number) => {
-    // In a real app, you'd use a QR code library like qrcode.js
-    // For demo, we'll use a QR code API service
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(menuUrl)}&color=${qrColor.replace('#', '')}&bgcolor=${backgroundColor.replace('#', '')}`;
     return qrApiUrl;
   };
@@ -68,7 +60,7 @@ const QRCodesPage: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${restaurant?.name || 'restaurant'}-qr-${sizeId}.${selectedFormat}`;
+      a.download = `${restaurant?.restaurant_name || 'restaurant'}-qr-${sizeId}.${selectedFormat}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -79,269 +71,189 @@ const QRCodesPage: React.FC = () => {
     }
   };
 
-  const printQRCode = () => {
-    const qrUrl = generateQRCode(400);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>QR Code - ${restaurant?.name || 'Restaurant'}</title>
-            <style>
-              body { 
-                margin: 0; 
-                padding: 20px; 
-                text-align: center; 
-                font-family: Arial, sans-serif; 
-              }
-              .qr-container {
-                page-break-inside: avoid;
-                margin-bottom: 30px;
-              }
-              .qr-title {
-                font-size: 18px;
-                font-weight: bold;
-                margin-bottom: 10px;
-              }
-              .qr-subtitle {
-                font-size: 14px;
-                color: #666;
-                margin-bottom: 20px;
-              }
-              .qr-code {
-                border: 1px solid #ddd;
-                padding: 10px;
-                display: inline-block;
-              }
-              .instructions {
-                font-size: 12px;
-                color: #888;
-                margin-top: 15px;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="qr-container">
-              <div class="qr-title">${restaurant?.name || 'Restaurant Menu'}</div>
-              <div class="qr-subtitle">Scan for Accessible Menu</div>
-              <div class="qr-code">
-                <img src="${qrUrl}" alt="QR Code" />
-              </div>
-              <div class="instructions">
-                Scan with your phone camera to access our menu<br>
-                in multiple languages with dietary information
-              </div>
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
-  };
+  // Brand token color options
+  const colorOptions = [
+    { name: 'WhatTheMenu Orange', value: '#E75A2F' },
+    { name: 'Teal', value: '#2E7E6F' },
+    { name: 'Black', value: '#000000' },
+    { name: 'Dark Gray', value: '#1C1C1C' }
+  ];
+
+  const backgroundOptions = [
+    { name: 'White', value: '#FFFFFF' },
+    { name: 'Warm Paper', value: '#FFF8F3' },
+    { name: 'Light Gray', value: '#F3F4F6' }
+  ];
 
   return (
     <DashboardLayout>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">QR Codes</h1>
-          <p className="text-gray-600">
+          <h1 className="heading-secondary text-wtm-text mb-2">QR Codes</h1>
+          <p className="text-wtm-muted">
             Generate and download QR codes for your restaurant's accessible menu
           </p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left column - Settings and Preview */}
+          {/* Left column - URL and Preview */}
           <div className="space-y-6">
             {/* Menu URL */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Menu URL</h3>
-              <div className="flex items-center space-x-3">
-                <div className="flex-1 bg-gray-50 rounded-lg p-3 font-mono text-sm">
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-wtm-text mb-4 font-heading">Your Menu URL</h3>
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="flex-1 bg-wtm-bg rounded-xl p-3 font-mono text-sm text-wtm-text">
                   {menuUrl}
                 </div>
                 <button
                   onClick={copyToClipboard}
-                  className="flex items-center px-3 py-2 bg-coral-600 hover:bg-coral-700 text-white rounded-lg font-medium transition-colors"
+                  className="btn btn-primary px-4 py-3"
+                  title="Copy URL"
                 >
                   {copied ? <Check size={16} /> : <Copy size={16} />}
-                  <span className="ml-2 hidden sm:block">
-                    {copied ? 'Copied!' : 'Copy'}
-                  </span>
                 </button>
                 <a
                   href={menuUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center px-3 py-2 border border-gray-300 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+                  className="btn btn-ghost px-4 py-3"
+                  title="Open menu"
                 >
                   <ExternalLink size={16} />
-                  <span className="ml-2 hidden sm:block">Visit</span>
                 </a>
               </div>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-wtm-muted">
                 This is the URL customers will access when they scan your QR code
               </p>
             </div>
 
-            {/* Customization Options */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Settings size={20} className="mr-2" />
-                Customization
-              </h3>
+            {/* Live Preview */}
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-wtm-text mb-4 font-heading">Live Preview</h3>
+              <div className="text-center">
+                <div className="inline-block p-6 bg-wtm-bg rounded-2xl">
+                  <img
+                    src={generateQRCode(200)}
+                    alt="QR Code Preview"
+                    className="w-48 h-48 mx-auto rounded-xl shadow-sm"
+                  />
+                </div>
+                <p className="text-sm text-wtm-muted mt-3">
+                  Preview updates with your color choices
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right column - Customization and Downloads */}
+          <div className="space-y-6">
+            {/* Color Customization */}
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-wtm-text mb-4 font-heading">Color Options</h3>
               
-              {/* Colors */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">Colors</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">QR Code Color</label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="color"
-                        value={qrColor}
-                        onChange={(e) => setQrColor(e.target.value)}
-                        className="w-10 h-10 rounded border border-gray-300"
-                      />
-                      <input
-                        type="text"
-                        value={qrColor}
-                        onChange={(e) => setQrColor(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
-                      />
-                    </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-wtm-text mb-2">QR Code Color</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {colorOptions.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => setQrColor(color.value)}
+                        className={`p-3 text-left border rounded-xl transition-colors ${
+                          qrColor === color.value
+                            ? 'border-wtm-primary bg-wtm-primary/10'
+                            : 'border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-6 h-6 rounded-full border-2 border-gray-200" 
+                            style={{ backgroundColor: color.value }}
+                          />
+                          <span className="text-sm font-medium">{color.name}</span>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Background Color</label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="color"
-                        value={backgroundColor}
-                        onChange={(e) => setBackgroundColor(e.target.value)}
-                        className="w-10 h-10 rounded border border-gray-300"
-                      />
-                      <input
-                        type="text"
-                        value={backgroundColor}
-                        onChange={(e) => setBackgroundColor(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
-                      />
-                    </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-wtm-text mb-2">Background Color</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {backgroundOptions.map((bg) => (
+                      <button
+                        key={bg.value}
+                        onClick={() => setBackgroundColor(bg.value)}
+                        className={`p-3 text-center border rounded-xl transition-colors ${
+                          backgroundColor === bg.value
+                            ? 'border-wtm-primary bg-wtm-primary/10'
+                            : 'border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div 
+                          className="w-8 h-8 rounded-lg border border-gray-200 mx-auto mb-1" 
+                          style={{ backgroundColor: bg.value }}
+                        />
+                        <span className="text-xs font-medium">{bg.name}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Download Options */}
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-wtm-text mb-4 font-heading">Download Sizes</h3>
+              <div className="space-y-3">
+                {qrSizes.map((size) => (
+                  <div key={size.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div>
+                      <div className="font-medium text-wtm-text">{size.name}</div>
+                      <div className="text-sm text-wtm-muted">{size.description}</div>
+                    </div>
+                    <button
+                      onClick={() => downloadQRCode(size.id)}
+                      className="btn btn-ghost px-4 py-2 gap-2"
+                    >
+                      <Download size={16} />
+                      Download
+                    </button>
+                  </div>
+                ))}
+              </div>
 
               {/* Format Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Download Format</label>
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-wtm-text mb-2">Format</label>
                 <div className="grid grid-cols-3 gap-2">
                   {formats.map((format) => (
                     <button
                       key={format.id}
                       onClick={() => setSelectedFormat(format.id)}
-                      className={`p-3 text-center border rounded-lg transition-colors ${
+                      className={`p-3 text-center border rounded-xl transition-colors ${
                         selectedFormat === format.id
-                          ? 'border-coral-500 bg-coral-50 text-coral-700'
-                          : 'border-gray-300 hover:bg-gray-50'
+                          ? 'border-wtm-primary bg-wtm-primary/10 text-wtm-primary'
+                          : 'border-gray-200 hover:bg-gray-50 text-wtm-text'
                       }`}
                     >
                       <div className="font-medium">{format.name}</div>
-                      <div className="text-xs text-gray-500 mt-1">{format.description}</div>
+                      <div className="text-xs text-wtm-muted">{format.description}</div>
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Preview */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Preview</h3>
-              <div className="text-center">
-                <div className="inline-block p-4 bg-gray-50 rounded-lg">
-                  <img
-                    src={generateQRCode(200)}
-                    alt="QR Code Preview"
-                    className="w-48 h-48 mx-auto border border-gray-200 rounded"
-                  />
-                </div>
-                <p className="text-sm text-gray-500 mt-3">
-                  Preview of your QR code with current settings
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Right column - Size Options and Downloads */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button
-                  onClick={printQRCode}
-                  className="w-full flex items-center justify-center px-4 py-3 bg-coral-600 hover:bg-coral-700 text-white rounded-lg font-medium transition-colors"
-                >
-                  <Printer size={20} className="mr-2" />
-                  Print QR Code
-                </button>
-                <button
-                  onClick={() => downloadQRCode('medium')}
-                  className="w-full flex items-center justify-center px-4 py-3 border border-coral-600 text-coral-600 hover:bg-coral-50 rounded-lg font-medium transition-colors"
-                >
-                  <Download size={20} className="mr-2" />
-                  Quick Download (Medium)
-                </button>
-              </div>
-            </div>
-
-            {/* Size Options */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Download Sizes</h3>
-              <div className="space-y-4">
-                {qrSizes.map((size) => (
-                  <div key={size.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">{size.name}</div>
-                      <div className="text-sm text-gray-500">{size.description}</div>
-                    </div>
-                    <button
-                      onClick={() => downloadQRCode(size.id)}
-                      className="flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
-                    >
-                      <Download size={16} className="mr-2" />
-                      Download
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Usage Tips */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-blue-900 mb-3">Usage Tips</h3>
-              <ul className="space-y-2 text-sm text-blue-800">
-                <li className="flex items-start">
-                  <span className="text-blue-600 mr-2">•</span>
-                  Place QR codes on tables, menus, or near the entrance
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-600 mr-2">•</span>
-                  Ensure good lighting for easy scanning
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-600 mr-2">•</span>
-                  Test scanning from different distances and angles
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-600 mr-2">•</span>
-                  Include instructions like "Scan for Menu" for clarity
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-600 mr-2">•</span>
-                  Consider laminating printed QR codes for durability
-                </li>
-              </ul>
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-blue-900 mb-3 font-heading">Usage Tips</h3>
+              <div className="space-y-2 text-sm text-blue-800">
+                <p>Place QR codes near entrance or on tables</p>
+                <p>Good lighting helps scanning</p>
+                <p>Include "Scan for Menu" text</p>
+                <p>Consider lamination for durability</p>
+              </div>
             </div>
           </div>
         </div>

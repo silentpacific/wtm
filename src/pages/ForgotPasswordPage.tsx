@@ -72,62 +72,66 @@ const ForgotPasswordPage: React.FC = () => {
 
   if (isEmailSent) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-        <div className="max-w-md w-full">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <Link to="/" className="inline-block mb-6">
-              <span className="text-2xl font-bold text-gray-900">
-                WhatThe<span className="text-coral-600">Menu?</span>
-              </span>
-            </Link>
-          </div>
-
-          {/* Success Message */}
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle size={32} className="text-green-600" />
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--wtm-bg)' }}>
+        <div className="flex items-center justify-center py-12 px-4 min-h-screen">
+          <div className="max-w-md w-full">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <Link to="/" className="inline-block mb-6">
+                <span className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
+                  WhatThe<span style={{ color: 'var(--wtm-primary)' }}>Menu</span>
+                </span>
+              </Link>
             </div>
-            
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              Check Your Email
-            </h1>
-            
-            <p className="text-gray-600 mb-6">
-              We've sent a password reset link to:
-            </p>
-            
-            <p className="text-lg font-semibold text-gray-900 mb-8 bg-gray-50 p-3 rounded-lg">
-              {email}
-            </p>
-            
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">
-                Click the link in the email to reset your password. 
-                The link will expire in 24 hours.
+
+            {/* Success Message */}
+            <div className="card p-8 text-center">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" 
+                   style={{ backgroundColor: '#EAF8E6' }}>
+                <CheckCircle size={32} style={{ color: '#235A1E' }} />
+              </div>
+              
+              <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--wtm-text)' }}>
+                Check Your Email
+              </h1>
+              
+              <p className="mb-6" style={{ color: 'var(--wtm-muted)' }}>
+                We've sent a password reset link to:
               </p>
               
-              <p className="text-sm text-gray-600">
-                Didn't receive the email? Check your spam folder or{' '}
-                <button
-                  onClick={handleResendEmail}
-                  disabled={isLoading}
-                  className="text-coral-600 hover:text-coral-700 font-medium"
-                >
-                  {isLoading ? 'Sending...' : 'send it again'}
-                </button>
+              <p className="text-lg font-semibold mb-8 p-3 rounded-lg" 
+                 style={{ 
+                   color: 'var(--wtm-text)', 
+                   backgroundColor: 'var(--wtm-bg)' 
+                 }}>
+                {email}
               </p>
-            </div>
+              
+              <div className="space-y-4">
+                <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>
+                  Click the link in the email to reset your password. 
+                  The link will expire in 24 hours.
+                </p>
+                
+                <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>
+                  Didn't receive the email? Check your spam folder or{' '}
+                  <button
+                    onClick={handleResendEmail}
+                    disabled={isLoading}
+                    className="btn-ghost font-medium p-0 text-sm"
+                  >
+                    {isLoading ? 'Sending...' : 'send it again'}
+                  </button>
+                </p>
+              </div>
 
-            {/* Back to Login */}
-            <div className="mt-8 pt-6 border-t">
-              <Link
-                to="/login"
-                className="inline-flex items-center text-coral-600 hover:text-coral-700 font-medium"
-              >
-                <ArrowLeft size={16} className="mr-2" />
-                Back to Sign In
-              </Link>
+              {/* Back to Login */}
+              <div className="mt-8 pt-6 border-t" style={{ borderColor: '#EFE7E2' }}>
+                <Link to="/login" className="btn-ghost inline-flex items-center">
+                  <ArrowLeft size={16} className="mr-2" />
+                  Back to Sign In
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -136,96 +140,102 @@ const ForgotPasswordPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-block mb-6">
-            <span className="text-2xl font-bold text-gray-900">
-              WhatThe<span className="text-coral-600">Menu?</span>
-            </span>
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Reset Password
-          </h1>
-          <p className="text-gray-600">
-            Enter your email to receive a reset link
-          </p>
-        </div>
-
-        {/* Reset Form */}
-        <div className="bg-white rounded-lg shadow-sm p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* General Error */}
-            {errors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-700 text-sm">{errors.general}</p>
-              </div>
-            )}
-
-            {/* Email Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Mail className="inline mr-1" size={16} />
-                Email Address
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={email}
-                onChange={handleInputChange}
-                className={`w-full px-4 py-3 rounded-lg border ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
-                } focus:ring-2 focus:ring-coral-500 focus:border-coral-500`}
-                placeholder="your.email@restaurant.com"
-                autoComplete="email"
-              />
-              {errors.email && (
-                <p className="text-red-600 text-sm mt-1">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Instructions */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-blue-800 text-sm">
-                We'll send you a secure link to reset your password. 
-                The link will expire in 24 hours for your security.
-              </p>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${
-                isLoading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-coral-600 hover:bg-coral-700 text-white'
-              }`}
-            >
-              {isLoading ? 'Sending Reset Link...' : 'Send Reset Link'}
-            </button>
-          </form>
-
-          {/* Back to Login */}
-          <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-            <Link
-              to="/login"
-              className="inline-flex items-center text-coral-600 hover:text-coral-700 font-medium"
-            >
-              <ArrowLeft size={16} className="mr-2" />
-              Back to Sign In
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--wtm-bg)' }}>
+      <div className="flex items-center justify-center py-12 px-4 min-h-screen">
+        <div className="max-w-md w-full">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <Link to="/" className="inline-block mb-6">
+              <span className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
+                WhatThe<span style={{ color: 'var(--wtm-primary)' }}>Menu</span>
+              </span>
             </Link>
+            <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--wtm-text)' }}>
+              Reset Password
+            </h1>
+            <p style={{ color: 'var(--wtm-muted)' }}>
+              Enter your email to receive a reset link
+            </p>
           </div>
 
-          {/* Help */}
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600">
-              Need help?{' '}
-              <Link to="/contact" className="text-coral-600 hover:text-coral-700 font-medium">
-                Contact Support
+          {/* Reset Form */}
+          <div className="card p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* General Error */}
+              {errors.general && (
+                <div className="p-4 rounded-lg" 
+                     style={{ 
+                       backgroundColor: '#FCEDEA', 
+                       border: '1px solid #F87171',
+                       color: '#7A2E21'
+                     }}>
+                  <p className="text-sm">{errors.general}</p>
+                </div>
+              )}
+
+              {/* Email Field */}
+              <div>
+                <label className="block text-sm font-medium mb-2" 
+                       style={{ color: 'var(--wtm-text)' }}>
+                  <Mail className="inline mr-1" size={16} />
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={email}
+                  onChange={handleInputChange}
+                  className={`input-field w-full ${
+                    errors.email ? 'border-red-300' : ''
+                  }`}
+                  placeholder="your.email@restaurant.com"
+                  autoComplete="email"
+                />
+                {errors.email && (
+                  <p className="text-red-600 text-sm mt-1">{errors.email}</p>
+                )}
+              </div>
+
+              {/* Instructions */}
+              <div className="p-4 rounded-lg" 
+                   style={{ 
+                     backgroundColor: '#EAF2FF', 
+                     border: '1px solid #93C5FD',
+                     color: '#1A3E73'
+                   }}>
+                <p className="text-sm">
+                  We'll send you a secure link to reset your password. 
+                  The link will expire in 24 hours for your security.
+                </p>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`btn w-full ${isLoading ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-primary'}`}
+              >
+                {isLoading ? 'Sending Reset Link...' : 'Send Reset Link'}
+              </button>
+            </form>
+
+            {/* Back to Login */}
+            <div className="mt-6 pt-6 border-t text-center" style={{ borderColor: '#EFE7E2' }}>
+              <Link to="/login" className="btn-ghost inline-flex items-center">
+                <ArrowLeft size={16} className="mr-2" />
+                Back to Sign In
               </Link>
-            </p>
+            </div>
+
+            {/* Help */}
+            <div className="mt-4 text-center">
+              <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>
+                Need help?{' '}
+                <Link to="/contact" className="btn-ghost font-medium p-0 text-sm">
+                  Contact Support
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>

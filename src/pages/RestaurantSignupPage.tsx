@@ -121,53 +121,60 @@ const RestaurantSignupPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen py-12" style={{ backgroundColor: 'var(--wtm-bg)' }}>
       <div className="max-w-2xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-block mb-6">
-            <span className="text-2xl font-bold text-gray-900">
-              WhatThe<span className="text-coral-600">Menu?</span>
+            <span className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
+              WhatThe<span style={{ color: 'var(--wtm-primary)' }}>Menu</span>
             </span>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Join WhatTheMenu
+          <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--wtm-text)' }}>
+            Sign Up Your Restaurant
           </h1>
-          <p className="text-gray-600">
+          <p style={{ color: 'var(--wtm-muted)' }}>
             Make your restaurant accessible to all customers
           </p>
         </div>
 
         {/* Signup Form */}
-        <div className="bg-white rounded-lg shadow-sm p-8">
+        <div className="card p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* General Error */}
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-700 text-sm">{errors.general}</p>
+              <div className="p-4 rounded-lg" 
+                   style={{ 
+                     backgroundColor: '#FCEDEA', 
+                     border: '1px solid #F87171',
+                     color: '#7A2E21'
+                   }}>
+                <p className="text-sm">{errors.general}</p>
               </div>
             )}
 
             {/* Restaurant Information */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <h2 className="text-xl font-semibold mb-4 flex items-center" 
+                  style={{ color: 'var(--wtm-text)' }}>
                 <Building className="mr-2" size={20} />
                 Restaurant Information
               </h2>
               
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Restaurant Name *
+                  <label className="block text-sm font-medium mb-2" 
+                         style={{ color: 'var(--wtm-text)' }}>
+                    Restaurant Name
                   </label>
                   <input
                     type="text"
                     name="restaurantName"
                     value={formData.restaurantName}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-3 rounded-lg border ${
-                      errors.restaurantName ? 'border-red-300' : 'border-gray-300'
-                    } focus:ring-2 focus:ring-coral-500 focus:border-coral-500`}
+                    className={`input-field w-full ${
+                      errors.restaurantName ? 'border-red-300' : ''
+                    }`}
                     placeholder="e.g., Mario's Italian Kitchen"
                   />
                   {errors.restaurantName && (
@@ -176,16 +183,17 @@ const RestaurantSignupPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Cuisine Type *
+                  <label className="block text-sm font-medium mb-2" 
+                         style={{ color: 'var(--wtm-text)' }}>
+                    Cuisine Type
                   </label>
                   <select
                     name="cuisineType"
                     value={formData.cuisineType}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-3 rounded-lg border ${
-                      errors.cuisineType ? 'border-red-300' : 'border-gray-300'
-                    } focus:ring-2 focus:ring-coral-500 focus:border-coral-500`}
+                    className={`input-field w-full ${
+                      errors.cuisineType ? 'border-red-300' : ''
+                    }`}
                   >
                     <option value="">Select cuisine type</option>
                     {cuisineOptions.map(cuisine => (
@@ -200,18 +208,19 @@ const RestaurantSignupPage: React.FC = () => {
 
               <div className="grid md:grid-cols-2 gap-4 mt-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" 
+                         style={{ color: 'var(--wtm-text)' }}>
                     <MapPin className="inline mr-1" size={16} />
-                    Address *
+                    Address
                   </label>
                   <input
                     type="text"
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-3 rounded-lg border ${
-                      errors.address ? 'border-red-300' : 'border-gray-300'
-                    } focus:ring-2 focus:ring-coral-500 focus:border-coral-500`}
+                    className={`input-field w-full ${
+                      errors.address ? 'border-red-300' : ''
+                    }`}
                     placeholder="123 Main Street"
                   />
                   {errors.address && (
@@ -220,17 +229,18 @@ const RestaurantSignupPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City *
+                  <label className="block text-sm font-medium mb-2" 
+                         style={{ color: 'var(--wtm-text)' }}>
+                    City
                   </label>
                   <input
                     type="text"
                     name="city"
                     value={formData.city}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-3 rounded-lg border ${
-                      errors.city ? 'border-red-300' : 'border-gray-300'
-                    } focus:ring-2 focus:ring-coral-500 focus:border-coral-500`}
+                    className={`input-field w-full ${
+                      errors.city ? 'border-red-300' : ''
+                    }`}
                     placeholder="Adelaide"
                   />
                   {errors.city && (
@@ -240,18 +250,19 @@ const RestaurantSignupPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium mb-2" 
+                       style={{ color: 'var(--wtm-text)' }}>
                   <Phone className="inline mr-1" size={16} />
-                  Phone Number *
+                  Phone Number
                 </label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 rounded-lg border ${
-                    errors.phone ? 'border-red-300' : 'border-gray-300'
-                  } focus:ring-2 focus:ring-coral-500 focus:border-coral-500`}
+                  className={`input-field w-full ${
+                    errors.phone ? 'border-red-300' : ''
+                  }`}
                   placeholder="+61 8 1234 5678"
                 />
                 {errors.phone && (
@@ -261,25 +272,27 @@ const RestaurantSignupPage: React.FC = () => {
             </div>
 
             {/* Owner Information */}
-            <div className="border-t pt-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+            <div className="border-t pt-6" style={{ borderColor: '#EFE7E2' }}>
+              <h2 className="text-xl font-semibold mb-4 flex items-center" 
+                  style={{ color: 'var(--wtm-text)' }}>
                 <User className="mr-2" size={20} />
                 Owner Information
               </h2>
               
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
+                  <label className="block text-sm font-medium mb-2" 
+                         style={{ color: 'var(--wtm-text)' }}>
+                    Full Name
                   </label>
                   <input
                     type="text"
                     name="ownerName"
                     value={formData.ownerName}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-3 rounded-lg border ${
-                      errors.ownerName ? 'border-red-300' : 'border-gray-300'
-                    } focus:ring-2 focus:ring-coral-500 focus:border-coral-500`}
+                    className={`input-field w-full ${
+                      errors.ownerName ? 'border-red-300' : ''
+                    }`}
                     placeholder="John Smith"
                   />
                   {errors.ownerName && (
@@ -288,18 +301,19 @@ const RestaurantSignupPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" 
+                         style={{ color: 'var(--wtm-text)' }}>
                     <Mail className="inline mr-1" size={16} />
-                    Email Address *
+                    Email Address
                   </label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-3 rounded-lg border ${
-                      errors.email ? 'border-red-300' : 'border-gray-300'
-                    } focus:ring-2 focus:ring-coral-500 focus:border-coral-500`}
+                    className={`input-field w-full ${
+                      errors.email ? 'border-red-300' : ''
+                    }`}
                     placeholder="john@restaurant.com"
                   />
                   {errors.email && (
@@ -310,8 +324,9 @@ const RestaurantSignupPage: React.FC = () => {
 
               <div className="grid md:grid-cols-2 gap-4 mt-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Password *
+                  <label className="block text-sm font-medium mb-2" 
+                         style={{ color: 'var(--wtm-text)' }}>
+                    Password
                   </label>
                   <div className="relative">
                     <input
@@ -319,15 +334,16 @@ const RestaurantSignupPage: React.FC = () => {
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 rounded-lg border ${
-                        errors.password ? 'border-red-300' : 'border-gray-300'
-                      } focus:ring-2 focus:ring-coral-500 focus:border-coral-500 pr-12`}
+                      className={`input-field w-full pr-12 ${
+                        errors.password ? 'border-red-300' : ''
+                      }`}
                       placeholder="••••••••"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                      style={{ color: 'var(--wtm-muted)' }}
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -338,8 +354,9 @@ const RestaurantSignupPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Confirm Password *
+                  <label className="block text-sm font-medium mb-2" 
+                         style={{ color: 'var(--wtm-text)' }}>
+                    Confirm Password
                   </label>
                   <div className="relative">
                     <input
@@ -347,15 +364,16 @@ const RestaurantSignupPage: React.FC = () => {
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 rounded-lg border ${
-                        errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                      } focus:ring-2 focus:ring-coral-500 focus:border-coral-500 pr-12`}
+                      className={`input-field w-full pr-12 ${
+                        errors.confirmPassword ? 'border-red-300' : ''
+                      }`}
                       placeholder="••••••••"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                      style={{ color: 'var(--wtm-muted)' }}
                     >
                       {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -367,45 +385,4 @@ const RestaurantSignupPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="pt-6">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors ${
-                  isLoading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-coral-600 hover:bg-coral-700 text-white'
-                }`}
-              >
-                {isLoading ? 'Creating Account...' : 'Create Restaurant Account'}
-              </button>
-            </div>
-
-            {/* Terms & Login Link */}
-            <div className="text-center text-sm text-gray-600 space-y-2">
-              <p>
-                By creating an account, you agree to our{' '}
-                <Link to="/terms" className="text-coral-600 hover:text-coral-700">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link to="/privacy" className="text-coral-600 hover:text-coral-700">
-                  Privacy Policy
-                </Link>
-              </p>
-              <p>
-                Already have an account?{' '}
-                <Link to="/login" className="text-coral-600 hover:text-coral-700 font-semibold">
-                  Sign in here
-                </Link>
-              </p>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default RestaurantSignupPage;
+            {/* Subm

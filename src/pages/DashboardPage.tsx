@@ -32,21 +32,24 @@ const DashboardPage: React.FC = () => {
       description: 'Update dishes, prices, and descriptions',
       href: '/dashboard/menu-editor',
       icon: Edit3,
-      color: 'bg-blue-500'
+      iconBg: '#EAF2FF',
+      iconColor: '#1A3E73'
     },
     {
       title: 'Download QR Codes',
       description: 'Get print-ready QR codes for tables',
       href: '/dashboard/qr-codes',
       icon: QrCode,
-      color: 'bg-green-500'
+      iconBg: '#EAF8E6',
+      iconColor: '#235A1E'
     },
     {
       title: 'View Live Menu',
       description: 'See what customers see',
       href: `/demos/sample-menu-1`, // This would be dynamic: `/r/${restaurant?.slug}`
       icon: Eye,
-      color: 'bg-purple-500'
+      iconBg: '#FCEDEA',
+      iconColor: '#7A2E21'
     }
   ];
 
@@ -55,10 +58,10 @@ const DashboardPage: React.FC = () => {
       <div className="p-6">
         {/* Welcome header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--wtm-text)' }}>
             Welcome back, {restaurant?.owner_name || 'Restaurant Owner'}!
           </h1>
-          <p className="text-gray-600">
+          <p style={{ color: 'var(--wtm-muted)' }}>
             Here's what's happening with {restaurant?.name || 'your restaurant'} today.
           </p>
         </div>
@@ -66,34 +69,48 @@ const DashboardPage: React.FC = () => {
         {/* Status alerts */}
         <div className="mb-6 space-y-3">
           {/* Setup complete alert */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-            <CheckCircle className="text-green-500 mr-3" size={20} />
+          <div className="card p-4 flex items-center" 
+               style={{ 
+                 backgroundColor: 'var(--chip-veg-bg)', 
+                 border: `1px solid ${getComputedStyle(document.documentElement).getPropertyValue('--chip-veg-fg')}20`
+               }}>
+            <CheckCircle className="mr-3" size={20} style={{ color: 'var(--chip-veg-fg)' }} />
             <div className="flex-1">
-              <p className="text-green-800 font-medium">Your restaurant is live!</p>
-              <p className="text-green-700 text-sm">
+              <p className="font-medium" style={{ color: 'var(--chip-veg-fg)' }}>
+                Your restaurant is live!
+              </p>
+              <p className="text-sm" style={{ color: 'var(--chip-veg-fg)' }}>
                 Customers can now scan your QR codes to access accessible menus.
               </p>
             </div>
             <Link 
               to="/dashboard/qr-codes" 
-              className="text-green-700 hover:text-green-800 font-medium text-sm"
+              className="btn-ghost text-sm font-medium"
+              style={{ color: 'var(--chip-veg-fg)' }}
             >
               Get QR Codes →
             </Link>
           </div>
 
           {/* Demo alert - would be conditional based on real setup status */}
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center">
-            <AlertTriangle className="text-amber-500 mr-3" size={20} />
+          <div className="card p-4 flex items-center" 
+               style={{ 
+                 backgroundColor: 'var(--chip-nuts-bg)', 
+                 border: `1px solid ${getComputedStyle(document.documentElement).getPropertyValue('--chip-nuts-fg')}20`
+               }}>
+            <AlertTriangle className="mr-3" size={20} style={{ color: 'var(--chip-nuts-fg)' }} />
             <div className="flex-1">
-              <p className="text-amber-800 font-medium">Complete your menu setup</p>
-              <p className="text-amber-700 text-sm">
+              <p className="font-medium" style={{ color: 'var(--chip-nuts-fg)' }}>
+                Complete your menu setup
+              </p>
+              <p className="text-sm" style={{ color: 'var(--chip-nuts-fg)' }}>
                 Upload your actual menu to replace the demo content.
               </p>
             </div>
             <Link 
               to="/dashboard/menu-editor" 
-              className="text-amber-700 hover:text-amber-800 font-medium text-sm"
+              className="btn-ghost text-sm font-medium"
+              style={{ color: 'var(--chip-nuts-fg)' }}
             >
               Upload Menu →
             </Link>
@@ -102,50 +119,58 @@ const DashboardPage: React.FC = () => {
 
         {/* Stats overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg p-6 shadow-sm">
+          <div className="card p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Eye className="text-blue-600" size={20} />
+              <div className="p-2 rounded-lg" style={{ backgroundColor: '#EAF2FF' }}>
+                <Eye size={20} style={{ color: '#1A3E73' }} />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-600">Total Views</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalViews}</p>
+                <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>Total Views</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
+                  {stats.totalViews}
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-6 shadow-sm">
+          <div className="card p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <TrendingUp className="text-green-600" size={20} />
+              <div className="p-2 rounded-lg" style={{ backgroundColor: '#EAF8E6' }}>
+                <TrendingUp size={20} style={{ color: '#235A1E' }} />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-600">Today's Views</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.todayViews}</p>
+                <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>Today's Views</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
+                  {stats.todayViews}
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-6 shadow-sm">
+          <div className="card p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <QrCode className="text-purple-600" size={20} />
+              <div className="p-2 rounded-lg" style={{ backgroundColor: '#E9F6F3' }}>
+                <QrCode size={20} style={{ color: '#1A5A50' }} />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-600">QR Scans</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.qrScans}</p>
+                <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>QR Scans</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
+                  {stats.qrScans}
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-6 shadow-sm">
+          <div className="card p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-coral-100 rounded-lg">
-                <Users className="text-coral-600" size={20} />
+              <div className="p-2 rounded-lg" style={{ backgroundColor: '#FCEDEA' }}>
+                <Users size={20} style={{ color: 'var(--wtm-primary)' }} />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-600">Active Today</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.activeToday}</p>
+                <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>Active Today</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
+                  {stats.activeToday}
+                </p>
               </div>
             </div>
           </div>
@@ -153,7 +178,9 @@ const DashboardPage: React.FC = () => {
 
         {/* Quick actions */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--wtm-text)' }}>
+            Quick Actions
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
@@ -164,20 +191,23 @@ const DashboardPage: React.FC = () => {
                   key={index}
                   to={action.href}
                   target={isExternal ? '_blank' : undefined}
-                  className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow border border-gray-200 hover:border-gray-300"
+                  className="card p-6 block transition-all duration-200"
                 >
                   <div className="flex items-center mb-3">
-                    <div className={`p-2 ${action.color} rounded-lg`}>
-                      <Icon className="text-white" size={20} />
+                    <div className="p-2 rounded-lg" 
+                         style={{ backgroundColor: action.iconBg }}>
+                      <Icon size={20} style={{ color: action.iconColor }} />
                     </div>
                     {isExternal && (
-                      <ExternalLink className="text-gray-400 ml-auto" size={16} />
+                      <ExternalLink className="ml-auto" size={16} 
+                                  style={{ color: 'var(--wtm-muted)' }} />
                     )}
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold mb-2" 
+                      style={{ color: 'var(--wtm-text)' }}>
                     {action.title}
                   </h3>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>
                     {action.description}
                   </p>
                 </Link>
