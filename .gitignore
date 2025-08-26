@@ -1,21 +1,31 @@
-# Logs
-logs
-*.log
+# Dependencies
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+dist/
+dist-ssr/
 *.local
 
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
 # Editor directories and files
-.vscode/*
+.vscode/
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
@@ -23,15 +33,120 @@ dist-ssr
 *.sln
 *.sw?
 
-# Testing outputs
-testing/results/
-testing/logs/
+# Operating System
+Thumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 
-# Environment files
-.env.local
-.env.test
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Netlify
+.netlify/
+
 # Local Netlify folder
 .netlify
-.env.local 
-.env 
-.env.production 
+
+# TypeScript
+*.tsbuildinfo
+
+# Supabase
+.supabase/
+
+# Test files
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# IDE
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+*.tmp
+
+# Project specific
+# Add any project-specific files/folders you want to ignore
+
+# Database
+*.sqlite
+*.db
+
+# Generated files
+generated/
+auto-generated/
+
+# Configuration overrides
+config.local.*
+settings.local.*
+
+# Documentation builds
+docs/build/
+
+# Temporary uploads
+uploads/tmp/

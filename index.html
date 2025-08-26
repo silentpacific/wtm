@@ -1,125 +1,31 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  
-  <!-- Primary SEO Tags -->
-  <title>Menu Scanner & Translator | WhatTheMenu - Understand Any Restaurant Menu</title>
-  <meta name="description" content="Scan any restaurant menu and get instant explanations of dishes, ingredients, and allergens. Perfect for travelers and food lovers. Works with 80+ languages." />
-  
-  <!-- Additional Meta Tags -->
-  <meta name="keywords" content="menu translator, menu scanner, restaurant menu, dish explanation, food translator, travel app, allergen detector, menu reader" />
-  <meta name="author" content="WhatTheMenu" />
-  <meta name="robots" content="index, follow" />
-
-<!-- Preconnect to external domains -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://www.google-analytics.com" />
-  
-  <!-- Canonical URL -->
-  <link rel="canonical" href="https://whatthemenu.com" />
-
-  <!-- Schema.org JSON-LD -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "WhatTheMenu",
-    "description": "AI-powered menu scanner and translator that helps you understand restaurant dishes, ingredients, and allergens instantly.",
-    "url": "https://whatthemenu.com",
-    "applicationCategory": "UtilityApplication",
-    "operatingSystem": "Web Browser",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD",
-      "description": "Free tier with paid upgrades available"
-    },
-    "author": {
-      "@type": "Organization",
-      "name": "LoFi Simplify",
-      "url": "https://www.lofisimplify.com.au/"
-    }
-  }
-  </script>
-
-
-    <!-- Google Analytics -->
-	  <script async src="https://www.googletagmanager.com/gtag/js?id=G-36SHN00S7N"></script>
-	  <script>
-	    window.dataLayer = window.dataLayer || [];
-	    function gtag(){dataLayer.push(arguments);}
-	    gtag('js', new Date());
-	    gtag('config', 'G-36SHN00S7N');
-	  </script>
-
-    <!-- Microsoft Clarity -->
-    <script type="text/javascript">
-      (function(c,l,a,r,i,t,y){
-          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-      })(window, document, "clarity", "script", "shqg10vcxd");
-    </script>
-
-
-<!-- Add Tailwind CSS -->
-<!--<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        fontFamily: {
-          sans: ['Nunito', 'sans-serif'],
-        },
-        colors: {
-          'cream': '#FFFCF5',
-          'charcoal': '#292524',
-          'coral': '#FF6B6B',
-          'teal': '#1DD1A1',
-          'yellow': '#FFC700',
-        }
-      },
-    },
-  }
-</script>
--->
-
-
-    <style>
-      /* For custom scrollbar aesthetics */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #FFFCF5; /* cream */
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #FF6B6B; /* coral */
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #e65a5a; /* darker coral */
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.1.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
-    "react/": "https://esm.sh/react@^19.1.0/",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.6.3",
-    "@google/genai": "https://esm.sh/@google/genai@^1.9.0",
-    "react-dropzone": "https://esm.sh/react-dropzone@^14.3.8",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.45.1",
-    "@netlify/functions": "https://esm.sh/@netlify/functions@^4.1.11"
-  }
-}
-</script>
-</head>
-  <body class="bg-cream text-charcoal">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/utensils.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- SEO Meta Tags -->
+    <title>WhatTheMenu - Restaurant Accessibility Platform</title>
+    <meta name="description" content="Help your restaurant serve customers with hearing impairments and language barriers. Multi-language menu access with visual-only ordering." />
+    <meta name="keywords" content="restaurant accessibility, multilingual menus, hearing impaired, language barriers, visual ordering" />
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="WhatTheMenu - Restaurant Accessibility Platform" />
+    <meta property="og:description" content="Help your restaurant serve customers with hearing impairments and language barriers." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://whatthemenu.com" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  </head>
+  <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
