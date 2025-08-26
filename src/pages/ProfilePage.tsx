@@ -103,11 +103,11 @@ const ProfilePage: React.FC = () => {
       console.log('User profile set:', profile);
 
       // Fetch restaurant data
-      const { data: restaurant, error: restaurantError } = await supabase
-        .from('restaurants')
-        .select('id, name, cuisine_type, city, state, country, phone, address, owner_name')
-        .eq('auth_user_id', user.id)
-        .single();
+		const { data, error } = await supabase
+		  .from('restaurants')
+		  .select('id, name, cuisine_type, city, state, country, phone, address, owner_name, auth_user_id')
+		  .eq('auth_user_id', user.id)
+		  .single();
 
       console.log('Restaurant query result:', { restaurant, error: restaurantError });
 
@@ -187,11 +187,11 @@ const ProfilePage: React.FC = () => {
           auth_user_id: user.id
         };
 
-        const { data, error } = await supabase
-          .from('restaurants')
-          .insert([newRestaurant])
-          .select('id, name, cuisine_type, city, state, country, phone, address, owner_name')
-          .single();
+		const { data, error } = await supabase
+		  .from('restaurants')
+		  .select('id, name, cuisine_type, city, state, country, phone, address, owner_name, auth_user_id')
+		  .eq('auth_user_id', user.id)
+		  .single();
 
         if (error) throw error;
         
