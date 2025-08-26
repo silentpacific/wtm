@@ -5,11 +5,13 @@ import { tokyoSushiMenu } from '../data/sampleMenuData';
 
 const SampleMenu2: React.FC = () => {
   return (
-    <RestaurantMenuPage 
-      menuData={tokyoSushiMenu}
-      menuId="demo-menu-2"
-      isDemo={true}
-    />
+	<div className="px-12 md:px-24 lg:px-40">
+		<RestaurantMenuPage 
+		  menuData={tokyoSushiMenu}
+		  menuId="demo-menu-2"
+		  isDemo={true}
+		/>
+	</div>
   );
 };
 
