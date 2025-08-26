@@ -1,11 +1,19 @@
-// src/pages/ProfilePage.tsx - Fixed Version
+// src/pages/ProfilePage.tsx - Detailed Debug Version
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 
 const ProfilePage: React.FC = () => {
-  const { user, authLoading } = useAuth();
+  const authContext = useAuth();
+  console.log('[ProfilePage] Auth context received:', {
+    user: authContext.user ? 'exists' : 'null',
+    authLoading: authContext.authLoading,
+    authLoadingType: typeof authContext.authLoading,
+    restaurant: authContext.restaurant ? 'exists' : 'null'
+  });
+
+  const { user, authLoading } = authContext;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -14,33 +22,48 @@ const ProfilePage: React.FC = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [restaurantData, setRestaurantData] = useState<any>(null);
 
-  // Fix: Handle undefined authLoading by treating it as true
-  const isAuthLoading = authLoading === undefined ? true : authLoading;
-
   // 🔹 Fetch profile + restaurant
   useEffect(() => {
-    console.log('useEffect triggered', { isAuthLoading, user: user ? 'exists' : 'null' });
+    console.log('[ProfilePage] useEffect triggered', { 
+      authLoading: authLoading, 
+      authLoadingType: typeof authLoading,
+      user: user ? 'exists' : 'null',
+      userId: user?.id 
+    });
     
     // Don't proceed if auth is still loading
-    if (isAuthLoading) {
-      console.log('Auth still loading, waiting...');
+    if (authLoading) {
+      console.log('[ProfilePage] Auth still loading, waiting...');
       return;
     }
 
     // Don't proceed if no user
     if (!user) {
-      console.log('No user found, stopping fetch');
+      console.log('[ProfilePage] No user found, stopping fetch');
       setLoading(false);
       return;
     }
 
     const fetchProfileData = async () => {
-      console.log(`Starting fetch for user ID: ${user.id}`);
+      console.log(`[ProfilePage] Starting fetch for user ID: ${user.id}`);
       setLoading(true);
 
       try {
+        // Test Supabase connection first
+        console.log('[ProfilePage] Testing Supabase connection...');
+        const { data: testData, error: testError } = await supabase
+          .from('user_profiles')
+          .select('count')
+          .limit(1);
+          
+        if (testError) {
+          console.error('[ProfilePage] Supabase connection test failed:', testError);
+          throw new Error(`Database connection failed: ${testError.message}`);
+        }
+        console.log('[ProfilePage] Supabase connection successful');
+
         // 1. User profile
-        console.log('Fetching user profile...');
+        console.log('[ProfilePage] Fetching user profile...');
         const { data: profile, error: profileError } = await supabase
           .from('user_profiles')
           .select('*')
@@ -48,15 +71,15 @@ const ProfilePage: React.FC = () => {
           .maybeSingle();
 
         if (profileError) {
-          console.error('Profile error:', profileError);
-          throw profileError;
+          console.error('[ProfilePage] Profile error:', profileError);
+          throw new Error(`Failed to fetch user profile: ${profileError.message}`);
         }
         
-        console.log('Profile data:', profile);
+        console.log('[ProfilePage] Profile data:', profile);
         setUserProfile(profile);
 
         // 2. Restaurant profile
-        console.log('Fetching restaurant data...');
+        console.log('[ProfilePage] Fetching restaurant data...');
         let { data: restaurant, error: restaurantError } = await supabase
           .from('restaurants')
           .select('id, name, cuisine_type, city, state, country, phone, address, owner_name, auth_user_id')
@@ -65,15 +88,15 @@ const ProfilePage: React.FC = () => {
           .maybeSingle();
 
         if (restaurantError) {
-          console.error('Restaurant error:', restaurantError);
-          throw restaurantError;
+          console.error('[ProfilePage] Restaurant error:', restaurantError);
+          throw new Error(`Failed to fetch restaurant data: ${restaurantError.message}`);
         }
 
-        console.log('Restaurant data:', restaurant);
+        console.log('[ProfilePage] Restaurant data:', restaurant);
         
         // If no restaurant row, create one
         if (!restaurant) {
-          console.log('Creating new restaurant record...');
+          console.log('[ProfilePage] Creating new restaurant record...');
           const { data: newRestaurant, error: insertError } = await supabase
             .from('restaurants')
             .insert([
@@ -93,28 +116,28 @@ const ProfilePage: React.FC = () => {
             .single();
 
           if (insertError) {
-            console.error('Restaurant creation error:', insertError);
-            throw insertError;
+            console.error('[ProfilePage] Restaurant creation error:', insertError);
+            throw new Error(`Failed to create restaurant: ${insertError.message}`);
           }
           
-          console.log('Restaurant created successfully');
+          console.log('[ProfilePage] Restaurant created successfully');
           restaurant = newRestaurant;
         }
 
         setRestaurantData(restaurant);
-        console.log('All data fetched successfully');
+        console.log('[ProfilePage] All data fetched successfully');
         
       } catch (err: any) {
-        console.error('Fetch error:', err);
-        setMessage({ type: 'error', text: `Failed to load profile data: ${err.message || 'Unknown error'}` });
+        console.error('[ProfilePage] Fetch error:', err);
+        setMessage({ type: 'error', text: err.message || 'Unknown error occurred' });
       } finally {
-        console.log('Fetch completed, setting loading to false');
+        console.log('[ProfilePage] Fetch completed, setting loading to false');
         setLoading(false);
       }
     };
 
     fetchProfileData();
-  }, [user, isAuthLoading]); // Use isAuthLoading instead of authLoading
+  }, [user, authLoading]);
 
   // 🔹 Save button handler
   const handleSave = async () => {
@@ -155,20 +178,35 @@ const ProfilePage: React.FC = () => {
 
       setMessage({ type: 'success', text: 'All changes saved successfully!' });
     } catch (err: any) {
-      console.error('Save error:', err);
-      setMessage({ type: 'error', text: `Failed to save changes: ${err.message || 'Unknown error'}` });
+      console.error('[ProfilePage] Save error:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to save changes' });
     } finally {
       setSaving(false);
       setTimeout(() => setMessage(null), 3000);
     }
   };
 
+  // Debug render logic
+  console.log('[ProfilePage] Render decision:', {
+    authLoading,
+    user: user ? 'exists' : 'null',
+    loading,
+    willShowAuthLoading: authLoading,
+    willShowNoUser: !authLoading && !user,
+    willShowDataLoading: !authLoading && user && loading,
+    willShowMain: !authLoading && user && !loading
+  });
+
   // Show loading state for auth
-  if (isAuthLoading) {
+  if (authLoading) {
+    console.log('[ProfilePage] Rendering: Auth loading state');
     return (
       <DashboardLayout>
-        <div className="text-center py-12 text-gray-600">
-          <div>Loading authentication...</div>
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div className="text-center py-12 text-gray-600">
+            <div>Loading authentication...</div>
+            <div className="text-sm mt-2">authLoading = {String(authLoading)}</div>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -176,10 +214,14 @@ const ProfilePage: React.FC = () => {
 
   // Show error if no user
   if (!user) {
+    console.log('[ProfilePage] Rendering: No user state');
     return (
       <DashboardLayout>
-        <div className="text-center py-12 text-red-600">
-          <div>Please log in to view your profile.</div>
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div className="text-center py-12 text-red-600">
+            <div>Please log in to view your profile.</div>
+            <div className="text-sm mt-2">authLoading = {String(authLoading)}, user = null</div>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -187,19 +229,34 @@ const ProfilePage: React.FC = () => {
 
   // Show loading state for profile data
   if (loading) {
+    console.log('[ProfilePage] Rendering: Data loading state');
     return (
       <DashboardLayout>
-        <div className="text-center py-12 text-gray-600">
-          <div>Loading your profile...</div>
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div className="text-center py-12 text-gray-600">
+            <div>Loading your profile...</div>
+            <div className="text-sm mt-2">User ID: {user.id}</div>
+          </div>
         </div>
       </DashboardLayout>
     );
   }
 
+  console.log('[ProfilePage] Rendering: Main form');
+
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Profile</h1>
+        <h1 className="text-2xl font-bold mb-6">Profile (Debug)</h1>
+
+        {/* Debug Info */}
+        <div className="mb-6 p-4 bg-gray-100 rounded text-sm">
+          <strong>Debug Info:</strong><br/>
+          authLoading: {String(authLoading)} ({typeof authLoading})<br/>
+          user: {user ? `${user.id} (${user.email})` : 'null'}<br/>
+          userProfile: {userProfile ? 'loaded' : 'not loaded'}<br/>
+          restaurantData: {restaurantData ? 'loaded' : 'not loaded'}
+        </div>
 
         {message && (
           <div
