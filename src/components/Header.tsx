@@ -230,15 +230,17 @@ const Header: React.FC = () => {
       </div>
 
       {/* Click outside to close menus */}
-      {(isProfileMenuOpen || isMenuOpen) && (
-        <div 
-          className="fixed inset-0 z-0"
-          onClick={() => {
-            setIsProfileMenuOpen(false);
-            setIsMenuOpen(false);
-          }}
-        />
-      )}
+{/*
+{(isProfileMenuOpen || isMenuOpen) && (
+  <div 
+    className="fixed inset-0 z-0"
+    onClick={() => {
+      setIsProfileMenuOpen(false);
+      setIsMenuOpen(false);
+    }}
+  />
+)}
+*/}
     </header>
   );
 };
