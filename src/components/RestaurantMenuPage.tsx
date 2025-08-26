@@ -29,6 +29,12 @@ interface MenuData {
 
 type Language = 'en' | 'zh' | 'es' | 'fr';
 
+type LanguageOption = {
+  code: Language;
+  label: string;
+  flag: string; // emoji or short code
+};
+
 interface RestaurantMenuPageProps {
   menuData: MenuData;
   menuId: string;
@@ -52,15 +58,14 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
   const [showDishExplanation, setShowDishExplanation] = useState<string | null>(null);
   const [customRequestInput, setCustomRequestInput] = useState<Record<string, string>>({});
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
 
   // Language configurations
-  const languages = [
-    { code: 'en' as Language, label: 'English' },
-    { code: 'zh' as Language, label: '中文' },
-    { code: 'es' as Language, label: 'Español' },
-    { code: 'fr' as Language, label: 'Français' }
-  ];
+	const languages: LanguageOption[] = [
+	  { code: 'en', label: 'English',  flag: '🇬🇧' },
+	  { code: 'zh', label: '中文',       flag: '🇨🇳' },
+	  { code: 'es', label: 'Español',   flag: '🇪🇸' },
+	  { code: 'fr', label: 'Français',  flag: '🇫🇷' },
+	];
 
   // Translations
   const translations = {
@@ -193,19 +198,16 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
   }, []);
 
   // Scroll handler for header collapse
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setScrollY(currentScrollY);
-      // Use requestAnimationFrame to prevent glitchy scroll
-      requestAnimationFrame(() => {
-        setIsHeaderCollapsed(currentScrollY > 100);
-      });
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+	useEffect(() => {
+	  const handleScroll = () => {
+		const currentScrollY = window.scrollY;
+		requestAnimationFrame(() => {
+		  setIsHeaderCollapsed(currentScrollY > 100);
+		});
+	  };
+	  window.addEventListener('scroll', handleScroll, { passive: true });
+	  return () => window.removeEventListener('scroll', handleScroll);
+	}, []);
 
   // Get unique dietary tags and allergens for filters
   const allDietaryTags = [...new Set(menuData.menuItems.flatMap(item => item.dietaryTags))];

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import.meta.env.VITE_CONTACT_EMAIL
+
 
 interface ContactFormData {
   name: string;

@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 
 const DashboardPage: React.FC = () => {
-  const { restaurant, user } = useAuth();
+  const { restaurant } = useAuth();
 
   // Real stats from database - all zeros for now
   const stats = {
