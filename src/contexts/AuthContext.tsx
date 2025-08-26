@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - React Authentication Context
+// src/contexts/AuthContext.tsx - Fixed with authLoading
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import AuthService from '../services/authService';
@@ -10,7 +10,7 @@ interface AuthContextType {
   user: User | null;
   restaurant: Restaurant | null;
   session: Session | null;
-  loading: boolean;
+  authLoading: boolean;  // Changed from 'loading' to 'authLoading'
   
   // Actions
   signUp: (signupData: SignupData) => Promise<void>;
@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);  // Renamed to authLoading
 
   // Initialize auth state on mount
   useEffect(() => {
@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setRestaurant(null);
         }
         
-        setLoading(false);
+        setAuthLoading(false);  // Updated to setAuthLoading
       }
     );
 
@@ -77,14 +77,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Initialize auth error:', error);
     } finally {
-      setLoading(false);
+      setAuthLoading(false);  // Updated to setAuthLoading
     }
   };
 
   // Sign up function
   const signUp = async (signupData: SignupData) => {
     try {
-      setLoading(true);
+      setAuthLoading(true);  // Updated to setAuthLoading
       const result = await AuthService.signUpRestaurant(signupData);
       
       setUser(result.user);
@@ -95,14 +95,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Context signup error:', error);
       throw error;
     } finally {
-      setLoading(false);
+      setAuthLoading(false);  // Updated to setAuthLoading
     }
   };
 
   // Sign in function
   const signIn = async (loginData: LoginData) => {
     try {
-      setLoading(true);
+      setAuthLoading(true);  // Updated to setAuthLoading
       const result = await AuthService.signInRestaurant(loginData);
       
       setUser(result.user);
@@ -113,14 +113,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Context signin error:', error);
       throw error;
     } finally {
-      setLoading(false);
+      setAuthLoading(false);  // Updated to setAuthLoading
     }
   };
 
   // Sign out function
   const signOut = async () => {
     try {
-      setLoading(true);
+      setAuthLoading(true);  // Updated to setAuthLoading
       await AuthService.signOut();
       
       setUser(null);
@@ -131,7 +131,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Context signout error:', error);
       throw error;
     } finally {
-      setLoading(false);
+      setAuthLoading(false);  // Updated to setAuthLoading
     }
   };
 
@@ -166,7 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     restaurant,
     session,
-    loading,
+    authLoading,  // Changed from 'loading' to 'authLoading'
     
     // Actions
     signUp,

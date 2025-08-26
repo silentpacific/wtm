@@ -1,4 +1,4 @@
-// src/pages/ProfilePage.tsx - Debug Version
+// src/pages/ProfilePage.tsx - Fixed Version
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,53 +10,37 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   const [userProfile, setUserProfile] = useState<any>(null);
   const [restaurantData, setRestaurantData] = useState<any>(null);
 
-  // Add debug logging
-  const addDebug = (msg: string) => {
-    console.log(`[ProfilePage Debug]: ${msg}`);
-    setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
-  };
+  // Fix: Handle undefined authLoading by treating it as true
+  const isAuthLoading = authLoading === undefined ? true : authLoading;
 
   // 🔹 Fetch profile + restaurant
   useEffect(() => {
-    addDebug('useEffect triggered');
-    addDebug(`authLoading: ${authLoading}, user: ${user ? 'exists' : 'null'}`);
+    console.log('useEffect triggered', { isAuthLoading, user: user ? 'exists' : 'null' });
     
-    if (authLoading) {
-      addDebug('Still loading auth, waiting...');
+    // Don't proceed if auth is still loading
+    if (isAuthLoading) {
+      console.log('Auth still loading, waiting...');
       return;
     }
 
+    // Don't proceed if no user
     if (!user) {
-      addDebug('No user found, stopping fetch');
+      console.log('No user found, stopping fetch');
       setLoading(false);
       return;
     }
 
     const fetchProfileData = async () => {
-      addDebug(`Starting fetch for user ID: ${user.id}`);
+      console.log(`Starting fetch for user ID: ${user.id}`);
       setLoading(true);
 
       try {
-        // Test basic Supabase connection first
-        addDebug('Testing Supabase connection...');
-        const { data: testData, error: testError } = await supabase
-          .from('user_profiles')
-          .select('count')
-          .limit(1);
-          
-        if (testError) {
-          addDebug(`Supabase connection failed: ${testError.message}`);
-          throw testError;
-        }
-        addDebug('Supabase connection successful');
-
         // 1. User profile
-        addDebug('Fetching user profile...');
+        console.log('Fetching user profile...');
         const { data: profile, error: profileError } = await supabase
           .from('user_profiles')
           .select('*')
@@ -64,18 +48,15 @@ const ProfilePage: React.FC = () => {
           .maybeSingle();
 
         if (profileError) {
-          addDebug(`Profile error: ${profileError.message}`);
+          console.error('Profile error:', profileError);
           throw profileError;
         }
         
-        addDebug(`Profile data: ${profile ? 'found' : 'not found'}`);
-        if (profile) {
-          addDebug(`Profile keys: ${Object.keys(profile).join(', ')}`);
-        }
+        console.log('Profile data:', profile);
         setUserProfile(profile);
 
         // 2. Restaurant profile
-        addDebug('Fetching restaurant data...');
+        console.log('Fetching restaurant data...');
         let { data: restaurant, error: restaurantError } = await supabase
           .from('restaurants')
           .select('id, name, cuisine_type, city, state, country, phone, address, owner_name, auth_user_id')
@@ -84,15 +65,15 @@ const ProfilePage: React.FC = () => {
           .maybeSingle();
 
         if (restaurantError) {
-          addDebug(`Restaurant error: ${restaurantError.message}`);
+          console.error('Restaurant error:', restaurantError);
           throw restaurantError;
         }
 
-        addDebug(`Restaurant data: ${restaurant ? 'found' : 'not found'}`);
+        console.log('Restaurant data:', restaurant);
         
         // If no restaurant row, create one
         if (!restaurant) {
-          addDebug('Creating new restaurant record...');
+          console.log('Creating new restaurant record...');
           const { data: newRestaurant, error: insertError } = await supabase
             .from('restaurants')
             .insert([
@@ -112,44 +93,37 @@ const ProfilePage: React.FC = () => {
             .single();
 
           if (insertError) {
-            addDebug(`Restaurant creation error: ${insertError.message}`);
+            console.error('Restaurant creation error:', insertError);
             throw insertError;
           }
           
-          addDebug('Restaurant created successfully');
+          console.log('Restaurant created successfully');
           restaurant = newRestaurant;
         }
 
         setRestaurantData(restaurant);
-        addDebug('All data fetched successfully');
+        console.log('All data fetched successfully');
         
       } catch (err: any) {
-        addDebug(`Fetch error: ${err.message || err}`);
-        console.error('Get profile error:', err);
-        setMessage({ type: 'error', text: `Failed to load profile data: ${err.message}` });
+        console.error('Fetch error:', err);
+        setMessage({ type: 'error', text: `Failed to load profile data: ${err.message || 'Unknown error'}` });
       } finally {
-        addDebug('Fetch completed, setting loading to false');
+        console.log('Fetch completed, setting loading to false');
         setLoading(false);
       }
     };
 
     fetchProfileData();
-  }, [user, authLoading]);
+  }, [user, isAuthLoading]); // Use isAuthLoading instead of authLoading
 
-  // 🔹 Save button handler (simplified for debugging)
+  // 🔹 Save button handler
   const handleSave = async () => {
-    if (!user) {
-      addDebug('No user for save operation');
-      return;
-    }
-    
-    addDebug('Starting save operation...');
+    if (!user) return;
     setSaving(true);
     setMessage(null);
 
     try {
       if (userProfile) {
-        addDebug('Updating user profile...');
         const { error: userError } = await supabase
           .from('user_profiles')
           .update({
@@ -158,15 +132,10 @@ const ProfilePage: React.FC = () => {
           })
           .eq('id', user.id);
 
-        if (userError) {
-          addDebug(`User update error: ${userError.message}`);
-          throw userError;
-        }
-        addDebug('User profile updated');
+        if (userError) throw userError;
       }
 
       if (restaurantData) {
-        addDebug('Updating restaurant data...');
         const { error: restError } = await supabase
           .from('restaurants')
           .update({
@@ -181,85 +150,56 @@ const ProfilePage: React.FC = () => {
           })
           .eq('id', restaurantData.id);
 
-        if (restError) {
-          addDebug(`Restaurant update error: ${restError.message}`);
-          throw restError;
-        }
-        addDebug('Restaurant data updated');
+        if (restError) throw restError;
       }
 
-      addDebug('Save completed successfully');
       setMessage({ type: 'success', text: 'All changes saved successfully!' });
     } catch (err: any) {
-      addDebug(`Save error: ${err.message || err}`);
       console.error('Save error:', err);
-      setMessage({ type: 'error', text: `Failed to save changes: ${err.message}` });
+      setMessage({ type: 'error', text: `Failed to save changes: ${err.message || 'Unknown error'}` });
     } finally {
       setSaving(false);
       setTimeout(() => setMessage(null), 3000);
     }
   };
 
-  // Debug render conditions
-  addDebug(`Render: authLoading=${authLoading}, loading=${loading}, user=${user ? 'exists' : 'null'}`);
-
-  if (authLoading) {
-    addDebug('Rendering: Auth loading...');
+  // Show loading state for auth
+  if (isAuthLoading) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
-          <div>Auth Loading...</div>
-          <div className="text-sm text-gray-500 mt-2">Checking authentication status</div>
+        <div className="text-center py-12 text-gray-600">
+          <div>Loading authentication...</div>
         </div>
       </DashboardLayout>
     );
   }
 
+  // Show error if no user
   if (!user) {
-    addDebug('Rendering: No user');
     return (
       <DashboardLayout>
         <div className="text-center py-12 text-red-600">
-          <div>No user found - please log in</div>
+          <div>Please log in to view your profile.</div>
         </div>
       </DashboardLayout>
     );
   }
 
+  // Show loading state for profile data
   if (loading) {
-    addDebug('Rendering: Data loading...');
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
+        <div className="text-center py-12 text-gray-600">
           <div>Loading your profile...</div>
-          <div className="text-sm text-gray-500 mt-2">Fetching profile data from database</div>
         </div>
       </DashboardLayout>
     );
   }
-
-  addDebug('Rendering: Main profile form');
 
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Profile (Debug Mode)</h1>
-
-        {/* Debug Info Panel */}
-        <div className="mb-6 p-4 bg-gray-100 rounded-lg">
-          <h3 className="font-semibold mb-2">Debug Information:</h3>
-          <div className="text-xs font-mono space-y-1 max-h-40 overflow-y-auto">
-            {debugInfo.map((info, index) => (
-              <div key={index}>{info}</div>
-            ))}
-          </div>
-          <div className="mt-2 text-sm">
-            <strong>Current State:</strong>
-            <div>User ID: {user?.id}</div>
-            <div>User Profile: {userProfile ? 'Loaded' : 'Not loaded'}</div>
-            <div>Restaurant Data: {restaurantData ? 'Loaded' : 'Not loaded'}</div>
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold mb-6">Profile</h1>
 
         {message && (
           <div
@@ -362,43 +302,6 @@ const ProfilePage: React.FC = () => {
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
-        </div>
-
-        {/* Manual Debug Triggers */}
-        <div className="mt-8 p-4 border-t border-gray-200">
-          <h3 className="font-semibold mb-2">Debug Actions:</h3>
-          <div className="space-x-2">
-            <button
-              onClick={() => {
-                addDebug('Manual auth check triggered');
-                addDebug(`Auth state: ${JSON.stringify({ user: user?.id, authLoading })}`);
-              }}
-              className="px-3 py-1 bg-blue-500 text-white text-sm rounded"
-            >
-              Check Auth State
-            </button>
-            <button
-              onClick={async () => {
-                addDebug('Manual Supabase test triggered');
-                try {
-                  const { data, error } = await supabase.auth.getUser();
-                  addDebug(`Supabase auth check: ${data.user ? 'User found' : 'No user'}`);
-                  if (error) addDebug(`Supabase auth error: ${error.message}`);
-                } catch (e: any) {
-                  addDebug(`Supabase test failed: ${e.message}`);
-                }
-              }}
-              className="px-3 py-1 bg-green-500 text-white text-sm rounded"
-            >
-              Test Supabase
-            </button>
-            <button
-              onClick={() => setDebugInfo([])}
-              className="px-3 py-1 bg-gray-500 text-white text-sm rounded"
-            >
-              Clear Debug Log
-            </button>
-          </div>
         </div>
       </div>
     </DashboardLayout>
