@@ -70,7 +70,7 @@ const ProfilePage: React.FC = () => {
         .from('user_profiles')
         .select('id, email, full_name, subscription_type')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       console.log('Profile query result:', { profile, error: profileError });
 
@@ -191,7 +191,7 @@ const ProfilePage: React.FC = () => {
 		  .from('restaurants')
 		  .select('id, name, cuisine_type, city, state, country, phone, address, owner_name, auth_user_id')
 		  .eq('auth_user_id', user.id)
-		  .single();
+		  .maybeSingle();
 
         if (error) throw error;
         
