@@ -2,13 +2,13 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  Home, 
-  Edit, 
-  QrCode, 
-  User, 
-  CreditCard, 
-  Settings, 
+import {
+  Home,
+  Edit,
+  QrCode,
+  User,
+  CreditCard,
+  Settings,
   LogOut,
   Building
 } from 'lucide-react';
@@ -18,7 +18,8 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const { user, signOut } = useAuth();
+  // Removed `user` (it wasn't used) to fix TS6133
+  const { signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
