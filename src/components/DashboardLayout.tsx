@@ -1,4 +1,3 @@
-// src/components/DashboardLayout.tsx
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,7 +17,6 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  // Removed `user` (it wasn't used) to fix TS6133
   const { signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();

@@ -10,3 +10,22 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// ---- Types re-exported for the rest of the app ----
+export type SignupData = {
+  email: string;
+  password: string;
+  restaurantName?: string;
+};
+
+export type LoginData = {
+  email: string;
+  password: string;
+};
+
+export type Restaurant = {
+  id: string;
+  name: string;
+  cuisine?: string;
+  owner_id?: string;
+};
