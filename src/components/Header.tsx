@@ -231,14 +231,14 @@ const Header: React.FC = () => {
 
       {/* Click outside to close menus */}
       {(isProfileMenuOpen || isMenuOpen) && (
-		  <div 
-			className="fixed inset-0 z-0"   // 👈 lowered z-index so it doesn’t block links
-			onClick={() => {
-			  setIsProfileMenuOpen(false);
-			  setIsMenuOpen(false);
-			}}
-		  />
-		)}
+        <div 
+          className="fixed inset-0 z-0"
+          onClick={() => {
+            setIsProfileMenuOpen(false);
+            setIsMenuOpen(false);
+          }}
+        />
+      )}
     </header>
   );
 };
