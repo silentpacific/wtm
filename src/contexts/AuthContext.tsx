@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - Debug Version
+// src/contexts/AuthContext.tsx - Fixed with Timeout
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import AuthService from '../services/authService';
@@ -36,10 +36,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   console.log(`[AuthContext] Render - authLoading: ${authLoading}, user: ${user ? 'exists' : 'null'}`);
 
+  // Helper function to safely set authLoading to false
+  const completeAuthLoading = () => {
+    console.log('[AuthContext] Setting authLoading to false');
+    setAuthLoading(false);
+  };
+
   // Initialize auth state on mount
   useEffect(() => {
     console.log('[AuthContext] useEffect - Starting initialization');
     
+    // Set a failsafe timeout to ensure authLoading gets set to false
+    const failsafeTimeout = setTimeout(() => {
+      console.log('[AuthContext] Failsafe timeout - forcing authLoading to false');
+      setAuthLoading(false);
+    }, 5000); // 5 second timeout
+
     initializeAuth();
     
     // Listen for auth changes
@@ -53,11 +65,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUser(session.user);
             setSession(session);
             
-            // Get restaurant profile
+            // Get restaurant profile with timeout
             console.log('[AuthContext] Fetching restaurant profile...');
-            const restaurantProfile = await AuthService.getRestaurantProfile(session.user.id);
-            console.log('[AuthContext] Restaurant profile result:', restaurantProfile ? 'found' : 'not found');
-            setRestaurant(restaurantProfile);
+            
+            try {
+              // Add timeout to restaurant profile fetch
+              const restaurantPromise = AuthService.getRestaurantProfile(session.user.id);
+              const timeoutPromise = new Promise<null>((_, reject) => 
+                setTimeout(() => reject(new Error('Restaurant profile fetch timeout')), 3000)
+              );
+              
+              const restaurantProfile = await Promise.race([restaurantPromise, timeoutPromise]);
+              console.log('[AuthContext] Restaurant profile result:', restaurantProfile ? 'found' : 'not found');
+              setRestaurant(restaurantProfile);
+              
+            } catch (restaurantError) {
+              console.warn('[AuthContext] Restaurant profile fetch failed:', restaurantError);
+              // Continue anyway - user can still use the app without restaurant profile
+              setRestaurant(null);
+            }
           } else {
             console.log('[AuthContext] Clearing auth state - no session');
             setUser(null);
@@ -65,17 +91,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setRestaurant(null);
           }
           
-          console.log('[AuthContext] Setting authLoading to false from auth change');
-          setAuthLoading(false);
+          clearTimeout(failsafeTimeout);
+          completeAuthLoading();
+          
         } catch (error) {
           console.error('[AuthContext] Error in auth state change handler:', error);
-          setAuthLoading(false);
+          clearTimeout(failsafeTimeout);
+          completeAuthLoading();
         }
       }
     );
 
     return () => {
-      console.log('[AuthContext] Cleaning up subscription');
+      console.log('[AuthContext] Cleaning up subscription and timeout');
+      clearTimeout(failsafeTimeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -96,8 +125,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('[AuthContext] Initialize auth error:', error);
     } finally {
-      console.log('[AuthContext] initializeAuth - Setting authLoading to false');
-      setAuthLoading(false);
+      // Don't call completeAuthLoading here - let the auth state change handler do it
+      // This prevents race conditions
+      console.log('[AuthContext] initializeAuth completed');
     }
   };
 
@@ -117,7 +147,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     } finally {
       console.log('[AuthContext] signUp - Setting authLoading to false');
-      setAuthLoading(false);
+      completeAuthLoading();
     }
   };
 
@@ -137,7 +167,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     } finally {
       console.log('[AuthContext] signIn - Setting authLoading to false');
-      setAuthLoading(false);
+      completeAuthLoading();
     }
   };
 
@@ -157,7 +187,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     } finally {
       console.log('[AuthContext] signOut - Setting authLoading to false');
-      setAuthLoading(false);
+      completeAuthLoading();
     }
   };
 
