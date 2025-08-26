@@ -1,34 +1,8 @@
-// src/pages/ProfilePage.tsx
+// src/pages/ProfilePage.tsx - Debug Version
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
-
-// Define proper types based on your database schema
-interface UserProfile {
-  id: string;
-  full_name: string | null;
-  subscription_type: string;
-  email?: string;
-}
-
-interface RestaurantData {
-  id: number;
-  name: string;
-  cuisine_type: string;
-  city: string;
-  state: string;
-  country: string;
-  phone: string;
-  address: string;
-  owner_name: string;
-  auth_user_id: string;
-}
-
-interface ValidationErrors {
-  userProfile?: Record<string, string>;
-  restaurant?: Record<string, string>;
-}
 
 const ProfilePage: React.FC = () => {
   const { user, authLoading } = useAuth();
@@ -36,85 +10,89 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [restaurantData, setRestaurantData] = useState<RestaurantData | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [restaurantData, setRestaurantData] = useState<any>(null);
 
-  // Validation functions
-  const validateUserProfile = (profile: UserProfile): Record<string, string> => {
-    const errors: Record<string, string> = {};
-    
-    if (!profile.full_name?.trim()) {
-      errors.full_name = 'Full name is required';
-    }
-    
-    return errors;
-  };
-
-  const validateRestaurantData = (restaurant: RestaurantData): Record<string, string> => {
-    const errors: Record<string, string> = {};
-    
-    if (!restaurant.name?.trim()) {
-      errors.name = 'Restaurant name is required';
-    }
-    
-    if (!restaurant.owner_name?.trim()) {
-      errors.owner_name = 'Owner name is required';
-    }
-    
-    if (restaurant.phone && !/^\+?[\d\s\-\(\)]{10,}$/.test(restaurant.phone.replace(/\s/g, ''))) {
-      errors.phone = 'Please enter a valid phone number';
-    }
-    
-    return errors;
+  // Add debug logging
+  const addDebug = (msg: string) => {
+    console.log(`[ProfilePage Debug]: ${msg}`);
+    setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
   };
 
   // 🔹 Fetch profile + restaurant
   useEffect(() => {
+    addDebug('useEffect triggered');
+    addDebug(`authLoading: ${authLoading}, user: ${user ? 'exists' : 'null'}`);
+    
+    if (authLoading) {
+      addDebug('Still loading auth, waiting...');
+      return;
+    }
+
+    if (!user) {
+      addDebug('No user found, stopping fetch');
+      setLoading(false);
+      return;
+    }
+
     const fetchProfileData = async () => {
-      if (!user) return;
+      addDebug(`Starting fetch for user ID: ${user.id}`);
       setLoading(true);
-      setMessage(null);
 
       try {
+        // Test basic Supabase connection first
+        addDebug('Testing Supabase connection...');
+        const { data: testData, error: testError } = await supabase
+          .from('user_profiles')
+          .select('count')
+          .limit(1);
+          
+        if (testError) {
+          addDebug(`Supabase connection failed: ${testError.message}`);
+          throw testError;
+        }
+        addDebug('Supabase connection successful');
+
         // 1. User profile
+        addDebug('Fetching user profile...');
         const { data: profile, error: profileError } = await supabase
           .from('user_profiles')
-          .select('id, full_name, subscription_type, email')
+          .select('*')
           .eq('id', user.id)
           .maybeSingle();
 
         if (profileError) {
-          console.error('Profile fetch error:', profileError);
-          throw new Error('Failed to load user profile');
+          addDebug(`Profile error: ${profileError.message}`);
+          throw profileError;
         }
-
-        setUserProfile(profile || {
-          id: user.id,
-          full_name: null,
-          subscription_type: 'free',
-          email: user.email || undefined
-        });
+        
+        addDebug(`Profile data: ${profile ? 'found' : 'not found'}`);
+        if (profile) {
+          addDebug(`Profile keys: ${Object.keys(profile).join(', ')}`);
+        }
+        setUserProfile(profile);
 
         // 2. Restaurant profile
+        addDebug('Fetching restaurant data...');
         let { data: restaurant, error: restaurantError } = await supabase
           .from('restaurants')
-          .select(`
-            id, name, cuisine_type, city, state, country, 
-            phone, address, owner_name, auth_user_id
-          `)
+          .select('id, name, cuisine_type, city, state, country, phone, address, owner_name, auth_user_id')
           .eq('auth_user_id', user.id)
           .limit(1)
           .maybeSingle();
 
         if (restaurantError) {
-          console.error('Restaurant fetch error:', restaurantError);
-          throw new Error('Failed to load restaurant data');
+          addDebug(`Restaurant error: ${restaurantError.message}`);
+          throw restaurantError;
         }
 
+        addDebug(`Restaurant data: ${restaurant ? 'found' : 'not found'}`);
+        
         // If no restaurant row, create one
         if (!restaurant) {
+          addDebug('Creating new restaurant record...');
           const { data: newRestaurant, error: insertError } = await supabase
             .from('restaurants')
             .insert([
@@ -130,366 +108,297 @@ const ProfilePage: React.FC = () => {
                 owner_name: '',
               },
             ])
-            .select(`
-              id, name, cuisine_type, city, state, country, 
-              phone, address, owner_name, auth_user_id
-            `)
+            .select()
             .single();
 
           if (insertError) {
-            console.error('Restaurant creation error:', insertError);
-            throw new Error('Failed to create restaurant profile');
+            addDebug(`Restaurant creation error: ${insertError.message}`);
+            throw insertError;
           }
+          
+          addDebug('Restaurant created successfully');
           restaurant = newRestaurant;
         }
 
         setRestaurantData(restaurant);
-      } catch (err) {
-        console.error('Fetch profile error:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load profile data';
-        setMessage({ type: 'error', text: errorMessage });
+        addDebug('All data fetched successfully');
+        
+      } catch (err: any) {
+        addDebug(`Fetch error: ${err.message || err}`);
+        console.error('Get profile error:', err);
+        setMessage({ type: 'error', text: `Failed to load profile data: ${err.message}` });
       } finally {
+        addDebug('Fetch completed, setting loading to false');
         setLoading(false);
       }
     };
 
     fetchProfileData();
-  }, [user]);
+  }, [user, authLoading]);
 
-  // 🔹 Save button handler
+  // 🔹 Save button handler (simplified for debugging)
   const handleSave = async () => {
-    if (!user || !userProfile || !restaurantData) return;
-    
-    // Validate data
-    const userErrors = validateUserProfile(userProfile);
-    const restaurantErrors = validateRestaurantData(restaurantData);
-    
-    if (Object.keys(userErrors).length > 0 || Object.keys(restaurantErrors).length > 0) {
-      setValidationErrors({
-        userProfile: userErrors,
-        restaurant: restaurantErrors
-      });
-      setMessage({ type: 'error', text: 'Please fix the errors below before saving' });
+    if (!user) {
+      addDebug('No user for save operation');
       return;
     }
     
-    setValidationErrors({});
+    addDebug('Starting save operation...');
     setSaving(true);
     setMessage(null);
 
     try {
-      // Update user profile
-      const { error: userError } = await supabase
-        .from('user_profiles')
-        .upsert({
-          id: user.id,
-          full_name: userProfile.full_name?.trim(),
-          subscription_type: userProfile.subscription_type,
-        }, {
-          onConflict: 'id'
-        });
+      if (userProfile) {
+        addDebug('Updating user profile...');
+        const { error: userError } = await supabase
+          .from('user_profiles')
+          .update({
+            full_name: userProfile.full_name,
+            subscription_type: userProfile.subscription_type,
+          })
+          .eq('id', user.id);
 
-      if (userError) {
-        console.error('User update error:', userError);
-        throw new Error('Failed to update user profile');
+        if (userError) {
+          addDebug(`User update error: ${userError.message}`);
+          throw userError;
+        }
+        addDebug('User profile updated');
       }
 
-      // Update restaurant data
-      const { error: restError } = await supabase
-        .from('restaurants')
-        .update({
-          name: restaurantData.name?.trim(),
-          cuisine_type: restaurantData.cuisine_type?.trim(),
-          city: restaurantData.city?.trim(),
-          state: restaurantData.state?.trim(),
-          country: restaurantData.country?.trim(),
-          phone: restaurantData.phone?.trim(),
-          address: restaurantData.address?.trim(),
-          owner_name: restaurantData.owner_name?.trim(),
-        })
-        .eq('id', restaurantData.id);
+      if (restaurantData) {
+        addDebug('Updating restaurant data...');
+        const { error: restError } = await supabase
+          .from('restaurants')
+          .update({
+            name: restaurantData.name,
+            cuisine_type: restaurantData.cuisine_type,
+            city: restaurantData.city,
+            state: restaurantData.state,
+            country: restaurantData.country,
+            phone: restaurantData.phone,
+            address: restaurantData.address,
+            owner_name: restaurantData.owner_name,
+          })
+          .eq('id', restaurantData.id);
 
-      if (restError) {
-        console.error('Restaurant update error:', restError);
-        throw new Error('Failed to update restaurant information');
+        if (restError) {
+          addDebug(`Restaurant update error: ${restError.message}`);
+          throw restError;
+        }
+        addDebug('Restaurant data updated');
       }
 
+      addDebug('Save completed successfully');
       setMessage({ type: 'success', text: 'All changes saved successfully!' });
-    } catch (err) {
+    } catch (err: any) {
+      addDebug(`Save error: ${err.message || err}`);
       console.error('Save error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save changes';
-      setMessage({ type: 'error', text: errorMessage });
+      setMessage({ type: 'error', text: `Failed to save changes: ${err.message}` });
     } finally {
       setSaving(false);
-      // Clear success message after 5 seconds
-      if (message?.type === 'success') {
-        setTimeout(() => setMessage(null), 5000);
-      }
+      setTimeout(() => setMessage(null), 3000);
     }
   };
 
-  // Show loading state
-  if (authLoading || loading) {
+  // Debug render conditions
+  addDebug(`Render: authLoading=${authLoading}, loading=${loading}, user=${user ? 'exists' : 'null'}`);
+
+  if (authLoading) {
+    addDebug('Rendering: Auth loading...');
     return (
       <DashboardLayout>
-        <div className="max-w-3xl mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded mb-6"></div>
-            <div className="space-y-4">
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-10 bg-gray-200 rounded"></div>
-              <div className="h-10 bg-gray-200 rounded"></div>
-            </div>
-          </div>
+        <div className="text-center py-12">
+          <div>Auth Loading...</div>
+          <div className="text-sm text-gray-500 mt-2">Checking authentication status</div>
         </div>
       </DashboardLayout>
     );
   }
 
-  // Show error if no user
   if (!user) {
+    addDebug('Rendering: No user');
     return (
       <DashboardLayout>
-        <div className="max-w-3xl mx-auto px-4 py-8 text-center">
-          <p className="text-red-600">Please log in to view your profile.</p>
+        <div className="text-center py-12 text-red-600">
+          <div>No user found - please log in</div>
         </div>
       </DashboardLayout>
     );
   }
+
+  if (loading) {
+    addDebug('Rendering: Data loading...');
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <div>Loading your profile...</div>
+          <div className="text-sm text-gray-500 mt-2">Fetching profile data from database</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  addDebug('Rendering: Main profile form');
 
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6 text-gray-900">Profile Settings</h1>
+        <h1 className="text-2xl font-bold mb-6">Profile (Debug Mode)</h1>
 
-        {message && (
-          <div
-            className={`mb-6 p-4 rounded-lg border ${
-              message.type === 'success' 
-                ? 'bg-green-50 text-green-700 border-green-200' 
-                : 'bg-red-50 text-red-700 border-red-200'
-            }`}
-          >
-            <div className="flex items-center">
-              <span className={`mr-2 ${message.type === 'success' ? '✅' : '❌'}`}>
-                {message.type === 'success' ? '✅' : '❌'}
-              </span>
-              {message.text}
-            </div>
+        {/* Debug Info Panel */}
+        <div className="mb-6 p-4 bg-gray-100 rounded-lg">
+          <h3 className="font-semibold mb-2">Debug Information:</h3>
+          <div className="text-xs font-mono space-y-1 max-h-40 overflow-y-auto">
+            {debugInfo.map((info, index) => (
+              <div key={index}>{info}</div>
+            ))}
           </div>
-        )}
-
-        <div className="space-y-8">
-          {/* User Profile Section */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h2 className="text-lg font-semibold mb-4 text-gray-900">User Information</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  value={userProfile?.full_name || ''}
-                  onChange={(e) => setUserProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)}
-                  placeholder="Enter your full name"
-                  className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500 ${
-                    validationErrors.userProfile?.full_name ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {validationErrors.userProfile?.full_name && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.userProfile.full_name}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={userProfile?.email || user?.email || ''}
-                  disabled
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">Email cannot be changed from this page</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Subscription Type
-                </label>
-                <select
-                  value={userProfile?.subscription_type || 'free'}
-                  onChange={(e) => setUserProfile(prev => prev ? { ...prev, subscription_type: e.target.value } : null)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
-                >
-                  <option value="free">Free</option>
-                  <option value="basic">Basic</option>
-                  <option value="premium">Premium</option>
-                  <option value="enterprise">Enterprise</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Restaurant Profile Section */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h2 className="text-lg font-semibold mb-4 text-gray-900">Restaurant Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Restaurant Name *
-                </label>
-                <input
-                  type="text"
-                  value={restaurantData?.name || ''}
-                  onChange={(e) => setRestaurantData(prev => prev ? { ...prev, name: e.target.value } : null)}
-                  placeholder="Enter restaurant name"
-                  className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500 ${
-                    validationErrors.restaurant?.name ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {validationErrors.restaurant?.name && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.restaurant.name}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cuisine Type
-                </label>
-                <input
-                  type="text"
-                  value={restaurantData?.cuisine_type || ''}
-                  onChange={(e) => setRestaurantData(prev => prev ? { ...prev, cuisine_type: e.target.value } : null)}
-                  placeholder="e.g., Italian, Asian, American"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Owner Name *
-                </label>
-                <input
-                  type="text"
-                  value={restaurantData?.owner_name || ''}
-                  onChange={(e) => setRestaurantData(prev => prev ? { ...prev, owner_name: e.target.value } : null)}
-                  placeholder="Restaurant owner name"
-                  className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500 ${
-                    validationErrors.restaurant?.owner_name ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {validationErrors.restaurant?.owner_name && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.restaurant.owner_name}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone
-                </label>
-                <input
-                  type="tel"
-                  value={restaurantData?.phone || ''}
-                  onChange={(e) => setRestaurantData(prev => prev ? { ...prev, phone: e.target.value } : null)}
-                  placeholder="+1 (555) 123-4567"
-                  className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500 ${
-                    validationErrors.restaurant?.phone ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {validationErrors.restaurant?.phone && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.restaurant.phone}</p>
-                )}
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Address
-                </label>
-                <input
-                  type="text"
-                  value={restaurantData?.address || ''}
-                  onChange={(e) => setRestaurantData(prev => prev ? { ...prev, address: e.target.value } : null)}
-                  placeholder="Street address"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  City
-                </label>
-                <input
-                  type="text"
-                  value={restaurantData?.city || ''}
-                  onChange={(e) => setRestaurantData(prev => prev ? { ...prev, city: e.target.value } : null)}
-                  placeholder="City"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  State/Province
-                </label>
-                <input
-                  type="text"
-                  value={restaurantData?.state || ''}
-                  onChange={(e) => setRestaurantData(prev => prev ? { ...prev, state: e.target.value } : null)}
-                  placeholder="State or Province"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Country
-                </label>
-                <select
-                  value={restaurantData?.country || ''}
-                  onChange={(e) => setRestaurantData(prev => prev ? { ...prev, country: e.target.value } : null)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-coral-500 focus:border-coral-500"
-                >
-                  <option value="">Select a country</option>
-                  <option value="Australia">Australia</option>
-                  <option value="United States">United States</option>
-                  <option value="Canada">Canada</option>
-                  <option value="United Kingdom">United Kingdom</option>
-                  <option value="France">France</option>
-                  <option value="Germany">Germany</option>
-                  <option value="Italy">Italy</option>
-                  <option value="Spain">Spain</option>
-                  <option value="Japan">Japan</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-            </div>
+          <div className="mt-2 text-sm">
+            <strong>Current State:</strong>
+            <div>User ID: {user?.id}</div>
+            <div>User Profile: {userProfile ? 'Loaded' : 'Not loaded'}</div>
+            <div>Restaurant Data: {restaurantData ? 'Loaded' : 'Not loaded'}</div>
           </div>
         </div>
 
-        {/* Save Button */}
-        <div className="mt-8 flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={saving || !userProfile || !restaurantData}
-            className={`px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
-              saving 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-coral-600 hover:bg-coral-700 focus:ring-2 focus:ring-coral-500 focus:ring-offset-2'
+        {message && (
+          <div
+            className={`mb-4 p-3 rounded ${
+              message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
             }`}
           >
-            {saving ? (
-              <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving...
-              </span>
-            ) : 'Save Changes'}
+            {message.text}
+          </div>
+        )}
+
+        {/* User Profile */}
+        <div className="mb-8 space-y-4">
+          <h2 className="text-lg font-semibold">User Information</h2>
+          <input
+            type="text"
+            value={userProfile?.full_name || ''}
+            onChange={(e) => setUserProfile({ ...userProfile, full_name: e.target.value })}
+            placeholder="Full Name"
+            className="w-full border rounded-lg px-3 py-2"
+          />
+          <input
+            type="text"
+            value={userProfile?.subscription_type || ''}
+            onChange={(e) => setUserProfile({ ...userProfile, subscription_type: e.target.value })}
+            placeholder="Subscription Type"
+            className="w-full border rounded-lg px-3 py-2"
+          />
+        </div>
+
+        {/* Restaurant Profile */}
+        <div className="mb-8 space-y-4">
+          <h2 className="text-lg font-semibold">Restaurant Information</h2>
+          <input
+            type="text"
+            value={restaurantData?.name || ''}
+            onChange={(e) => setRestaurantData({ ...restaurantData, name: e.target.value })}
+            placeholder="Restaurant Name"
+            className="w-full border rounded-lg px-3 py-2"
+          />
+          <input
+            type="text"
+            value={restaurantData?.cuisine_type || ''}
+            onChange={(e) => setRestaurantData({ ...restaurantData, cuisine_type: e.target.value })}
+            placeholder="Cuisine Type"
+            className="w-full border rounded-lg px-3 py-2"
+          />
+          <input
+            type="text"
+            value={restaurantData?.owner_name || ''}
+            onChange={(e) => setRestaurantData({ ...restaurantData, owner_name: e.target.value })}
+            placeholder="Owner Name"
+            className="w-full border rounded-lg px-3 py-2"
+          />
+          <input
+            type="text"
+            value={restaurantData?.phone || ''}
+            onChange={(e) => setRestaurantData({ ...restaurantData, phone: e.target.value })}
+            placeholder="Phone"
+            className="w-full border rounded-lg px-3 py-2"
+          />
+          <input
+            type="text"
+            value={restaurantData?.address || ''}
+            onChange={(e) => setRestaurantData({ ...restaurantData, address: e.target.value })}
+            placeholder="Address"
+            className="w-full border rounded-lg px-3 py-2"
+          />
+          <input
+            type="text"
+            value={restaurantData?.city || ''}
+            onChange={(e) => setRestaurantData({ ...restaurantData, city: e.target.value })}
+            placeholder="City"
+            className="w-full border rounded-lg px-3 py-2"
+          />
+          <input
+            type="text"
+            value={restaurantData?.state || ''}
+            onChange={(e) => setRestaurantData({ ...restaurantData, state: e.target.value })}
+            placeholder="State"
+            className="w-full border rounded-lg px-3 py-2"
+          />
+          <input
+            type="text"
+            value={restaurantData?.country || ''}
+            onChange={(e) => setRestaurantData({ ...restaurantData, country: e.target.value })}
+            placeholder="Country"
+            className="w-full border rounded-lg px-3 py-2"
+          />
+        </div>
+
+        {/* Save Button */}
+        <div className="mt-8 text-right">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className={`px-6 py-3 rounded-lg font-semibold text-white ${
+              saving ? 'bg-gray-400' : 'bg-coral-600 hover:bg-coral-700'
+            }`}
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
           </button>
+        </div>
+
+        {/* Manual Debug Triggers */}
+        <div className="mt-8 p-4 border-t border-gray-200">
+          <h3 className="font-semibold mb-2">Debug Actions:</h3>
+          <div className="space-x-2">
+            <button
+              onClick={() => {
+                addDebug('Manual auth check triggered');
+                addDebug(`Auth state: ${JSON.stringify({ user: user?.id, authLoading })}`);
+              }}
+              className="px-3 py-1 bg-blue-500 text-white text-sm rounded"
+            >
+              Check Auth State
+            </button>
+            <button
+              onClick={async () => {
+                addDebug('Manual Supabase test triggered');
+                try {
+                  const { data, error } = await supabase.auth.getUser();
+                  addDebug(`Supabase auth check: ${data.user ? 'User found' : 'No user'}`);
+                  if (error) addDebug(`Supabase auth error: ${error.message}`);
+                } catch (e: any) {
+                  addDebug(`Supabase test failed: ${e.message}`);
+                }
+              }}
+              className="px-3 py-1 bg-green-500 text-white text-sm rounded"
+            >
+              Test Supabase
+            </button>
+            <button
+              onClick={() => setDebugInfo([])}
+              className="px-3 py-1 bg-gray-500 text-white text-sm rounded"
+            >
+              Clear Debug Log
+            </button>
+          </div>
         </div>
       </div>
     </DashboardLayout>
