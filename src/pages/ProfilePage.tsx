@@ -124,13 +124,13 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  if (authLoading || loading) {
-    return (
-      <DashboardLayout>
-        <div className="text-center py-12 text-gray-600">Loading your profile...</div>
-      </DashboardLayout>
-    );
-  }
+	if (loading) {
+	  return (
+		<DashboardLayout>
+		  <div className="text-center py-12 text-gray-600">Loading your profile...</div>
+		</DashboardLayout>
+	  );
+	}
 
   return (
     <DashboardLayout>
