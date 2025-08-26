@@ -5,7 +5,7 @@ import { gardenBistroMenu } from '../data/sampleMenuData';
 
 const SampleMenu3: React.FC = () => {
   return (
-	<div className="px-12 md:px-24 lg:px-40">
+	<div className="px-4 sm:px-6 lg:px-32 xl:px-48">
     <RestaurantMenuPage 
       menuData={gardenBistroMenu}
       menuId="demo-menu-3"

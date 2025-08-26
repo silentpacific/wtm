@@ -599,7 +599,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
       </div>
 
       {/* Menu Sections */}
-      <div className="p-4 lg:p-8 space-y-6">
+      <div className="px-4 sm:px-6 lg:px-32 xl:px-48 space-y-6">
         {Object.entries(itemsBySection).map(([section, items]) => (
           <div key={section} className="bg-white rounded-lg shadow-sm overflow-hidden">
             {/* Section Header */}
