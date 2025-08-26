@@ -499,6 +499,53 @@ const ProfilePage: React.FC = () => {
             Saving changes...
           </div>
         )}
+		
+		<div className="mt-8 text-right">
+  <button
+    onClick={async () => {
+      setSaving(true);
+      setMessage(null);
+      try {
+        if (userProfile) {
+          await supabase
+            .from('user_profiles')
+            .update({
+              full_name: userProfile.full_name,
+              subscription_type: userProfile.subscription_type
+            })
+            .eq('id', user?.id);
+        }
+        if (restaurantData) {
+          await supabase
+            .from('restaurants')
+            .update({
+              name: restaurantData.name,
+              cuisine_type: restaurantData.cuisine_type,
+              city: restaurantData.city,
+              state: restaurantData.state,
+              country: restaurantData.country,
+              phone: restaurantData.phone,
+              address: restaurantData.address,
+              owner_name: restaurantData.owner_name
+            })
+            .eq('id', restaurantData.id);
+        }
+        setMessage({ type: 'success', text: 'All changes saved successfully!' });
+        setTimeout(() => setMessage(null), 3000);
+      } catch (error) {
+        console.error(error);
+        setMessage({ type: 'error', text: 'Failed to save changes' });
+      } finally {
+        setSaving(false);
+      }
+    }}
+    className="px-6 py-3 bg-coral-600 text-white font-semibold rounded-lg hover:bg-coral-700 transition-colors"
+  >
+    Save Changes
+  </button>
+</div>
+
+		
       </div>
     </DashboardLayout>
   );
