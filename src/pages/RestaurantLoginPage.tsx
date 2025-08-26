@@ -1,4 +1,4 @@
-// src/pages/RestaurantLoginPage.tsx - Updated with new design system
+// src/pages/RestaurantLoginPage.tsx - Minimalist redesign
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
@@ -23,7 +23,6 @@ const RestaurantLoginPage: React.FC = () => {
       [name]: value
     }));
     
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -81,37 +80,37 @@ const RestaurantLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-warm flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-wtm-bg flex items-center justify-center py-16 px-6">
       <div className="max-w-md w-full">
         {/* Header */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-block mb-6">
-            <span className="text-2xl font-bold text-wtm-text font-heading">
+        <div className="text-center mb-12">
+          <Link to="/" className="inline-block mb-8">
+            <span className="text-3xl font-bold text-wtm-text tracking-tight">
               WhatThe<span className="text-wtm-primary">Menu</span>
             </span>
           </Link>
-          <h1 className="heading-secondary text-wtm-text mb-2">
+          <h1 className="text-4xl font-bold text-wtm-text mb-4 tracking-tight">
             Welcome Back
           </h1>
-          <p className="text-wtm-muted">
+          <p className="text-xl text-wtm-muted font-light">
             Sign in to your restaurant dashboard
           </p>
         </div>
 
         {/* Login Form */}
-        <div className="card p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-white rounded-3xl border border-gray-100 p-10 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-8">
             {/* General Error */}
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                <p className="text-red-700 text-sm">{errors.general}</p>
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+                <p className="text-red-700 font-medium">{errors.general}</p>
               </div>
             )}
 
             {/* Email Field */}
             <div>
-              <label className="block text-sm font-medium text-wtm-text mb-2">
-                <Mail className="inline mr-1" size={16} />
+              <label className="block text-lg font-medium text-wtm-text mb-3">
+                <Mail className="inline mr-2" size={20} />
                 Email Address
               </label>
               <input
@@ -119,21 +118,21 @@ const RestaurantLoginPage: React.FC = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className={`input-field ${
-                  errors.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                  errors.email ? 'border-red-300' : 'border-gray-200'
                 }`}
                 placeholder="your.email@restaurant.com"
                 autoComplete="email"
               />
               {errors.email && (
-                <p className="text-red-600 text-sm mt-1">{errors.email}</p>
+                <p className="text-red-600 text-sm mt-2">{errors.email}</p>
               )}
             </div>
 
             {/* Password Field */}
             <div>
-              <label className="block text-sm font-medium text-wtm-text mb-2">
-                <Lock className="inline mr-1" size={16} />
+              <label className="block text-lg font-medium text-wtm-text mb-3">
+                <Lock className="inline mr-2" size={20} />
                 Password
               </label>
               <div className="relative">
@@ -142,8 +141,8 @@ const RestaurantLoginPage: React.FC = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className={`input-field pr-12 ${
-                    errors.password ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                  className={`w-full px-5 py-4 pr-14 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                    errors.password ? 'border-red-300' : 'border-gray-200'
                   }`}
                   placeholder="••••••••"
                   autoComplete="current-password"
@@ -151,14 +150,14 @@ const RestaurantLoginPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-wtm-muted hover:text-wtm-text focus-ring rounded p-1"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-wtm-muted hover:text-wtm-text transition-colors"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-red-600 text-sm mt-1">{errors.password}</p>
+                <p className="text-red-600 text-sm mt-2">{errors.password}</p>
               )}
             </div>
 
@@ -167,13 +166,13 @@ const RestaurantLoginPage: React.FC = () => {
               <label className="flex items-center">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 text-wtm-primary focus:ring-wtm-primary border-gray-300 rounded"
+                  className="h-5 w-5 text-wtm-primary focus:ring-wtm-primary border-gray-300 rounded"
                 />
-                <span className="ml-2 text-sm text-wtm-muted">Remember me</span>
+                <span className="ml-3 text-wtm-muted">Remember me</span>
               </label>
               <Link
                 to="/forgot-password"
-                className="text-sm text-wtm-primary hover:text-wtm-primary-600 focus-ring rounded px-1"
+                className="text-wtm-primary hover:text-wtm-primary-600 font-medium transition-colors"
               >
                 Forgot password?
               </Link>
@@ -183,10 +182,10 @@ const RestaurantLoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`btn w-full py-4 ${
+              className={`w-full py-5 rounded-2xl font-semibold text-lg transition-all duration-200 ${
                 isLoading
                   ? 'bg-gray-400 cursor-not-allowed text-white'
-                  : 'btn-primary'
+                  : 'bg-wtm-primary text-white hover:bg-wtm-primary-600 hover:scale-[1.02] shadow-lg hover:shadow-xl'
               }`}
             >
               {isLoading ? 'Signing In...' : 'Sign In'}
@@ -194,35 +193,33 @@ const RestaurantLoginPage: React.FC = () => {
           </form>
 
           {/* Divider */}
-          <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-            <p className="text-sm text-wtm-muted">
+          <div className="mt-10 pt-8 border-t border-gray-100 text-center">
+            <p className="text-wtm-muted mb-6">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-wtm-primary hover:text-wtm-primary-600 font-semibold focus-ring rounded px-1">
+              <Link to="/signup" className="text-wtm-primary hover:text-wtm-primary-600 font-semibold transition-colors">
                 Create one here
               </Link>
             </p>
-          </div>
 
-          {/* Demo Link */}
-          <div className="mt-4 text-center">
-            <p className="text-xs text-wtm-muted mb-2">
+            {/* Demo Link */}
+            <p className="text-sm text-wtm-muted mb-3">
               Want to see how it works first?
             </p>
             <Link
               to="/demos"
-              className="text-wtm-primary hover:text-wtm-primary-600 text-sm font-medium focus-ring rounded px-1"
+              className="text-wtm-primary hover:text-wtm-primary-600 font-medium transition-colors"
             >
-              View Demo Restaurants
+              Try Demo Restaurants
             </Link>
           </div>
         </div>
 
         {/* Support Links */}
         <div className="mt-8 text-center">
-          <div className="flex justify-center space-x-6 text-sm text-wtm-muted">
-            <Link to="/faq" className="hover:text-wtm-text focus-ring rounded px-1">Help</Link>
-            <Link to="/contact" className="hover:text-wtm-text focus-ring rounded px-1">Contact</Link>
-            <Link to="/privacy" className="hover:text-wtm-text focus-ring rounded px-1">Privacy</Link>
+          <div className="flex justify-center space-x-8 text-wtm-muted">
+            <Link to="/faq" className="hover:text-wtm-text transition-colors">Help</Link>
+            <Link to="/contact" className="hover:text-wtm-text transition-colors">Contact</Link>
+            <Link to="/privacy" className="hover:text-wtm-text transition-colors">Privacy</Link>
           </div>
         </div>
       </div>

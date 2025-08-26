@@ -1,6 +1,7 @@
-// src/pages/FAQPage.tsx - Updated with new design system
+// src/pages/FAQPage.tsx - Minimalist redesign
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Search, Phone, Mail } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Mail, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface FAQItem {
   id: string;
@@ -18,10 +19,8 @@ const FAQPage: React.FC = () => {
     { id: 'all', name: 'All Questions' },
     { id: 'getting-started', name: 'Getting Started' },
     { id: 'menu-management', name: 'Menu Management' },
-    { id: 'qr-codes', name: 'QR Codes' },
     { id: 'customers', name: 'Customer Experience' },
-    { id: 'billing', name: 'Billing & Pricing' },
-    { id: 'technical', name: 'Technical Support' }
+    { id: 'billing', name: 'Billing & Pricing' }
   ];
 
   const faqs: FAQItem[] = [
@@ -29,82 +28,74 @@ const FAQPage: React.FC = () => {
     {
       id: 'getting-started-1',
       category: 'getting-started',
-      question: 'How do I get started with WhatTheMenu?',
-      answer: 'Create an account, upload your menu (PDF or image), and we\'ll generate a shareable web menu with QR codes.'
+      question: 'How quickly can I get my menu online?',
+      answer: 'Upload your menu and it\'s live in minutes. Our system automatically processes PDF menus and images, creating an accessible digital version with QR codes ready for your tables.'
     },
     {
       id: 'getting-started-2',
       category: 'getting-started',
-      question: 'What types of restaurants can use WhatTheMenu?',
-      answer: 'WhatTheMenu works for any type of restaurant - from casual dining to fine dining, cafes to food trucks. Whether you serve Italian, Asian, American, or fusion cuisine, our platform adapts to your menu and style.'
+      question: 'Do I need technical skills?',
+      answer: 'Not at all. If you can send an email, you can use our platform. Our AI handles the technical complexity, and our interface is intuitive for restaurant owners.'
     },
     {
       id: 'getting-started-3',
       category: 'getting-started',
-      question: 'Do I need technical skills to use WhatTheMenu?',
-      answer: 'Not at all! If you can send an email, you can use our platform. Our AI handles the technical complexity, and our interface is intuitive for restaurant owners.'
+      question: 'What types of restaurants can use WhatTheMenu?',
+      answer: 'Any restaurant - from casual dining to fine dining, cafes to food trucks. Whether you serve Italian, Asian, American, or fusion cuisine, our platform adapts to your menu and style.'
     },
 
     // Menu Management
     {
       id: 'menu-1',
       category: 'menu-management',
-      question: 'Can I customize translations?',
-      answer: 'Yes - review and edit any item name or description.'
+      question: 'What menu formats can I upload?',
+      answer: 'You can upload PDF files, JPG images, or PNG images of your menu. Our AI can read text from photos, scanned documents, or digital menus. The clearer the image, the better the results.'
     },
     {
       id: 'menu-2',
       category: 'menu-management',
-      question: 'What menu formats can I upload?',
-      answer: 'You can upload PDF files, JPG images, or PNG images of your menu. Our AI can read text from photos, scanned documents, or digital menus. The clearer the image, the better the results.'
+      question: 'Can I customize translations?',
+      answer: 'Yes - review and edit any item name or description. Our AI provides the initial translation, then you can refine it to match your restaurant\'s voice and style.'
     },
     {
       id: 'menu-3',
       category: 'menu-management',
       question: 'How do I update my menu when prices change?',
-      answer: 'You can update individual menu items through your dashboard at any time. Changes appear immediately on your customer-facing menu.'
-    },
-
-    // QR Codes
-    {
-      id: 'qr-1',
-      category: 'qr-codes',
-      question: 'How do QR codes work for my customers?',
-      answer: 'Customers simply point their phone camera at the QR code (no app needed). They\'ll see a link to tap, which opens your accessible menu in their browser.'
-    },
-    {
-      id: 'qr-2',
-      category: 'qr-codes',
-      question: 'What sizes of QR codes can I download?',
-      answer: 'We provide QR codes in 4 sizes: Small (200x200) for business cards, Medium (400x400) for table tents, Large (800x800) for posters, and Jumbo (1200x1200) for large displays.'
+      answer: 'Update individual menu items through your dashboard at any time. Changes appear immediately on your customer-facing menu.'
     },
 
     // Customer Experience
     {
       id: 'customer-1',
       category: 'customers',
-      question: 'What languages are supported?',
-      answer: 'English, Spanish, Chinese, French, and more as we expand. Ask us if you need a specific language.'
+      question: 'Which languages are supported?',
+      answer: 'English, Spanish, Chinese, French, German, Italian, and more. Languages are automatically detected and translated to provide seamless experiences for international guests.'
     },
     {
       id: 'customer-2',
       category: 'customers',
       question: 'How does this help Deaf customers?',
-      answer: 'Menus are visual-first. Guests can point, use preset phrases, and confirm their order on screen.'
+      answer: 'Menus are visual-first. Guests can point, use preset phrases, and confirm their order on screen without needing to speak with staff.'
     },
     {
       id: 'customer-3',
       category: 'customers',
-      question: 'What accessibility features are included?',
-      answer: 'High contrast colors, large readable fonts, clear allergen warnings, dietary filtering (vegetarian, vegan, gluten-free), and a visual-only interface that works with screen readers.'
+      question: 'Do customers need to download an app?',
+      answer: 'No app download required. Guests simply scan the QR code with their phone\'s built-in camera. The menu opens in their web browser instantly.'
+    },
+    {
+      id: 'customer-4',
+      category: 'customers',
+      question: 'How do allergen filters work?',
+      answer: 'Each menu item can be tagged with allergen information. Guests can filter the entire menu to show only items that are safe for their dietary restrictions, eliminating guesswork and reducing risk.'
     },
 
     // Billing
     {
       id: 'billing-1',
       category: 'billing',
-      question: 'How much does it cost? Is there a free trial?',
-      answer: 'Simple monthly plan with a free trial. Cancel anytime.'
+      question: 'How much does it cost?',
+      answer: 'Simple monthly plan with a free 14-day trial. No setup fees, no long-term contracts. Cancel anytime.'
     },
     {
       id: 'billing-2',
@@ -112,25 +103,11 @@ const FAQPage: React.FC = () => {
       question: 'Can I cancel anytime?',
       answer: 'Absolutely. There are no long-term contracts or cancellation fees. You can cancel your subscription at any time through your dashboard.'
     },
-
-    // Technical
     {
-      id: 'tech-1',
-      category: 'technical',
-      question: 'Do customers need to download an app?',
-      answer: 'No! Customers just scan the QR code with their phone\'s built-in camera. The menu opens in their web browser - no app download required.'
-    },
-    {
-      id: 'tech-2',
-      category: 'technical',
-      question: 'What if my internet connection is slow?',
-      answer: 'Our menus are optimized for fast loading even on slow connections. We use compressed images and efficient loading techniques.'
-    },
-    {
-      id: 'tech-3',
-      category: 'technical',
-      question: 'Is my restaurant data secure?',
-      answer: 'Yes, we take security seriously. All data is encrypted in transit and at rest. We use enterprise-grade security practices and comply with Australian privacy laws.'
+      id: 'billing-3',
+      category: 'billing',
+      question: 'Is there a setup fee?',
+      answer: 'No setup fees. You only pay the monthly subscription after your free trial ends.'
     }
   ];
 
@@ -152,143 +129,127 @@ const FAQPage: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-warm">
-      {/* Header */}
-      <div className="bg-wtm-surface shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="heading-primary mb-4">Frequently Asked Questions</h1>
-            <p className="text-lg text-wtm-muted max-w-2xl mx-auto">
-              Find answers to common questions about WhatTheMenu, or contact us if you need additional help.
-            </p>
+    <div className="min-h-screen bg-white">
+      {/* Hero Section */}
+      <section className="pt-20 pb-16 px-6 bg-wtm-bg">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl sm:text-6xl font-bold mb-8 leading-tight text-wtm-text tracking-tight">
+            Questions & Answers
+          </h1>
+          <p className="text-xl text-wtm-muted max-w-2xl mx-auto font-light">
+            Everything you need to know about making your restaurant accessible.
+          </p>
+        </div>
+      </section>
+
+      <div className="max-w-4xl mx-auto px-6 py-16">
+        {/* Search */}
+        <div className="mb-12">
+          <div className="relative max-w-lg mx-auto">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-wtm-muted" size={20} />
+            <input
+              type="text"
+              placeholder="Search questions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg"
+            />
           </div>
         </div>
+
+        {/* Category Filters */}
+        <div className="flex flex-wrap justify-center gap-3 mb-16">
+          {categories.map(category => (
+            <button
+              key={category.id}
+              onClick={() => setSelectedCategory(category.id)}
+              className={`px-6 py-3 rounded-2xl font-medium text-sm transition-all duration-200 ${
+                selectedCategory === category.id
+                  ? 'bg-wtm-primary text-white shadow-sm'
+                  : 'bg-gray-100 text-wtm-muted hover:bg-gray-200'
+              }`}
+            >
+              {category.name}
+            </button>
+          ))}
+        </div>
+
+        {/* FAQ Items */}
+        {filteredFaqs.length > 0 ? (
+          <div className="space-y-4">
+            {filteredFaqs.map((faq) => {
+              const isOpen = openItems.includes(faq.id);
+              
+              return (
+                <div key={faq.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200">
+                  <button
+                    onClick={() => toggleItem(faq.id)}
+                    className="flex items-center justify-between w-full text-left p-8 hover:bg-gray-50 transition-colors duration-200"
+                    aria-expanded={isOpen}
+                  >
+                    <h3 className="text-xl font-semibold text-wtm-text pr-4 leading-tight">
+                      {faq.question}
+                    </h3>
+                    {isOpen ? (
+                      <ChevronUp className="text-wtm-primary flex-shrink-0" size={28} />
+                    ) : (
+                      <ChevronDown className="text-wtm-muted flex-shrink-0" size={28} />
+                    )}
+                  </button>
+                  
+                  {isOpen && (
+                    <div className="px-8 pb-8 text-wtm-muted leading-relaxed text-lg font-light animate-fade-in">
+                      {faq.answer}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <MessageCircle size={48} className="text-wtm-muted mx-auto mb-6" />
+            <p className="text-xl text-wtm-muted mb-6">No questions found matching your search.</p>
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('all');
+              }}
+              className="bg-wtm-primary text-white font-semibold px-8 py-4 rounded-2xl hover:bg-wtm-primary-600 transition-colors duration-200"
+            >
+              Clear search and filters
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Search and Filters */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search - Client-side search filters visible questions */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-wtm-muted" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search FAQs..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input-field pl-10"
-                />
-              </div>
-            </div>
-
-            {/* Category Filter */}
-            <div className="md:w-64">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="input-field"
-              >
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+      {/* Contact Section */}
+      <section className="py-20 bg-wtm-bg">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <h2 className="text-4xl font-bold text-wtm-text mb-6 tracking-tight">
+            Still have questions?
+          </h2>
+          <p className="text-xl text-wtm-muted mb-12 font-light">
+            We're here to help you make your restaurant accessible to everyone.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+            <Link 
+              to="/contact"
+              className="bg-wtm-primary text-white font-semibold px-10 py-4 rounded-2xl hover:bg-wtm-primary-600 hover:scale-[1.02] transition-all duration-200 shadow-lg inline-flex items-center justify-center"
+            >
+              <Mail size={20} className="mr-3" />
+              Contact Support
+            </Link>
+            <Link 
+              to="/demos"
+              className="bg-transparent text-wtm-primary border-2 border-wtm-primary font-semibold px-10 py-4 rounded-2xl hover:bg-wtm-primary hover:text-white transition-all duration-200 inline-flex items-center justify-center"
+            >
+              Try Demo Menus
+            </Link>
           </div>
         </div>
-
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Category Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="card p-6 sticky top-6">
-              <h3 className="text-lg font-semibold text-wtm-text mb-4 font-heading">Categories</h3>
-              <nav className="space-y-2">
-                {categories.map(category => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`block w-full text-left px-3 py-2 rounded-xl text-sm transition-colors focus-ring ${
-                      selectedCategory === category.id
-                        ? 'bg-wtm-primary/10 text-wtm-primary font-medium'
-                        : 'text-wtm-muted hover:bg-gray-50'
-                    }`}
-                  >
-                    {category.name}
-                  </button>
-                ))}
-              </nav>
-
-              {/* Contact Info */}
-              <div className="mt-8 p-4 bg-wtm-primary/10 rounded-xl">
-                <h4 className="text-sm font-semibold text-wtm-primary mb-2">Still need help?</h4>
-                <div className="space-y-2">
-                  <a 
-                    href="/contact" 
-                    className="flex items-center text-wtm-primary hover:text-wtm-primary-600 text-sm transition-colors focus-ring rounded px-2 py-1"
-                  >
-                    <Mail size={14} className="mr-2" />
-                    Contact Support
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* FAQ Items */}
-          <div className="lg:col-span-3">
-            <div className="card">
-              {filteredFaqs.length > 0 ? (
-                <div className="divide-y divide-gray-100">
-                  {filteredFaqs.map((faq) => {
-                    const isOpen = openItems.includes(faq.id);
-                    
-                    return (
-                      <div key={faq.id} className="p-6">
-                        <button
-                          onClick={() => toggleItem(faq.id)}
-                          className="flex items-center justify-between w-full text-left focus-ring rounded-lg p-2 -m-2"
-                          aria-expanded={isOpen}
-                        >
-                          <h3 className="text-lg font-semibold text-wtm-text pr-4 font-heading">
-                            {faq.question}
-                          </h3>
-                          {isOpen ? (
-                            <ChevronUp className="text-wtm-primary flex-shrink-0 transition-transform" size={24} />
-                          ) : (
-                            <ChevronDown className="text-wtm-muted flex-shrink-0 transition-transform" size={24} />
-                          )}
-                        </button>
-                        
-                        {isOpen && (
-                          <div className="mt-4 text-wtm-muted leading-relaxed animate-fade-in">
-                            {faq.answer}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="p-12 text-center">
-                  <p className="text-wtm-muted mb-4">No FAQs found matching your search.</p>
-                  <button
-                    onClick={() => {
-                      setSearchTerm('');
-                      setSelectedCategory('all');
-                    }}
-                    className="btn btn-ghost"
-                  >
-                    Clear search and filters
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 };

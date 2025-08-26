@@ -1,6 +1,7 @@
-// src/pages/DemosPage.tsx - Updated with new design system
+// src/pages/DemosPage.tsx - Minimalist redesign
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Globe, Shield, MessageCircle, QrCode } from 'lucide-react';
 
 const DemosPage: React.FC = () => {
   const demoRestaurants = [
@@ -40,102 +41,73 @@ const DemosPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section - Updated with new messaging */}
-      <section className="bg-warm py-16">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <h1 className="heading-primary mb-6">
-            Experience Accessible Menus
+      {/* Hero Section */}
+      <section className="pt-20 pb-16 px-6 bg-wtm-bg">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl sm:text-6xl font-bold mb-8 leading-tight text-wtm-text tracking-tight">
+            Try. Experience. Believe.
           </h1>
-          <p className="text-xl text-wtm-muted mb-8 max-w-4xl mx-auto leading-relaxed">
-            Try these demos to see how guests browse in their language, filter allergens, 
-            and confirm orders—start to finish.
+          <p className="text-xl text-wtm-muted mb-12 max-w-3xl mx-auto font-light leading-relaxed">
+            See how guests browse in their language, filter allergens, and confirm orders — start to finish.
           </p>
           
-          {/* Microcopy */}
-          <p className="text-sm text-wtm-muted mb-8">
+          <p className="text-lg text-wtm-muted font-light">
             No app download required. Works on any phone.
           </p>
         </div>
       </section>
 
-      {/* Horizontal Stepper - Updated with new design system */}
-      <section className="py-12 bg-white">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="stepper justify-center max-w-4xl mx-auto">
-            <div className="step" aria-current="step">
-              <div className="step__dot">1</div>
-              <span className="font-medium">Choose a menu</span>
-            </div>
-            <div className="hidden sm:block w-8 h-px bg-gray-200"></div>
-            <div className="step">
-              <div className="step__dot">2</div>
-              <span className="font-medium">Switch language</span>
-            </div>
-            <div className="hidden sm:block w-8 h-px bg-gray-200"></div>
-            <div className="step">
-              <div className="step__dot">3</div>
-              <span className="font-medium">Filter allergens</span>
-            </div>
-            <div className="hidden sm:block w-8 h-px bg-gray-200"></div>
-            <div className="step">
-              <div className="step__dot">4</div>
-              <span className="font-medium">View visual order</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Demo Grid - Updated with new card system */}
-      <section className="py-16 bg-warm">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="heading-secondary mb-4">
-              Try These Sample Menus
+      {/* Demo Grid */}
+      <section className="py-20 bg-wtm-bg">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-wtm-text mb-6 tracking-tight">
+              Sample Restaurants
             </h2>
-            <p className="text-lg text-wtm-muted">
+            <p className="text-xl text-wtm-muted font-light">
               Each menu demonstrates different cuisines and accessibility features
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 gap-8">
             {demoRestaurants.map((restaurant) => (
-              <div key={restaurant.id} className="card p-6">
-                <div className="mb-4">
-                  <h3 className="text-xl font-semibold text-wtm-text mb-2 font-heading">
+              <div key={restaurant.id} className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm hover:shadow-lg transition-all duration-200">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-semibold text-wtm-text mb-3 tracking-tight">
                     {restaurant.name}
                   </h3>
-                  <p className="text-wtm-primary font-medium">
+                  <p className="text-wtm-primary font-medium text-lg">
                     {restaurant.cuisine} • {restaurant.city}
                   </p>
                 </div>
                 
-                <p className="text-wtm-muted mb-6 leading-relaxed">
+                <p className="text-wtm-muted mb-6 leading-relaxed font-light text-lg">
                   {restaurant.description}
                 </p>
                 
-                <div className="flex flex-wrap gap-2 mb-6">
+                <div className="flex flex-wrap gap-3 mb-8">
                   {restaurant.features.map((feature, index) => (
                     <span 
                       key={index}
-                      className="chip chip--veg text-xs"
+                      className="px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-medium"
                     >
                       {feature}
                     </span>
                   ))}
                 </div>
                 
-                <div className="flex gap-3">
+                <div className="flex gap-4">
                   <Link 
                     to={`/demos/${restaurant.id}`}
-                    className="btn btn-primary flex-1 justify-center"
+                    className="flex-1 bg-wtm-primary text-white font-semibold py-4 px-6 rounded-2xl text-center hover:bg-wtm-primary-600 hover:scale-[1.02] transition-all duration-200 shadow-md"
                   >
-                    View Interactive Menu
+                    Try Interactive Menu
                   </Link>
                   <Link 
                     to={`/demos/${restaurant.id}/features`}
-                    className="btn btn-ghost px-4"
+                    className="px-6 py-4 text-wtm-primary border-2 border-wtm-primary font-semibold rounded-2xl hover:bg-wtm-primary hover:text-white transition-all duration-200"
                   >
-                    See Features
+                    Features
                   </Link>
                 </div>
               </div>
@@ -144,27 +116,27 @@ const DemosPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Call to Action - Updated with new design system */}
-      <section className="py-16 bg-wtm-secondary text-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-6 font-heading">
-            Ready to make your restaurant accessible?
+      {/* Call to Action */}
+      <section className="py-20 bg-wtm-secondary text-white">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-4xl sm:text-5xl font-bold mb-8 leading-tight tracking-tight">
+            Ready to welcome everyone?
           </h2>
-          <p className="text-xl text-white/90 mb-8">
+          <p className="text-xl text-white/90 mb-12 font-light">
             After trying these demos, see how easy it is to get started
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <Link 
               to="/signup" 
-              className="bg-white text-wtm-secondary hover:bg-gray-50 font-semibold px-8 py-4 rounded-2xl transition-colors duration-200 inline-flex items-center justify-center"
+              className="bg-white text-wtm-secondary hover:bg-gray-50 font-semibold px-10 py-5 rounded-2xl transition-all duration-200 inline-flex items-center justify-center hover:scale-[1.02] shadow-lg text-lg"
             >
-              Sign Up Your Restaurant
+              Start Your Free Trial
             </Link>
             <Link 
               to="/contact" 
-              className="bg-transparent text-white hover:bg-white/10 font-semibold px-8 py-4 rounded-2xl border-2 border-white transition-colors duration-200 inline-flex items-center justify-center"
+              className="bg-transparent text-white hover:bg-white/10 font-semibold px-10 py-5 rounded-2xl border-2 border-white transition-all duration-200 inline-flex items-center justify-center text-lg"
             >
-              Ask Questions
+              Have Questions?
             </Link>
           </div>
         </div>
@@ -174,3 +146,64 @@ const DemosPage: React.FC = () => {
 };
 
 export default DemosPage;
+
+      {/* How It Works */}
+      <section className="py-20 bg-white">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-wtm-text mb-6 tracking-tight">
+              Four steps. Zero confusion.
+            </h2>
+          </div>
+          
+          <div className="grid md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-wtm-primary/10 flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold text-wtm-primary">1</span>
+              </div>
+              <h3 className="text-xl font-semibold text-wtm-text mb-4">
+                Choose a menu
+              </h3>
+              <p className="text-wtm-muted leading-relaxed font-light">
+                Pick from our sample restaurants below
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-wtm-primary/10 flex items-center justify-center mx-auto mb-6">
+                <Globe size={28} className="text-wtm-primary" />
+              </div>
+              <h3 className="text-xl font-semibold text-wtm-text mb-4">
+                Switch language
+              </h3>
+              <p className="text-wtm-muted leading-relaxed font-light">
+                See instant translations in action
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-wtm-primary/10 flex items-center justify-center mx-auto mb-6">
+                <Shield size={28} className="text-wtm-primary" />
+              </div>
+              <h3 className="text-xl font-semibold text-wtm-text mb-4">
+                Filter allergens
+              </h3>
+              <p className="text-wtm-muted leading-relaxed font-light">
+                Hide items with specific allergens
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-wtm-primary/10 flex items-center justify-center mx-auto mb-6">
+                <MessageCircle size={28} className="text-wtm-primary" />
+              </div>
+              <h3 className="text-xl font-semibold text-wtm-text mb-4">
+                Confirm visually
+              </h3>
+              <p className="text-wtm-muted leading-relaxed font-light">
+                Order without speaking
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>

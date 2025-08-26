@@ -1,4 +1,4 @@
-// src/pages/RestaurantSignupPage.tsx - Restaurant Owner Registration
+// src/pages/RestaurantSignupPage.tsx - Minimalist redesign
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Phone, MapPin, User, Building } from 'lucide-react';
@@ -8,14 +8,11 @@ const RestaurantSignupPage: React.FC = () => {
   const navigate = useNavigate();
   const { signUp } = useAuth();
   const [formData, setFormData] = useState({
-    // Restaurant Info
     restaurantName: '',
     cuisineType: '',
     address: '',
     city: '',
     phone: '',
-    
-    // Owner Info
     ownerName: '',
     email: '',
     password: '',
@@ -40,7 +37,6 @@ const RestaurantSignupPage: React.FC = () => {
       [name]: value
     }));
     
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -52,15 +48,13 @@ const RestaurantSignupPage: React.FC = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    // Restaurant validation
     if (!formData.restaurantName.trim()) newErrors.restaurantName = 'Restaurant name is required';
     if (!formData.cuisineType) newErrors.cuisineType = 'Cuisine type is required';
     if (!formData.address.trim()) newErrors.address = 'Address is required';
     if (!formData.city.trim()) newErrors.city = 'City is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-
-    // Owner validation
     if (!formData.ownerName.trim()) newErrors.ownerName = 'Owner name is required';
+    
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -101,13 +95,11 @@ const RestaurantSignupPage: React.FC = () => {
         city: formData.city
       });
       
-      // Success - redirect to dashboard
       navigate('/dashboard');
       
     } catch (error: any) {
       console.error('Signup error:', error);
       
-      // Handle specific error types
       if (error.message.includes('email')) {
         setErrors({ email: 'This email is already registered' });
       } else if (error.message.includes('password')) {
@@ -121,68 +113,265 @@ const RestaurantSignupPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen py-12" style={{ backgroundColor: 'var(--wtm-bg)' }}>
-      <div className="max-w-2xl mx-auto px-4">
+    <div className="min-h-screen bg-wtm-bg py-16 px-6">
+      <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-block mb-6">
-            <span className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
-              WhatThe<span style={{ color: 'var(--wtm-primary)' }}>Menu</span>
+        <div className="text-center mb-12">
+          <Link to="/" className="inline-block mb-8">
+            <span className="text-3xl font-bold text-wtm-text tracking-tight">
+              WhatThe<span className="text-wtm-primary">Menu</span>
             </span>
           </Link>
-          <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--wtm-text)' }}>
-            Sign Up Your Restaurant
+          <h1 className="text-4xl font-bold text-wtm-text mb-4 tracking-tight">
+            Start Your Journey
           </h1>
-          <p style={{ color: 'var(--wtm-muted)' }}>
+          <p className="text-xl text-wtm-muted font-light">
             Make your restaurant accessible to all customers
           </p>
         </div>
 
         {/* Signup Form */}
-        <div className="card p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-white rounded-3xl border border-gray-100 p-10 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-8">
             {/* General Error */}
             {errors.general && (
-              <div className="p-4 rounded-lg" 
-                   style={{ 
-                     backgroundColor: '#FCEDEA', 
-                     border: '1px solid #F87171',
-                     color: '#7A2E21'
-                   }}>
-                <p className="text-sm">{errors.general}</p>
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+                <p className="text-red-700 font-medium">{errors.general}</p>
               </div>
             )}
 
             {/* Restaurant Information */}
-            {/* ... same as before ... */}
+            <div>
+              <h3 className="text-2xl font-semibold text-wtm-text mb-6 tracking-tight">
+                Restaurant Information
+              </h3>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-lg font-medium text-wtm-text mb-3">
+                    <Building className="inline mr-2" size={20} />
+                    Restaurant Name
+                  </label>
+                  <input
+                    type="text"
+                    name="restaurantName"
+                    value={formData.restaurantName}
+                    onChange={handleInputChange}
+                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                      errors.restaurantName ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                    placeholder="Your Restaurant Name"
+                  />
+                  {errors.restaurantName && <p className="text-red-600 text-sm mt-2">{errors.restaurantName}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-lg font-medium text-wtm-text mb-3">
+                    Cuisine Type
+                  </label>
+                  <select
+                    name="cuisineType"
+                    value={formData.cuisineType}
+                    onChange={handleInputChange}
+                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                      errors.cuisineType ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                  >
+                    <option value="">Select cuisine type</option>
+                    {cuisineOptions.map(cuisine => (
+                      <option key={cuisine} value={cuisine}>{cuisine}</option>
+                    ))}
+                  </select>
+                  {errors.cuisineType && <p className="text-red-600 text-sm mt-2">{errors.cuisineType}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-lg font-medium text-wtm-text mb-3">
+                    <MapPin className="inline mr-2" size={20} />
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                      errors.address ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                    placeholder="123 Main Street"
+                  />
+                  {errors.address && <p className="text-red-600 text-sm mt-2">{errors.address}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-lg font-medium text-wtm-text mb-3">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                      errors.city ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                    placeholder="Adelaide"
+                  />
+                  {errors.city && <p className="text-red-600 text-sm mt-2">{errors.city}</p>}
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-lg font-medium text-wtm-text mb-3">
+                    <Phone className="inline mr-2" size={20} />
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                      errors.phone ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                    placeholder="+61 8 1234 5678"
+                  />
+                  {errors.phone && <p className="text-red-600 text-sm mt-2">{errors.phone}</p>}
+                </div>
+              </div>
+            </div>
 
             {/* Owner Information */}
-            {/* ... same as before ... */}
+            <div>
+              <h3 className="text-2xl font-semibold text-wtm-text mb-6 tracking-tight">
+                Owner Information
+              </h3>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <label className="block text-lg font-medium text-wtm-text mb-3">
+                    <User className="inline mr-2" size={20} />
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    name="ownerName"
+                    value={formData.ownerName}
+                    onChange={handleInputChange}
+                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                      errors.ownerName ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                    placeholder="Your Full Name"
+                  />
+                  {errors.ownerName && <p className="text-red-600 text-sm mt-2">{errors.ownerName}</p>}
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-lg font-medium text-wtm-text mb-3">
+                    <Mail className="inline mr-2" size={20} />
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                      errors.email ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                    placeholder="your.email@restaurant.com"
+                  />
+                  {errors.email && <p className="text-red-600 text-sm mt-2">{errors.email}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-lg font-medium text-wtm-text mb-3">
+                    <Lock className="inline mr-2" size={20} />
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className={`w-full px-5 py-4 pr-14 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                        errors.password ? 'border-red-300' : 'border-gray-200'
+                      }`}
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-wtm-muted hover:text-wtm-text transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-red-600 text-sm mt-2">{errors.password}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-lg font-medium text-wtm-text mb-3">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      className={`w-full px-5 py-4 pr-14 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                        errors.confirmPassword ? 'border-red-300' : 'border-gray-200'
+                      }`}
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-wtm-muted hover:text-wtm-text transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff size={24} /> : <Eye size={24} />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <p className="text-red-600 text-sm mt-2">{errors.confirmPassword}</p>}
+                </div>
+              </div>
+            </div>
 
             {/* Submit Button */}
             <div className="pt-6">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 rounded-lg font-semibold"
-                style={{ 
-                  backgroundColor: 'var(--wtm-primary)',
-                  color: 'white',
-                  opacity: isLoading ? 0.7 : 1
-                }}
+                className={`w-full py-5 rounded-2xl font-semibold text-lg transition-all duration-200 ${
+                  isLoading
+                    ? 'bg-gray-400 cursor-not-allowed text-white'
+                    : 'bg-wtm-primary text-white hover:bg-wtm-primary-600 hover:scale-[1.02] shadow-lg hover:shadow-xl'
+                }`}
               >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
+                {isLoading ? 'Creating Account...' : 'Start Free Trial'}
               </button>
             </div>
+          </form>
 
-            {/* Footer */}
-            <p className="text-center text-sm mt-6" style={{ color: 'var(--wtm-muted)' }}>
+          {/* Footer */}
+          <div className="mt-10 pt-8 border-t border-gray-100 text-center">
+            <p className="text-wtm-muted">
               Already have an account?{' '}
-              <Link to="/restaurant/login" style={{ color: 'var(--wtm-primary)' }}>
-                Sign in
+              <Link to="/login" className="text-wtm-primary hover:text-wtm-primary-600 font-semibold transition-colors">
+                Sign in here
               </Link>
             </p>
-          </form>
+          </div>
+        </div>
+
+        {/* Support Links */}
+        <div className="mt-8 text-center">
+          <div className="flex justify-center space-x-8 text-wtm-muted">
+            <Link to="/faq" className="hover:text-wtm-text transition-colors">Help</Link>
+            <Link to="/contact" className="hover:text-wtm-text transition-colors">Contact</Link>
+            <Link to="/privacy" className="hover:text-wtm-text transition-colors">Privacy</Link>
+          </div>
         </div>
       </div>
     </div>
