@@ -1,4 +1,4 @@
-// src/components/Header.tsx - Navigation with auth state awareness
+// src/components/Header.tsx - Updated for minimalist design system
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, User, LogOut } from 'lucide-react';
@@ -24,134 +24,81 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header style={{ backgroundColor: 'var(--wtm-surface)' }} 
-            className="shadow-sm border-b" 
-            style-border-color="var(--wtm-bg)">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+    <header className="bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <span className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
-              WhatThe<span style={{ color: 'var(--wtm-primary)' }}>Menu</span>
+            <span className="text-3xl font-bold text-wtm-text tracking-tight">
+              WhatThe<span className="text-wtm-primary">Menu</span>
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-12">
             <Link
               to="/demos"
-              className={`font-semibold transition-colors ${
-                isActive('/demos') 
-                  ? '' 
-                  : ''
+              className={`font-medium text-lg transition-colors hover:text-wtm-primary ${
+                isActive('/demos') ? 'text-wtm-primary' : 'text-wtm-muted'
               }`}
-              style={{ 
-                color: isActive('/demos') 
-                  ? 'var(--wtm-primary)' 
-                  : 'var(--wtm-muted)'
-              }}
-              onMouseEnter={(e) => e.target.style.color = 'var(--wtm-primary)'}
-              onMouseLeave={(e) => {
-                if (!isActive('/demos')) {
-                  e.target.style.color = 'var(--wtm-muted)';
-                }
-              }}
             >
               Demo Menus
             </Link>
             
             <Link
               to="/contact"
-              className="font-semibold transition-colors"
-              style={{ 
-                color: isActive('/contact') 
-                  ? 'var(--wtm-primary)' 
-                  : 'var(--wtm-muted)'
-              }}
-              onMouseEnter={(e) => e.target.style.color = 'var(--wtm-primary)'}
-              onMouseLeave={(e) => {
-                if (!isActive('/contact')) {
-                  e.target.style.color = 'var(--wtm-muted)';
-                }
-              }}
+              className={`font-medium text-lg transition-colors hover:text-wtm-primary ${
+                isActive('/contact') ? 'text-wtm-primary' : 'text-wtm-muted'
+              }`}
             >
               Contact
             </Link>
             
             <Link
               to="/faq"
-              className="font-semibold transition-colors"
-              style={{ 
-                color: isActive('/faq') 
-                  ? 'var(--wtm-primary)' 
-                  : 'var(--wtm-muted)'
-              }}
-              onMouseEnter={(e) => e.target.style.color = 'var(--wtm-primary)'}
-              onMouseLeave={(e) => {
-                if (!isActive('/faq')) {
-                  e.target.style.color = 'var(--wtm-muted)';
-                }
-              }}
+              className={`font-medium text-lg transition-colors hover:text-wtm-primary ${
+                isActive('/faq') ? 'text-wtm-primary' : 'text-wtm-muted'
+              }`}
             >
               FAQ
             </Link>
             
             {/* Auth buttons or Profile */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-6">
               {user ? (
                 // Logged in - show profile menu
                 <div className="relative">
                   <button
                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                    className="flex items-center space-x-2 p-2 rounded-lg transition-colors"
-                    style={{ 
-                      backgroundColor: isProfileMenuOpen ? 'var(--wtm-bg)' : 'transparent'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isProfileMenuOpen) {
-                        e.target.style.backgroundColor = 'var(--wtm-bg)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isProfileMenuOpen) {
-                        e.target.style.backgroundColor = 'transparent';
-                      }
-                    }}
+                    className="flex items-center space-x-3 p-3 rounded-2xl transition-colors hover:bg-wtm-bg"
                   >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center" 
-                         style={{ backgroundColor: '#FCEDEA' }}>
-                      <span className="font-semibold text-sm" style={{ color: 'var(--wtm-primary)' }}>
+                    <div className="w-10 h-10 rounded-full bg-wtm-primary/10 flex items-center justify-center">
+                      <span className="font-semibold text-wtm-primary">
                         {restaurant?.owner_name?.charAt(0) || user.email?.charAt(0) || 'U'}
                       </span>
                     </div>
-                    <span className="hidden sm:block font-medium" style={{ color: 'var(--wtm-text)' }}>
+                    <span className="hidden sm:block font-medium text-wtm-text">
                       {restaurant?.owner_name || user.email}
                     </span>
                   </button>
 
                   {/* Profile dropdown */}
                   {isProfileMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border py-1 z-50 card">
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
                       <Link
                         to="/dashboard"
-                        className="flex items-center px-4 py-2 text-sm transition-colors"
-                        style={{ color: 'var(--wtm-text)' }}
+                        className="flex items-center px-4 py-3 text-wtm-text hover:bg-wtm-bg transition-colors"
                         onClick={() => setIsProfileMenuOpen(false)}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--wtm-bg)'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                       >
-                        <User size={16} className="mr-2" />
+                        <User size={18} className="mr-3" />
                         Dashboard
                       </Link>
-                      <div className="border-t my-1" style={{ borderColor: '#EFE7E2' }} />
+                      <div className="border-t border-gray-100 my-1" />
                       <button
                         onClick={handleSignOut}
-                        className="flex items-center w-full text-left px-4 py-2 text-sm transition-colors"
-                        style={{ color: '#B91C1C' }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#FEF2F2'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                        className="flex items-center w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 transition-colors"
                       >
-                        <LogOut size={16} className="mr-2" />
+                        <LogOut size={18} className="mr-3" />
                         Sign Out
                       </button>
                     </div>
@@ -162,24 +109,15 @@ const Header: React.FC = () => {
                 <>
                   <Link
                     to="/login"
-                    className="font-semibold transition-colors"
-                    style={{ 
-                      color: isActive('/login') 
-                        ? 'var(--wtm-primary)' 
-                        : 'var(--wtm-muted)'
-                    }}
-                    onMouseEnter={(e) => e.target.style.color = 'var(--wtm-primary)'}
-                    onMouseLeave={(e) => {
-                      if (!isActive('/login')) {
-                        e.target.style.color = 'var(--wtm-muted)';
-                      }
-                    }}
+                    className={`font-medium text-lg transition-colors hover:text-wtm-primary ${
+                      isActive('/login') ? 'text-wtm-primary' : 'text-wtm-muted'
+                    }`}
                   >
                     Login
                   </Link>
                   <Link
                     to="/signup"
-                    className="btn btn-primary"
+                    className="bg-wtm-primary text-white font-semibold px-8 py-3 rounded-2xl hover:bg-wtm-primary-600 hover:scale-[1.02] transition-all duration-200 shadow-md"
                   >
                     Start Free Trial
                   </Link>
@@ -191,28 +129,22 @@ const Header: React.FC = () => {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 transition-colors"
-            style={{ color: 'var(--wtm-muted)' }}
-            onMouseEnter={(e) => e.target.style.color = 'var(--wtm-primary)'}
-            onMouseLeave={(e) => e.target.style.color = 'var(--wtm-muted)'}
+            className="md:hidden p-2 text-wtm-muted hover:text-wtm-primary transition-colors"
           >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t" style={{ borderColor: '#EFE7E2' }}>
-            <div className="flex flex-col space-y-4">
+          <div className="md:hidden py-6 border-t border-gray-100">
+            <div className="flex flex-col space-y-6">
               <Link
                 to="/demos"
                 onClick={() => setIsMenuOpen(false)}
-                className="font-semibold py-2"
-                style={{ 
-                  color: isActive('/demos') 
-                    ? 'var(--wtm-primary)' 
-                    : 'var(--wtm-muted)'
-                }}
+                className={`font-medium text-lg py-2 transition-colors hover:text-wtm-primary ${
+                  isActive('/demos') ? 'text-wtm-primary' : 'text-wtm-muted'
+                }`}
               >
                 Demo Menus
               </Link>
@@ -220,12 +152,9 @@ const Header: React.FC = () => {
               <Link
                 to="/contact"
                 onClick={() => setIsMenuOpen(false)}
-                className="font-semibold py-2"
-                style={{ 
-                  color: isActive('/contact') 
-                    ? 'var(--wtm-primary)' 
-                    : 'var(--wtm-muted)'
-                }}
+                className={`font-medium text-lg py-2 transition-colors hover:text-wtm-primary ${
+                  isActive('/contact') ? 'text-wtm-primary' : 'text-wtm-muted'
+                }`}
               >
                 Contact
               </Link>
@@ -233,25 +162,21 @@ const Header: React.FC = () => {
               <Link
                 to="/faq"
                 onClick={() => setIsMenuOpen(false)}
-                className="font-semibold py-2"
-                style={{ 
-                  color: isActive('/faq') 
-                    ? 'var(--wtm-primary)' 
-                    : 'var(--wtm-muted)'
-                }}
+                className={`font-medium text-lg py-2 transition-colors hover:text-wtm-primary ${
+                  isActive('/faq') ? 'text-wtm-primary' : 'text-wtm-muted'
+                }`}
               >
                 FAQ
               </Link>
 
-              <div className="pt-2 border-t space-y-2" style={{ borderColor: '#EFE7E2' }}>
+              <div className="pt-4 border-t border-gray-100 space-y-4">
                 {user ? (
                   // Logged in mobile menu
                   <>
                     <Link
                       to="/dashboard"
                       onClick={() => setIsMenuOpen(false)}
-                      className="block font-semibold py-2"
-                      style={{ color: 'var(--wtm-muted)' }}
+                      className="block font-medium text-lg py-2 text-wtm-muted hover:text-wtm-primary transition-colors"
                     >
                       Dashboard
                     </Link>
@@ -260,8 +185,7 @@ const Header: React.FC = () => {
                         setIsMenuOpen(false);
                         handleSignOut();
                       }}
-                      className="block w-full text-left font-semibold py-2"
-                      style={{ color: '#B91C1C' }}
+                      className="block w-full text-left font-medium text-lg py-2 text-red-600"
                     >
                       Sign Out
                     </button>
@@ -272,15 +196,14 @@ const Header: React.FC = () => {
                     <Link
                       to="/login"
                       onClick={() => setIsMenuOpen(false)}
-                      className="block font-semibold py-2"
-                      style={{ color: 'var(--wtm-muted)' }}
+                      className="block font-medium text-lg py-2 text-wtm-muted hover:text-wtm-primary transition-colors"
                     >
                       Login
                     </Link>
                     <Link
                       to="/signup"
                       onClick={() => setIsMenuOpen(false)}
-                      className="btn btn-primary block text-center"
+                      className="block bg-wtm-primary text-white font-semibold px-8 py-4 rounded-2xl text-center hover:bg-wtm-primary-600 transition-colors"
                     >
                       Start Free Trial
                     </Link>

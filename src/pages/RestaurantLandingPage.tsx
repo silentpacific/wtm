@@ -1,115 +1,162 @@
-// src/pages/RestaurantLandingPage.tsx - Polished UI with hierarchy & card design
+// src/pages/RestaurantLandingPage.tsx - Apple-inspired minimalist redesign
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Globe, Shield, QrCode, Upload, CheckCircle, MessageCircle } from 'lucide-react';
 
 const RestaurantLandingPage: React.FC = () => {
   return (
     <div className="min-h-screen font-sans bg-white">
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-wtm-primary/5 to-white py-28">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <h1 className="text-5xl sm:text-6xl font-bold mb-6 leading-tight text-wtm-text">
-            Make every guest feel welcome
+      <section className="pt-20 pb-28 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-6xl sm:text-7xl font-bold mb-8 leading-[0.95] text-wtm-text tracking-tight">
+            Everyone's Welcome.<br />Every Time.
           </h1>
           
-          <p className="text-xl text-wtm-muted mb-10 max-w-3xl mx-auto leading-relaxed">
-            WhatTheMenu turns your menu into an interactive, multilingual guide with clear allergen 
-            and dietary info — so tourists, expats, and Deaf customers can order with confidence.
+          <p className="text-2xl text-wtm-muted mb-16 max-w-2xl mx-auto leading-relaxed font-light">
+            Transform your menu. Global appeal, effortless ordering.
           </p>
           
-          {/* Badge row */}
-          <div className="text-sm text-wtm-muted mb-12 flex flex-wrap justify-center gap-6">
-            <span>Setup in minutes</span>
-            <span>5+ languages</span>
-            <span>Allergen filters</span>
-            <span>QR codes for tables</span>
+          {/* Feature icons row */}
+          <div className="flex flex-wrap justify-center gap-12 mb-16 text-wtm-muted">
+            <div className="flex flex-col items-center gap-3">
+              <Globe size={32} className="text-wtm-primary" />
+              <span className="text-sm font-medium">5+ Languages</span>
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <Shield size={32} className="text-wtm-primary" />
+              <span className="text-sm font-medium">Allergen Filters</span>
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <QrCode size={32} className="text-wtm-primary" />
+              <span className="text-sm font-medium">QR Codes for Tables</span>
+            </div>
           </div>
           
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <Link 
               to="/signup" 
-              className="bg-wtm-primary text-white font-semibold px-10 py-4 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200"
+              className="bg-wtm-primary text-white font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-wtm-primary-600 hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               Start Free Trial
             </Link>
             <Link 
               to="/demos" 
-              className="bg-white text-wtm-primary border-2 border-wtm-primary font-semibold px-10 py-4 rounded-2xl hover:bg-wtm-primary hover:text-white transition-colors duration-200"
+              className="bg-transparent text-wtm-primary border-2 border-wtm-primary font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-wtm-primary hover:text-white transition-all duration-200"
             >
               See a Live Demo
             </Link>
           </div>
+          
+          <p className="text-sm text-wtm-muted mt-8 font-light">
+            Unlock your free 14-day trial.
+          </p>
         </div>
       </section>
 
-      {/* Problem ⇄ Solution */}
-      <section className="py-24 bg-warm/30">
-        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12">
-          <div className="bg-white rounded-2xl p-10 shadow-md">
-            <h2 className="text-2xl font-bold mb-6 text-wtm-text">The challenge in busy dining rooms</h2>
-            <ul className="space-y-4 text-wtm-muted leading-relaxed list-disc list-inside">
-              <li>Mixed languages and accents make menus hard to follow.</li>
-              <li>Deaf and hard-of-hearing guests rely on visual, not spoken, info.</li>
-              <li>Allergen & dietary needs must be crystal clear.</li>
-            </ul>
-          </div>
-          
-          <div className="bg-white rounded-2xl p-10 shadow-md">
-            <h2 className="text-2xl font-bold mb-6 text-wtm-text">WhatTheMenu does for you</h2>
-            <ul className="space-y-4 text-wtm-muted leading-relaxed list-disc list-inside">
-              <li>Instant menu translations in 5+ languages.</li>
-              <li>Allergen & dietary filters that remove risk.</li>
-              <li>Visual interface to confirm orders — no app download.</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Value Props - 3 Cards */}
-      <section className="py-24 bg-white">
-        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-10">
-          <div className="bg-warm/20 rounded-2xl p-10 text-center shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-200">
-            <h3 className="text-xl font-bold text-wtm-text mb-4">Upload once, share everywhere</h3>
-            <p className="text-wtm-muted leading-relaxed">
-              PDF or image in → accessible web menu out. QR codes for tables included.
+      {/* The New Dining Experience Section */}
+      <section className="py-28 bg-wtm-bg">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl font-bold text-wtm-text mb-8 tracking-tight">
+              The New Dining Experience.
+            </h2>
+            <p className="text-xl text-wtm-muted font-light">
+              Seamless ordering. Pure enjoyment.
             </p>
           </div>
           
-          <div className="bg-warm/20 rounded-2xl p-10 text-center shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-200">
-            <h3 className="text-xl font-bold text-wtm-text mb-4">Safe choices, fewer mistakes</h3>
-            <p className="text-wtm-muted leading-relaxed">
-              Guests filter allergens and see clear dietary tags before they order.
-            </p>
-          </div>
-          
-          <div className="bg-warm/20 rounded-2xl p-10 text-center shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-200">
-            <h3 className="text-xl font-bold text-wtm-text mb-4">Friendly for Deaf customers</h3>
-            <p className="text-wtm-muted leading-relaxed">
-              Visual phrases and order confirmation help reduce back-and-forth.
-            </p>
+          <div className="grid md:grid-cols-2 gap-16 max-w-4xl mx-auto">
+            <div className="text-center md:text-left">
+              <Globe size={48} className="text-wtm-primary mb-6 mx-auto md:mx-0" />
+              <h3 className="text-2xl font-semibold text-wtm-text mb-4">
+                Translate instantly. Connect globally.
+              </h3>
+            </div>
+            
+            <div className="text-center md:text-left">
+              <CheckCircle size={48} className="text-wtm-primary mb-6 mx-auto md:mx-0" />
+              <h3 className="text-2xl font-semibold text-wtm-text mb-4">
+                Order with confidence. Always.
+              </h3>
+            </div>
+            
+            <div className="text-center md:text-left md:col-span-2 max-w-lg mx-auto">
+              <MessageCircle size={48} className="text-wtm-primary mb-6 mx-auto md:mx-0" />
+              <h3 className="text-2xl font-semibold text-wtm-text mb-4">
+                Visual cues. Clear communication.
+              </h3>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Band */}
-      <section className="py-24 bg-wtm-secondary text-white">
+      {/* Clarity & Connection Section */}
+      <section className="py-28 bg-white">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl font-bold text-wtm-text mb-8 tracking-tight">
+              Clarity. Connection. Your Table.
+            </h2>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-16">
+            <div className="text-center">
+              <Upload size={56} className="text-wtm-primary mb-8 mx-auto" />
+              <h3 className="text-2xl font-bold text-wtm-text mb-6">
+                Setup in Minutes.
+              </h3>
+              <p className="text-lg text-wtm-muted leading-relaxed font-light">
+                Upload your menu. Live instantly. Accessible everywhere.
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <Shield size={56} className="text-wtm-primary mb-8 mx-auto" />
+              <h3 className="text-2xl font-bold text-wtm-text mb-6">
+                Order with Confidence.
+              </h3>
+              <p className="text-lg text-wtm-muted leading-relaxed font-light">
+                Every allergen, clearly marked. Every choice, understood.
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <MessageCircle size={56} className="text-wtm-primary mb-8 mx-auto" />
+              <h3 className="text-2xl font-bold text-wtm-text mb-6">
+                Communicate Effortlessly.
+              </h3>
+              <p className="text-lg text-wtm-muted leading-relaxed font-light">
+                Visual menus. Clear confirmations. Zero misunderstandings.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="py-28 bg-wtm-secondary text-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-4xl sm:text-5xl font-bold mb-10 leading-tight">
-            Ready to make your restaurant accessible?
+          <h2 className="text-5xl sm:text-6xl font-bold mb-8 leading-tight tracking-tight">
+            Ready to open your doors to everyone?
           </h2>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <p className="text-xl mb-16 font-light opacity-90 max-w-2xl mx-auto">
+            Start your journey to a truly inclusive dining experience.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <Link 
               to="/signup" 
-              className="bg-white text-wtm-secondary font-semibold px-10 py-4 rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200"
+              className="bg-white text-wtm-secondary font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-gray-50 hover:scale-[1.02] transition-all duration-200 shadow-lg"
             >
-              Sign Up Your Restaurant
+              Start Your Free Trial
             </Link>
             <Link 
               to="/contact" 
-              className="bg-transparent text-white border-2 border-white font-semibold px-10 py-4 rounded-2xl hover:bg-white/10 transition-colors duration-200"
+              className="bg-transparent text-white border-2 border-white font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-white/10 transition-all duration-200"
             >
-              Ask Questions
+              Have Questions?
             </Link>
           </div>
         </div>

@@ -7,10 +7,12 @@
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 16px; /* Ensure 16px base for accessibility */
     line-height: 1.6;
+    scroll-behavior: smooth;
   }
   
   body {
     @apply bg-white text-wtm-text antialiased;
+    letter-spacing: -0.01em; /* Slightly tighter letter spacing for modern look */
   }
   
   /* Improve text rendering */
@@ -19,27 +21,38 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Typography base styles */
+  /* Typography base styles - Updated for minimalist design */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Poppins', 'Inter', system-ui, sans-serif;
-    font-weight: 600;
-    line-height: 1.2;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em; /* Tighter tracking for headings */
+  }
+
+  /* Large display text gets even tighter tracking */
+  .text-6xl, .text-7xl {
+    letter-spacing: -0.04em;
+  }
+
+  .text-5xl {
+    letter-spacing: -0.03em;
   }
 }
 
 @layer components {
-  /* New WhatTheMenu Button System */
+  /* Updated WhatTheMenu Button System for minimalist design */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-semibold transition-all duration-200 ease-in-out;
-    min-height: 2.75rem; /* 44px touch target */
+    @apply inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-semibold transition-all duration-200 ease-in-out;
+    min-height: 3rem; /* 48px touch target */
+    letter-spacing: -0.01em;
   }
 
   .btn-primary {
-    @apply bg-wtm-primary text-white hover:bg-wtm-primary-600 shadow-sm hover:shadow-md;
+    @apply bg-wtm-primary text-white hover:bg-wtm-primary-600 shadow-lg hover:shadow-xl hover:scale-[1.02];
   }
 
   .btn-secondary {
-    @apply bg-wtm-surface text-wtm-primary border-2 border-wtm-primary hover:bg-wtm-primary hover:text-white;
+    @apply bg-transparent text-wtm-primary border-2 border-wtm-primary hover:bg-wtm-primary hover:text-white;
   }
 
   .btn-ghost {
@@ -56,19 +69,19 @@
     box-shadow: 0 0 0 2px #fff, 0 0 0 4px theme('colors.wtm-primary');
   }
 
-  /* New Card System */
+  /* Updated Card System */
   .card {
-    @apply bg-wtm-surface border border-gray-100 rounded-2xl shadow-sm hover:shadow-lg transition-shadow duration-200 ease-in-out;
+    @apply bg-white border border-gray-100/50 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 ease-in-out;
   }
 
   /* Input System */
   .input-field {
-    @apply border border-gray-300 rounded-xl px-4 py-3 bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-colors duration-200;
+    @apply border border-gray-300 rounded-2xl px-5 py-4 bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200;
   }
 
   /* Chip System - Dietary/Allergen Tags */
   .chip {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold text-sm;
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold text-sm;
   }
 
   .chip--gluten {
@@ -111,7 +124,7 @@
   }
 
   .step__dot {
-    @apply w-7 h-7 rounded-full bg-wtm-bg flex items-center justify-center font-bold text-sm;
+    @apply w-8 h-8 rounded-full bg-wtm-bg flex items-center justify-center font-bold text-sm;
   }
 
   .step[aria-current="step"] {
@@ -122,33 +135,17 @@
     @apply bg-wtm-primary text-white;
   }
 
-  /* Legacy Professional button styles (keeping for backwards compatibility) */
-  .btn-primary-legacy {
-    @apply bg-coral-500 hover:bg-coral-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-soft hover:shadow-medium;
-  }
-  
-  .btn-secondary-legacy {
-    @apply bg-white hover:bg-gray-50 text-coral-500 font-semibold py-3 px-6 rounded-lg border-2 border-coral-500 transition-all duration-200 shadow-soft hover:shadow-medium;
-  }
-  
-  .btn-outline {
-    @apply bg-transparent hover:bg-coral-50 text-coral-500 font-semibold py-3 px-6 rounded-lg border border-coral-500 transition-all duration-200;
-  }
-  
-  /* Legacy Professional card styles */
-  .card-elevated {
-    @apply bg-white rounded-xl shadow-medium hover:shadow-strong transition-all duration-200;
-  }
-  
-  /* Professional typography */
+  /* Professional typography - Updated for minimalist design */
   .heading-primary {
-    @apply text-4xl md:text-5xl font-bold text-wtm-text leading-tight;
-    font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+    @apply text-5xl md:text-6xl font-bold text-wtm-text leading-[0.95];
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.03em;
   }
   
   .heading-secondary {
-    @apply text-2xl md:text-3xl font-semibold text-wtm-text leading-tight;
-    font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+    @apply text-3xl md:text-4xl font-bold text-wtm-text leading-tight;
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.02em;
   }
   
   .text-muted {
@@ -157,38 +154,56 @@
 
   /* Menu-specific components */
   .menu-dish-card {
-    @apply card p-4 hover:shadow-menu-card;
+    @apply card p-6 hover:shadow-menu-card;
   }
 
   .sticky-order-bar {
-    @apply fixed bottom-0 left-0 right-0 bg-white border-t shadow-order-bar z-order-bar px-4 py-3;
+    @apply fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t shadow-order-bar z-order-bar px-4 py-4;
   }
 
   /* Language selector styles */
   .language-chip {
-    @apply px-3 py-1.5 rounded-lg font-medium text-sm transition-all duration-200;
+    @apply px-4 py-2 rounded-xl font-medium text-sm transition-all duration-200;
   }
 
   .language-chip--active {
-    @apply bg-wtm-primary text-white;
+    @apply bg-wtm-primary text-white shadow-sm;
   }
 
   .language-chip--inactive {
     @apply bg-gray-100 text-gray-600 hover:bg-gray-200;
   }
+
+  /* Hero section specific styles */
+  .hero-gradient {
+    background: linear-gradient(135deg, rgba(231, 90, 47, 0.03) 0%, rgba(46, 126, 111, 0.02) 100%);
+  }
+
+  /* Section spacing utilities */
+  .section-padding {
+    @apply py-20 md:py-28;
+  }
+
+  .section-padding-sm {
+    @apply py-16 md:py-20;
+  }
 }
 
 @layer utilities {
-  /* Animation utilities */
+  /* Animation utilities - Enhanced for smoother interactions */
   .animate-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
+    animation: fadeIn 0.6s ease-out;
   }
   
   .animate-slide-up {
-    animation: slideUp 0.5s ease-out;
+    animation: slideUp 0.6s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
   }
   
-  /* Focus utilities for accessibility - Updated for new design system */
+  /* Focus utilities for accessibility */
   .focus-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-wtm-primary focus-visible:ring-offset-2;
   }
@@ -198,15 +213,88 @@
     background-color: theme('colors.wtm-bg');
   }
 
+  /* Glass morphism effect for modern headers */
+  .backdrop-blur-header {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Typography utilities for the minimalist design */
+  .tracking-tighter {
+    letter-spacing: -0.04em;
+  }
+
+  .tracking-tight-sm {
+    letter-spacing: -0.02em;
+  }
+
+  .tracking-tight-xs {
+    letter-spacing: -0.01em;
+  }
+
+  /* Smooth scrolling for anchors */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+
+  /* Enhanced button hover effects */
+  .hover-lift {
+    @apply hover:scale-[1.02] hover:shadow-lg;
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  }
+
   /* Reduced motion support */
   @media (prefers-reduced-motion: reduce) {
     .stepper,
     .btn,
     .card,
     .chip,
-    .input-field {
+    .input-field,
+    .hover-lift,
+    .animate-fade-in,
+    .animate-slide-up,
+    .animate-scale-in {
       transition: none !important;
       animation: none !important;
+      transform: none !important;
     }
+
+    .scroll-smooth {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+/* Enhanced keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
