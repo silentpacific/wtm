@@ -1,7 +1,7 @@
 // src/pages/RestaurantLandingPage.tsx - Apple-inspired minimalist redesign
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Globe, Shield, QrCode, Upload, CheckCircle, MessageCircle } from 'lucide-react';
+import { Globe, Shield, QrCode, Upload, CheckCircle, MessageCircle, Handshake } from 'lucide-react';
 
 const RestaurantLandingPage: React.FC = () => {
   return (
@@ -18,26 +18,24 @@ const RestaurantLandingPage: React.FC = () => {
           </p>
           
           {/* Feature icons row */}
-			<div className="flex flex-wrap justify-center gap-12 mb-16 text-wtm-muted">
-			  <div className="flex flex-col items-center gap-3">
-				<Globe size={32} className="text-wtm-primary" />
-				<span className="text-sm font-medium">Expands Reach.</span>
-			  </div>
-			  <div className="flex flex-col items-center gap-3">
-				<Shield size={32} className="text-wtm-primary" />
-				<span className="text-sm font-medium">Prevents Mistakes.</span>
-			  </div>
-			  <div className="flex flex-col items-center gap-3">
-				<QrCode size={32} className="text-wtm-primary" />
-				<span className="text-sm font-medium">Simplifies Access.</span>
-			  </div>
-			  <div className="flex flex-col items-center gap-3">
-				{/* I've used 'Handshake' as a placeholder for a non-verbal communication icon. */}
-				{/* You may need to import this from your icon library (e.g., Lucide, Heroicons, etc.). */}
-				<Handshake size={32} className="text-wtm-primary" /> 
-				<span className="text-sm font-medium">Reduces Friction.</span>
-			  </div>
-			</div>
+          <div className="flex flex-wrap justify-center gap-12 mb-16 text-wtm-muted">
+            <div className="flex flex-col items-center gap-3">
+              <Globe size={32} className="text-wtm-primary" />
+              <span className="text-sm font-medium">Expands Reach</span>
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <Shield size={32} className="text-wtm-primary" />
+              <span className="text-sm font-medium">Prevents Mistakes</span>
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <QrCode size={32} className="text-wtm-primary" />
+              <span className="text-sm font-medium">Simplifies Access</span>
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <Handshake size={32} className="text-wtm-primary" />
+              <span className="text-sm font-medium">Reduces Friction</span>
+            </div>
+          </div>
           
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
