@@ -285,7 +285,7 @@ const MenuEditorPage: React.FC = () => {
     
     setIsDietaryAnalyzing(true);
     try {
-      const response = await fetch('/.netlify/functions/dietary-analyzer', {
+      const response = await fetch('/.netlify/functions/dietary_analyzer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -295,7 +295,16 @@ const MenuEditorPage: React.FC = () => {
         })
       });
 
-      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(`Function not available (${response.status}). Make sure Netlify functions are deployed.`);
+      }
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        throw new Error('Invalid response from dietary analyzer function');
+      }
       
       if (result.success) {
         setIsDietaryAnalysisComplete(true);
@@ -306,7 +315,7 @@ const MenuEditorPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Dietary analysis error:', error);
-      setScanError('Failed to analyze dietary information. Please try again.');
+      setScanError(error instanceof Error ? error.message : 'Failed to analyze dietary information. Please try again.');
     } finally {
       setIsDietaryAnalyzing(false);
     }
