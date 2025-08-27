@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Plus, Minus, Trash2, MessageCircle, X, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Minus, Trash2, MessageCircle, X, Globe, Filter, Info } from 'lucide-react';
 
 // Types and Interfaces (keeping your existing structure)
 interface MenuItem {
@@ -46,20 +46,21 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
   menuId,
   isDemo = false
 }) => {
-  // State Management (keeping your existing state)
+  // State Management
+  const [currentStep, setCurrentStep] = useState<'welcome' | 'language' | 'menu'>('welcome');
   const [language, setLanguage] = useState<Language>('en');
   const [dietaryFilters, setDietaryFilters] = useState<string[]>([]);
   const [allergenExclusions, setAllergenExclusions] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isOrderListExpanded, setIsOrderListExpanded] = useState(false);
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [showDishExplanation, setShowDishExplanation] = useState<string | null>(null);
   const [customRequestInput, setCustomRequestInput] = useState<Record<string, string>>({});
 
-  // Language configurations (keeping your existing structure)
+  // Language configurations
   const languages: LanguageOption[] = [
     { code: 'en', label: 'English', flag: '🇬🇧' },
     { code: 'zh', label: '中文', flag: '🇨🇳' },
@@ -67,87 +68,147 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
     { code: 'fr', label: 'Français', flag: '🇫🇷' },
   ];
 
-  // Translations (keeping your existing translations)
+  // Translations
   const translations = {
     en: {
+      welcome: 'Welcome',
+      selectLanguage: 'Select your language',
+      getStarted: 'Get Started',
+      howItWorks: 'How it works',
+      step1: '1. Browse dishes in your language',
+      step2: '2. Filter by dietary needs',
+      step3: '3. Add items to your order',
+      step4: '4. Ask questions to your server',
+      step5: '5. Show your final order',
+      letsBegin: "Let's Begin",
       addToOrder: 'Add',
-      moreInfo: 'More info',
+      moreInfo: 'Info',
       yourOrder: 'Your Order',
-      continueShopping: 'Continue Browsing',
+      continueShopping: 'Continue',
       confirmOrder: 'Confirm Order',
-      showToWaiter: 'SHOW THIS TO WAITER',
-      total: 'Total (Indicative)',
-      addQuestion: 'Add a note or customisation',
+      showToWaiter: 'SHOW TO SERVER',
+      total: 'Total',
+      addQuestion: 'Ask server a question...',
       serverResponse: 'Server Response',
+      showThisToServer: 'Show this to server',
       yes: 'Yes',
       no: 'No',
       letMeCheck: 'Let me check',
       browseMenuAgain: 'Browse Menu Again',
       confirmedOrder: 'CONFIRMED ORDER',
-      noSpecialRequests: 'No special requests',
+      noSpecialRequests: 'No questions',
       contains: 'Contains:',
       items: 'items',
-      search: 'Search menu...'
+      filters: 'Filters',
+      showOnly: 'Show only:',
+      hideWith: 'Hide dishes with:',
+      applyFilters: 'Apply Filters',
+      clearFilters: 'Clear All'
     },
     zh: {
+      welcome: '欢迎',
+      selectLanguage: '选择您的语言',
+      getStarted: '开始',
+      howItWorks: '使用方法',
+      step1: '1. 用您的语言浏览菜品',
+      step2: '2. 按饮食需求筛选',
+      step3: '3. 将菜品添加到订单',
+      step4: '4. 向服务员提问',
+      step5: '5. 展示最终订单',
+      letsBegin: '开始使用',
       addToOrder: '添加',
       moreInfo: '更多信息',
       yourOrder: '您的订单',
       continueShopping: '继续浏览',
       confirmOrder: '确认订单',
       showToWaiter: '向服务员展示此页面',
-      total: '总计（仅供参考）',
-      addQuestion: '添加问题/要求',
+      total: '总计',
+      addQuestion: '向服务员提问...',
       serverResponse: '服务员回复',
+      showThisToServer: '向服务员展示此内容',
       yes: '是',
       no: '否',
       letMeCheck: '让我确认',
       browseMenuAgain: '重新浏览菜单',
       confirmedOrder: '已确认订单',
-      noSpecialRequests: '无特殊要求',
+      noSpecialRequests: '无问题',
       contains: '包含:',
       items: '项',
-      search: '搜索菜单...'
+      filters: '筛选',
+      showOnly: '仅显示:',
+      hideWith: '隐藏包含以下内容的菜品:',
+      applyFilters: '应用筛选',
+      clearFilters: '清除所有'
     },
     es: {
+      welcome: 'Bienvenido',
+      selectLanguage: 'Selecciona tu idioma',
+      getStarted: 'Comenzar',
+      howItWorks: 'Cómo funciona',
+      step1: '1. Navega platos en tu idioma',
+      step2: '2. Filtra por necesidades dietéticas',
+      step3: '3. Agrega elementos a tu pedido',
+      step4: '4. Haz preguntas a tu mesero',
+      step5: '5. Muestra tu pedido final',
+      letsBegin: 'Comencemos',
       addToOrder: 'Agregar',
-      moreInfo: 'Más info',
+      moreInfo: 'Info',
       yourOrder: 'Su Pedido',
-      continueShopping: 'Seguir Navegando',
-      confirmOrder: 'Confirmar Pedido',
-      showToWaiter: 'MOSTRAR ESTO AL MESERO',
-      total: 'Total (Indicativo)',
-      addQuestion: 'Agregar nota o personalización',
+      continueShopping: 'Continuar',
+      confirmOrder: 'Confirmar',
+      showToWaiter: 'MOSTRAR AL MESERO',
+      total: 'Total',
+      addQuestion: 'Pregunta al mesero...',
       serverResponse: 'Respuesta del mesero',
+      showThisToServer: 'Mostrar esto al mesero',
       yes: 'Sí',
       no: 'No',
       letMeCheck: 'Déjame verificar',
       browseMenuAgain: 'Ver Menú Otra Vez',
       confirmedOrder: 'PEDIDO CONFIRMADO',
-      noSpecialRequests: 'Sin solicitudes especiales',
+      noSpecialRequests: 'Sin preguntas',
       contains: 'Contiene:',
       items: 'elementos',
-      search: 'Buscar en el menú...'
+      filters: 'Filtros',
+      showOnly: 'Mostrar solo:',
+      hideWith: 'Ocultar platos con:',
+      applyFilters: 'Aplicar Filtros',
+      clearFilters: 'Limpiar Todo'
     },
     fr: {
+      welcome: 'Bienvenue',
+      selectLanguage: 'Sélectionnez votre langue',
+      getStarted: 'Commencer',
+      howItWorks: 'Comment ça marche',
+      step1: '1. Parcourez les plats dans votre langue',
+      step2: '2. Filtrez par besoins alimentaires',
+      step3: '3. Ajoutez des éléments à votre commande',
+      step4: '4. Posez des questions à votre serveur',
+      step5: '5. Montrez votre commande finale',
+      letsBegin: 'Commençons',
       addToOrder: 'Ajouter',
-      moreInfo: 'Plus d\'info',
+      moreInfo: 'Info',
       yourOrder: 'Votre Commande',
       continueShopping: 'Continuer',
       confirmOrder: 'Confirmer',
       showToWaiter: 'MONTRER AU SERVEUR',
-      total: 'Total (Indicatif)',
-      addQuestion: 'Ajouter une note ou personnalisation',
+      total: 'Total',
+      addQuestion: 'Question au serveur...',
       serverResponse: 'Réponse du serveur',
+      showThisToServer: 'Montrer ceci au serveur',
       yes: 'Oui',
       no: 'Non',
       letMeCheck: 'Laisse-moi vérifier',
       browseMenuAgain: 'Parcourir le Menu',
       confirmedOrder: 'COMMANDE CONFIRMÉE',
-      noSpecialRequests: 'Aucune demande spéciale',
+      noSpecialRequests: 'Aucune question',
       contains: 'Contient:',
       items: 'articles',
-      search: 'Rechercher...'
+      filters: 'Filtres',
+      showOnly: 'Afficher seulement:',
+      hideWith: 'Masquer les plats avec:',
+      applyFilters: 'Appliquer les Filtres',
+      clearFilters: 'Tout Effacer'
     }
   };
 
@@ -157,7 +218,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
   const allDietaryTags = [...new Set(menuData.menuItems.flatMap(item => item.dietaryTags))];
   const allAllergens = [...new Set(menuData.menuItems.flatMap(item => item.allergens))];
 
-  // Translation mappings (keeping your existing mappings)
+  // Translation mappings
   const dietaryTagTranslations = {
     'Vegetarian': { en: 'Vegetarian', zh: '素食', es: 'Vegetariano', fr: 'Végétarien' },
     'Vegan': { en: 'Vegan', zh: '纯素', es: 'Vegano', fr: 'Végétalien' },
@@ -181,16 +242,8 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
     return allergenTranslations[allergen as keyof typeof allergenTranslations]?.[language] || allergen;
   };
 
-  // Filter menu items based on search, dietary filters and allergen exclusions
+  // Filter menu items based on dietary filters and allergen exclusions
   const filteredItems = menuData.menuItems.filter(item => {
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const nameMatch = item.name[language]?.toLowerCase().includes(query);
-      const descMatch = item.description[language]?.toLowerCase().includes(query);
-      if (!nameMatch && !descMatch) return false;
-    }
-
     // Dietary filters (inclusion)
     if (dietaryFilters.length > 0) {
       const hasMatchingTag = dietaryFilters.some(filter => 
@@ -227,7 +280,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
 
   const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Your existing functions (keeping all the logic)
+  // Functions
   const addToOrder = (dishId: string) => {
     const existingItem = orderItems.find(item => item.dishId === dishId);
     if (existingItem) {
@@ -289,106 +342,184 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
     setIsOrderListExpanded(false);
   };
 
-  // Confirmed Order Screen (keeping your existing design but with new styles)
-  if (isOrderConfirmed) {
+  const clearAllFilters = () => {
+    setDietaryFilters([]);
+    setAllergenExclusions([]);
+    setIsFiltersExpanded(false);
+  };
+
+  // Welcome Screen
+  if (currentStep === 'welcome') {
     return (
-      <div className="min-h-screen bg-warm p-4 max-w-4xl mx-auto">
-        <div className="max-w-lg mx-auto bg-wtm-surface rounded-2xl shadow-lg">
-          <div className="bg-red-600 text-white p-6 rounded-t-2xl text-center">
-            <h1 className="text-2xl font-bold font-heading">{t.confirmedOrder}</h1>
+      <div className="min-h-screen bg-wtm-bg flex items-center justify-center px-6">
+        <div className="max-w-lg w-full text-center">
+          <h1 className="text-4xl font-bold text-wtm-text mb-4 tracking-tight">
+            {t.welcome}
+          </h1>
+          <p className="text-xl text-wtm-muted mb-12 font-light">
+            {menuData.restaurantName.en}
+          </p>
+          
+          <div className="bg-white rounded-3xl border border-gray-100 p-8 mb-8 shadow-sm">
+            <div className="flex items-center justify-center mb-6">
+              <Info size={32} className="text-wtm-primary" />
+            </div>
+            <h2 className="text-2xl font-bold text-wtm-text mb-6 tracking-tight">
+              {t.howItWorks}
+            </h2>
+            <div className="space-y-4 text-left">
+              <p className="text-wtm-muted">{t.step1}</p>
+              <p className="text-wtm-muted">{t.step2}</p>
+              <p className="text-wtm-muted">{t.step3}</p>
+              <p className="text-wtm-muted">{t.step4}</p>
+              <p className="text-wtm-muted">{t.step5}</p>
+            </div>
           </div>
           
-          <div className="bg-red-100 border-2 border-red-600 p-4 m-4 rounded-2xl text-center">
-            <div className="text-red-800 font-bold text-lg">
-              {t.showToWaiter}
-            </div>
-          </div>
+          <button
+            onClick={() => setCurrentStep('language')}
+            className="bg-wtm-primary text-white font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-wtm-primary-600 hover:scale-[1.02] transition-all duration-200 shadow-lg w-full"
+          >
+            {t.letsBegin}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-          <div className="p-4 space-y-4">
-            {orderItems.map(orderItem => {
-              const menuItem = menuData.menuItems.find(item => item.id === orderItem.dishId);
-              if (!menuItem) return null;
-
-              return (
-                <div key={orderItem.dishId} className="border-b border-gray-200 pb-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg text-wtm-text">
-                        {menuItem.name[language]} ({orderItem.quantity}x)
-                      </h3>
-                    </div>
-                    <div className="text-lg font-bold text-wtm-primary">
-                      ${(menuItem.price * orderItem.quantity).toFixed(2)}
-                    </div>
-                  </div>
-
-                  {/* Dietary Tags with new chip system */}
-                  {menuItem.dietaryTags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {menuItem.dietaryTags.map(tag => (
-                        <span key={tag} className="chip chip--veg">
-                          {translateDietaryTag(tag)}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Allergen Warnings */}
-                  {menuItem.allergens.length > 0 && (
-                    <div className="mb-2">
-                      <span className="text-red-600 font-medium text-sm">
-                        ⚠️ {t.contains} {menuItem.allergens.map(allergen => translateAllergen(allergen)).join(', ')}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Custom Request */}
-                  {orderItem.customRequest ? (
-                    <div className="bg-blue-50 p-3 rounded-xl">
-                      <div className="text-blue-800">
-                        "{orderItem.customRequest}"
-                      </div>
-                      {orderItem.serverResponse && (
-                        <div className={`mt-2 font-medium ${
-                          orderItem.serverResponse === 'yes' ? 'text-green-600' :
-                          orderItem.serverResponse === 'no' ? 'text-red-600' :
-                          'text-yellow-600'
-                        }`}>
-                          {orderItem.serverResponse === 'yes' ? '✅' :
-                           orderItem.serverResponse === 'no' ? '❌' : '⏳'} 
-                          {t.serverResponse} {
-                            orderItem.serverResponse === 'yes' ? t.yes :
-                            orderItem.serverResponse === 'no' ? t.no :
-                            t.letMeCheck
-                          }
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-wtm-muted text-sm">{t.noSpecialRequests}</div>
-                  )}
+  // Language Selection Screen
+  if (currentStep === 'language') {
+    return (
+      <div className="min-h-screen bg-wtm-bg flex items-center justify-center px-6">
+        <div className="max-w-md w-full text-center">
+          <h1 className="text-4xl font-bold text-wtm-text mb-12 tracking-tight">
+            {t.selectLanguage}
+          </h1>
+          
+          <div className="space-y-4">
+            {languages.map(lang => (
+              <button
+                key={lang.code}
+                onClick={() => {
+                  setLanguage(lang.code);
+                  setCurrentStep('menu');
+                }}
+                className="w-full bg-white border border-gray-100 rounded-2xl p-6 text-left hover:border-wtm-primary hover:bg-wtm-primary/5 transition-all duration-200 shadow-sm"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="text-3xl">{lang.flag}</span>
+                  <span className="text-xl font-medium text-wtm-text">{lang.label}</span>
                 </div>
-              );
-            })}
+              </button>
+            ))}
           </div>
+        </div>
+      </div>
+    );
+  }
 
-          <div className="bg-wtm-bg p-4 rounded-b-2xl">
-            <div className="flex justify-between items-center text-xl font-bold">
-              <span>{t.total}:</span>
-              <span className="text-wtm-primary">${orderTotal.toFixed(2)}</span>
+  // Confirmed Order Screen
+  if (isOrderConfirmed) {
+    return (
+      <div className="min-h-screen bg-wtm-bg px-6 py-8">
+        <div className="max-w-lg mx-auto">
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-lg overflow-hidden">
+            <div className="bg-wtm-secondary text-white p-8 text-center">
+              <h1 className="text-3xl font-bold tracking-tight">{t.confirmedOrder}</h1>
             </div>
-          </div>
+            
+            <div className="bg-red-100 border-2 border-red-600 p-4 m-6 rounded-2xl text-center">
+              <div className="text-red-800 font-bold text-lg">
+                {t.showToWaiter}
+              </div>
+            </div>
 
-          <div className="p-4">
-            <button
-              onClick={() => {
-                setIsOrderConfirmed(false);
-                setOrderItems([]);
-              }}
-              className="btn btn-primary w-full"
-            >
-              {t.browseMenuAgain}
-            </button>
+            <div className="px-6 space-y-6">
+              {orderItems.map(orderItem => {
+                const menuItem = menuData.menuItems.find(item => item.id === orderItem.dishId);
+                if (!menuItem) return null;
+
+                return (
+                  <div key={orderItem.dishId} className="border-b border-gray-100 pb-6 last:border-b-0">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-xl text-wtm-text">
+                          {menuItem.name[language]} ({orderItem.quantity}x)
+                        </h3>
+                      </div>
+                      <div className="text-xl font-bold text-wtm-primary">
+                        ${(menuItem.price * orderItem.quantity).toFixed(2)}
+                      </div>
+                    </div>
+
+                    {/* Dietary Tags */}
+                    {menuItem.dietaryTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {menuItem.dietaryTags.map(tag => (
+                          <span key={tag} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                            {translateDietaryTag(tag)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Allergen Warnings */}
+                    {menuItem.allergens.length > 0 && (
+                      <div className="mb-3">
+                        <span className="text-red-600 font-medium text-sm">
+                          ⚠️ {t.contains} {menuItem.allergens.map(allergen => translateAllergen(allergen)).join(', ')}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Custom Request */}
+                    {orderItem.customRequest ? (
+                      <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl">
+                        <div className="text-blue-800 font-medium mb-2">
+                          "{orderItem.customRequest}"
+                        </div>
+                        {orderItem.serverResponse && (
+                          <div className={`font-bold ${
+                            orderItem.serverResponse === 'yes' ? 'text-green-600' :
+                            orderItem.serverResponse === 'no' ? 'text-red-600' :
+                            'text-yellow-600'
+                          }`}>
+                            {orderItem.serverResponse === 'yes' ? '✅' :
+                             orderItem.serverResponse === 'no' ? '❌' : '⏳'} 
+                            {t.serverResponse}: {
+                              orderItem.serverResponse === 'yes' ? t.yes :
+                              orderItem.serverResponse === 'no' ? t.no :
+                              t.letMeCheck
+                            }
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-wtm-muted">{t.noSpecialRequests}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="bg-wtm-bg p-6 m-6 rounded-2xl">
+              <div className="flex justify-between items-center text-2xl font-bold">
+                <span>{t.total}:</span>
+                <span className="text-wtm-primary">${orderTotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <button
+                onClick={() => {
+                  setIsOrderConfirmed(false);
+                  setOrderItems([]);
+                }}
+                className="bg-wtm-primary text-white font-semibold px-8 py-4 rounded-2xl hover:bg-wtm-primary-600 transition-colors duration-200 w-full text-lg"
+              >
+                {t.browseMenuAgain}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -396,173 +527,117 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-warm pb-20">
-      {/* Sticky Tools Bar - Updated with new design system */}
-      <div className="sticky top-0 z-menu-header bg-wtm-surface shadow-sm border-b">
-        {/* Restaurant Name */}
-        <div className="text-center py-3 px-4 border-b">
-          <h1 className="text-xl font-semibold text-wtm-text font-heading">
-            {menuData.restaurantName[language]}
-          </h1>
-        </div>
-
-        <div className="p-4 space-y-3">
-          {/* Language Dropdown */}
-          <div className="flex justify-center gap-1">
-            {languages.map(lang => (
-              <button
-                key={lang.code}
-                onClick={() => setLanguage(lang.code)}
-                className={`language-chip ${
-                  language === lang.code 
-                    ? 'language-chip--active' 
-                    : 'language-chip--inactive'
-                }`}
-              >
-                {lang.flag} {lang.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-wtm-muted" size={20} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t.search}
-              className="input-field pl-10"
-            />
-          </div>
-
-          {/* Allergen Chips (toggle) */}
-          {allAllergens.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-wtm-muted mb-2">Hide dishes with:</p>
-              <div className="flex flex-wrap gap-1">
-                {allAllergens.map(allergen => (
-                  <button
-                    key={allergen}
-                    onClick={() => {
-                      setAllergenExclusions(prev => 
-                        prev.includes(allergen)
-                          ? prev.filter(f => f !== allergen)
-                          : [...prev, allergen]
-                      );
-                    }}
-                    className={`chip ${
-                      allergenExclusions.includes(allergen)
-                        ? 'chip--gluten' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    } transition-colors`}
-                    aria-pressed={allergenExclusions.includes(allergen)}
-                  >
-                    {translateAllergen(allergen)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Dietary Chips (toggle) */}
-          {allDietaryTags.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-wtm-muted mb-2">Show only:</p>
-              <div className="flex flex-wrap gap-1">
-                {allDietaryTags.map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => {
-                      setDietaryFilters(prev => 
-                        prev.includes(tag) 
-                          ? prev.filter(f => f !== tag)
-                          : [...prev, tag]
-                      );
-                    }}
-                    className={`chip ${
-                      dietaryFilters.includes(tag)
-                        ? 'chip--veg'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    } transition-colors`}
-                    aria-pressed={dietaryFilters.includes(tag)}
-                  >
-                    {translateDietaryTag(tag)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Review Order Button */}
-          {totalItems > 0 && (
+    <div className="min-h-screen bg-wtm-bg">
+      {/* Minimal Sticky Header */}
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
+        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* Language Switcher */}
             <button
-              onClick={() => setIsOrderListExpanded(true)}
-              className="btn btn-primary w-full"
+              onClick={() => setCurrentStep('language')}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors"
             >
-              Review Order ({totalItems} {t.items})
+              <Globe size={20} className="text-wtm-muted" />
+              <span className="text-2xl">{languages.find(l => l.code === language)?.flag}</span>
             </button>
-          )}
+            
+            <h1 className="text-xl font-bold text-wtm-text tracking-tight">
+              {menuData.restaurantName[language]}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Filter Button */}
+            {(allDietaryTags.length > 0 || allAllergens.length > 0) && (
+              <button
+                onClick={() => setIsFiltersExpanded(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors relative"
+              >
+                <Filter size={18} className="text-wtm-muted" />
+                <span className="text-sm font-medium text-wtm-muted">{t.filters}</span>
+                {(dietaryFilters.length > 0 || allergenExclusions.length > 0) && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-wtm-primary text-white rounded-full text-xs font-bold flex items-center justify-center">
+                    {dietaryFilters.length + allergenExclusions.length}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Order Button */}
+            {totalItems > 0 && (
+              <button
+                onClick={() => setIsOrderListExpanded(true)}
+                className="bg-wtm-primary text-white font-semibold px-4 py-2 rounded-xl hover:bg-wtm-primary-600 transition-colors relative"
+              >
+                {t.yourOrder} ({totalItems})
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Dish Cards - Updated with new design system */}
-      <div className="px-4 space-y-4 mt-4">
+      {/* Menu Content with Generous Margins */}
+      <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
         {Object.entries(itemsBySection).map(([section, items]) => (
-          <div key={section} className="card overflow-hidden">
+          <div key={section} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
             <button
               onClick={() => toggleSection(section)}
-              className="w-full flex justify-between items-center p-4 hover:bg-gray-50 transition-colors focus:outline-none focus:bg-gray-50"
+              className="w-full flex justify-between items-center p-6 hover:bg-gray-50 transition-colors focus:outline-none"
             >
-              <h2 className="text-xl font-semibold text-wtm-text font-heading">{section}</h2>
-              {collapsedSections.has(section) ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+              <h2 className="text-2xl font-bold text-wtm-text tracking-tight">{section}</h2>
+              {collapsedSections.has(section) ? 
+                <ChevronDown size={24} className="text-wtm-muted" /> : 
+                <ChevronUp size={24} className="text-wtm-muted" />
+              }
             </button>
 
             {!collapsedSections.has(section) && (
               <div className="divide-y divide-gray-100">
                 {items.map(item => (
-                  <div key={item.id} className="menu-dish-card">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg text-wtm-text mb-1">
+                  <div key={item.id} className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1 pr-4">
+                        <h3 className="font-bold text-xl text-wtm-text mb-2 tracking-tight leading-tight">
                           {item.name[language]}
                         </h3>
-                        <p className="text-wtm-muted text-sm leading-relaxed line-clamp-2">
+                        <p className="text-wtm-muted leading-relaxed">
                           {item.description[language]}
                         </p>
                       </div>
-                      <div className="text-lg font-bold text-wtm-primary ml-4 shrink-0">
+                      <div className="text-2xl font-bold text-wtm-primary shrink-0">
                         ${item.price.toFixed(2)}
                       </div>
                     </div>
 
-                    {/* Allergen/dietary chips directly under name */}
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {item.dietaryTags.map(tag => (
-                        <span key={tag} className="chip chip--veg">
-                          {translateDietaryTag(tag)}
-                        </span>
-                      ))}
-                      {item.allergens.map(allergen => (
-                        <span key={allergen} className="chip chip--gluten">
-                          {translateAllergen(allergen)}
-                        </span>
-                      ))}
-                    </div>
+                    {/* Tags */}
+                    {(item.dietaryTags.length > 0 || item.allergens.length > 0) && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {item.dietaryTags.map(tag => (
+                          <span key={tag} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                            {translateDietaryTag(tag)}
+                          </span>
+                        ))}
+                        {item.allergens.map(allergen => (
+                          <span key={allergen} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                            {translateAllergen(allergen)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
-                    {/* Actions: More info, Add */}
-                    <div className="flex gap-2">
+                    {/* Actions */}
+                    <div className="flex gap-3">
                       <button
                         onClick={() => setShowDishExplanation(item.id)}
-                        className="btn btn-ghost px-3 py-2 text-sm"
+                        className="px-4 py-2 bg-gray-100 text-wtm-text rounded-xl hover:bg-gray-200 transition-colors font-medium"
                       >
                         {t.moreInfo}
                       </button>
                       <button
                         onClick={() => addToOrder(item.id)}
-                        className="btn btn-primary px-4 py-2 text-sm gap-1"
+                        className="bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl hover:bg-wtm-primary-600 hover:scale-[1.02] transition-all duration-200 flex items-center gap-2"
                       >
-                        <Plus size={16} />
+                        <Plus size={18} />
                         {t.addToOrder}
                       </button>
                     </div>
@@ -574,31 +649,122 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
         ))}
       </div>
 
-      {/* Order Drawer - Updated with new design system */}
-      {isOrderListExpanded && (
-        <div className="fixed inset-0 bg-black/50 z-menu-modal flex items-end">
-          <div className="bg-wtm-surface w-full h-menu-modal rounded-t-2xl overflow-hidden flex flex-col animate-order-expand">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-xl font-semibold font-heading">{t.yourOrder}</h2>
+      {/* Filter Panel - Pull-down style */}
+      {isFiltersExpanded && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20">
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-xl max-w-lg w-full mx-6 overflow-hidden animate-slide-up">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-wtm-text tracking-tight">{t.filters}</h3>
               <button
-                onClick={() => setIsOrderListExpanded(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors focus-ring"
-                aria-label="Close order"
+                onClick={() => setIsFiltersExpanded(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Close filters"
               >
-                <X size={24} />
+                <X size={24} className="text-wtm-muted" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="p-6 space-y-6">
+              {/* Dietary Filters */}
+              {allDietaryTags.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-wtm-text mb-3">{t.showOnly}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {allDietaryTags.map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => {
+                          setDietaryFilters(prev => 
+                            prev.includes(tag) 
+                              ? prev.filter(f => f !== tag)
+                              : [...prev, tag]
+                          );
+                        }}
+                        className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                          dietaryFilters.includes(tag)
+                            ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {translateDietaryTag(tag)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Allergen Exclusions */}
+              {allAllergens.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-wtm-text mb-3">{t.hideWith}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {allAllergens.map(allergen => (
+                      <button
+                        key={allergen}
+                        onClick={() => {
+                          setAllergenExclusions(prev => 
+                            prev.includes(allergen)
+                              ? prev.filter(f => f !== allergen)
+                              : [...prev, allergen]
+                          );
+                        }}
+                        className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                          allergenExclusions.includes(allergen)
+                            ? 'bg-red-100 text-red-700 border-2 border-red-300'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {translateAllergen(allergen)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-100 flex gap-3">
+              <button
+                onClick={clearAllFilters}
+                className="flex-1 px-4 py-3 bg-gray-100 text-wtm-text rounded-xl hover:bg-gray-200 transition-colors font-medium"
+              >
+                {t.clearFilters}
+              </button>
+              <button
+                onClick={() => setIsFiltersExpanded(false)}
+                className="flex-1 bg-wtm-primary text-white font-semibold px-4 py-3 rounded-xl hover:bg-wtm-primary-600 transition-colors"
+              >
+                {t.applyFilters}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Drawer - Redesigned for tighter spacing */}
+      {isOrderListExpanded && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
+          <div className="bg-white w-full max-h-[85vh] rounded-t-3xl overflow-hidden flex flex-col animate-slide-up">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-2xl font-bold text-wtm-text tracking-tight">{t.yourOrder}</h2>
+              <button
+                onClick={() => setIsOrderListExpanded(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Close order"
+              >
+                <X size={24} className="text-wtm-muted" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               {orderItems.map(orderItem => {
                 const menuItem = menuData.menuItems.find(item => item.id === orderItem.dishId);
                 if (!menuItem) return null;
 
                 return (
-                  <div key={orderItem.dishId} className="card p-4">
+                  <div key={orderItem.dishId} className="bg-gray-50 rounded-2xl p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg text-wtm-text">
+                        <h3 className="font-bold text-lg text-wtm-text">
                           {menuItem.name[language]}
                         </h3>
                         <p className="text-wtm-muted text-sm">
@@ -610,71 +776,76 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 mb-3">
-                      <button
-                        onClick={() => updateQuantity(orderItem.dishId, -1)}
-                        className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors focus-ring"
-                        aria-label="Decrease quantity"
-                      >
-                        <Minus size={16} />
-                      </button>
-                      <span className="font-semibold text-lg w-8 text-center">
-                        {orderItem.quantity}
-                      </span>
-                      <button
-                        onClick={() => updateQuantity(orderItem.dishId, 1)}
-                        className="w-8 h-8 bg-wtm-primary text-white rounded-full flex items-center justify-center hover:bg-wtm-primary-600 transition-colors focus-ring"
-                        aria-label="Increase quantity"
-                      >
-                        <Plus size={16} />
-                      </button>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => updateQuantity(orderItem.dishId, -1)}
+                          className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition-colors"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus size={16} />
+                        </button>
+                        <span className="font-bold text-lg w-6 text-center">
+                          {orderItem.quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(orderItem.dishId, 1)}
+                          className="w-8 h-8 bg-wtm-primary text-white rounded-full flex items-center justify-center hover:bg-wtm-primary-600 transition-colors"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
                       <button
                         onClick={() => removeFromOrder(orderItem.dishId)}
-                        className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 transition-colors ml-2 focus-ring"
+                        className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 transition-colors"
                         aria-label="Remove item"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
 
-                    {/* Custom Request with preset phrases */}
+                    {/* Custom Request - Improved Server Response System */}
                     {orderItem.customRequest ? (
-                      <div className="bg-blue-50 p-3 rounded-xl">
-                        <p className="text-blue-800 mb-2">
+                      <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl">
+                        <p className="text-blue-800 font-medium mb-3">
                           "{orderItem.customRequest}"
                         </p>
                         
+                        <div className="text-xs text-blue-600 mb-2 font-medium">
+                          {t.showThisToServer}
+                        </div>
+                        
                         {!orderItem.serverResponse ? (
                           <div className="flex gap-2 flex-wrap">
-                            <span className="text-sm text-blue-700 mr-2">{t.serverResponse}</span>
                             <button
                               onClick={() => handleServerResponse(orderItem.dishId, 'yes')}
-                              className="btn btn-ghost px-3 py-1 text-sm text-green-600 hover:bg-green-50"
+                              className="px-3 py-2 bg-green-100 text-green-700 rounded-xl hover:bg-green-200 transition-colors font-medium text-sm"
                             >
                               {t.yes}
                             </button>
                             <button
                               onClick={() => handleServerResponse(orderItem.dishId, 'no')}
-                              className="btn btn-ghost px-3 py-1 text-sm text-red-600 hover:bg-red-50"
+                              className="px-3 py-2 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors font-medium text-sm"
                             >
                               {t.no}
                             </button>
                             <button
                               onClick={() => handleServerResponse(orderItem.dishId, 'checking')}
-                              className="btn btn-ghost px-3 py-1 text-sm text-yellow-600 hover:bg-yellow-50"
+                              className="px-3 py-2 bg-yellow-100 text-yellow-700 rounded-xl hover:bg-yellow-200 transition-colors font-medium text-sm"
                             >
                               {t.letMeCheck}
                             </button>
                           </div>
                         ) : (
-                          <div className={`font-medium ${
+                          <div className={`font-bold text-sm ${
                             orderItem.serverResponse === 'yes' ? 'text-green-600' :
                             orderItem.serverResponse === 'no' ? 'text-red-600' :
                             'text-yellow-600'
                           }`}>
                             {orderItem.serverResponse === 'yes' ? '✅' :
                              orderItem.serverResponse === 'no' ? '❌' : '⏳'} 
-                            {t.serverResponse} {
+                            {t.serverResponse}: {
                               orderItem.serverResponse === 'yes' ? t.yes :
                               orderItem.serverResponse === 'no' ? t.no :
                               t.letMeCheck
@@ -692,13 +863,13 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                             ...customRequestInput,
                             [orderItem.dishId]: e.target.value
                           })}
-                          maxLength={300}
-                          className="input-field flex-1 text-sm"
+                          maxLength={200}
+                          className="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200"
                         />
                         <button
                           onClick={() => addCustomRequest(orderItem.dishId, customRequestInput[orderItem.dishId] || '')}
                           disabled={!customRequestInput[orderItem.dishId]?.trim()}
-                          className="btn btn-ghost px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-3 bg-wtm-primary text-white rounded-xl hover:bg-wtm-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <MessageCircle size={16} />
                         </button>
@@ -709,24 +880,23 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
               })}
             </div>
 
-            {/* Sticky Footer with Total */}
-            <div className="sticky-order-bar border-t bg-wtm-surface p-4 space-y-3">
-              <div className="flex justify-between items-center text-lg font-bold">
+            {/* Footer */}
+            <div className="border-t border-gray-100 bg-white p-6 space-y-4">
+              <div className="flex justify-between items-center text-xl font-bold">
                 <span>{t.total}:</span>
                 <span className="text-wtm-primary">${orderTotal.toFixed(2)}</span>
               </div>
-              <p className="text-xs text-wtm-muted text-center">Prices may exclude taxes/fees</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsOrderListExpanded(false)}
-                  className="btn btn-ghost flex-1"
+                  className="flex-1 px-4 py-3 bg-gray-100 text-wtm-text rounded-xl hover:bg-gray-200 transition-colors font-medium"
                 >
                   {t.continueShopping}
                 </button>
                 <button
                   onClick={confirmOrder}
                   disabled={orderItems.length === 0}
-                  className="btn btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-wtm-primary text-white font-semibold px-4 py-3 rounded-xl hover:bg-wtm-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t.confirmOrder}
                 </button>
@@ -736,10 +906,10 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
         </div>
       )}
 
-      {/* Dish Explanation Modal - Updated with new design system */}
+      {/* Dish Explanation Modal - Updated styling */}
       {showDishExplanation && (
-        <div className="fixed inset-0 bg-black/50 z-menu-modal flex items-center justify-center p-4">
-          <div className="card max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-xl max-w-md w-full p-6">
             {(() => {
               const dish = menuData.menuItems.find(item => item.id === showDishExplanation);
               if (!dish) return null;
@@ -747,28 +917,28 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
               return (
                 <>
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-semibold text-wtm-text font-heading">
+                    <h3 className="text-2xl font-bold text-wtm-text tracking-tight">
                       {dish.name[language]}
                     </h3>
                     <button
                       onClick={() => setShowDishExplanation(null)}
-                      className="p-2 hover:bg-gray-100 rounded-full transition-colors focus-ring"
+                      className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                       aria-label="Close"
                     >
-                      <X size={20} />
+                      <X size={24} className="text-wtm-muted" />
                     </button>
                   </div>
-                  <p className="text-wtm-muted mb-4 leading-relaxed">
+                  <p className="text-wtm-muted mb-6 leading-relaxed">
                     {dish.explanation[language]}
                   </p>
                   
                   {/* Dietary Tags */}
                   {dish.dietaryTags.length > 0 && (
-                    <div className="mb-3">
-                      <p className="text-sm font-medium text-wtm-text mb-2">Dietary:</p>
-                      <div className="flex flex-wrap gap-1">
+                    <div className="mb-4">
+                      <p className="text-sm font-semibold text-wtm-text mb-2">Dietary:</p>
+                      <div className="flex flex-wrap gap-2">
                         {dish.dietaryTags.map(tag => (
-                          <span key={tag} className="chip chip--veg">
+                          <span key={tag} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                             {translateDietaryTag(tag)}
                           </span>
                         ))}
@@ -778,11 +948,11 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
 
                   {/* Allergens */}
                   {dish.allergens.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-sm font-medium text-wtm-text mb-2">{t.contains}</p>
-                      <div className="flex flex-wrap gap-1">
+                    <div className="mb-6">
+                      <p className="text-sm font-semibold text-wtm-text mb-2">{t.contains}</p>
+                      <div className="flex flex-wrap gap-2">
                         {dish.allergens.map(allergen => (
-                          <span key={allergen} className="chip chip--gluten">
+                          <span key={allergen} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
                             {translateAllergen(allergen)}
                           </span>
                         ))}
@@ -793,7 +963,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowDishExplanation(null)}
-                      className="btn btn-ghost flex-1"
+                      className="flex-1 px-4 py-3 bg-gray-100 text-wtm-text rounded-xl hover:bg-gray-200 transition-colors font-medium"
                     >
                       Close
                     </button>
@@ -802,9 +972,9 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                         addToOrder(dish.id);
                         setShowDishExplanation(null);
                       }}
-                      className="btn btn-primary flex-1 gap-1"
+                      className="flex-1 bg-wtm-primary text-white font-semibold px-4 py-3 rounded-xl hover:bg-wtm-primary-600 transition-colors flex items-center justify-center gap-2"
                     >
-                      <Plus size={16} />
+                      <Plus size={18} />
                       {t.addToOrder}
                     </button>
                   </div>

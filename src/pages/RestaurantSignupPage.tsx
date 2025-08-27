@@ -1,7 +1,7 @@
 // src/pages/RestaurantSignupPage.tsx - Minimalist redesign
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Phone, MapPin, User, Building } from 'lucide-react';
+import { Eye, EyeOff, Mail, Phone, MapPin, User, Building, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const RestaurantSignupPage: React.FC = () => {
