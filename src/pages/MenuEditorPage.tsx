@@ -491,16 +491,29 @@ const MenuEditorPage: React.FC = () => {
                          style={{ border: `1px solid #EFE7E2` }}>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         {/* Dish Name */}
-                        <div>
-                          <label className="block text-sm font-medium mb-1" 
-                                 style={{ color: 'var(--wtm-text)' }}>Dish Name</label>
-                          <input
-                            type="text"
-                            value={dish.price}
-                            onChange={(e) => updateDish(sectionIndex, dishIndex, { ...dish, price: e.target.value })}
-                            className="input-field w-full"
-                          />
-                        </div>
+						  <div>
+							<label className="block text-sm font-medium mb-1" 
+								   style={{ color: 'var(--wtm-text)' }}>Dish Name</label>
+							<input
+							  type="text"
+							  value={dish.name || ''}
+							  onChange={(e) => updateDish(sectionIndex, dishIndex, { ...dish, name: e.target.value })}
+							  className="input-field w-full"
+							/>
+						  </div>
+						  
+						{/* Add Price Field */}
+						  <div>
+							<label className="block text-sm font-medium mb-1" 
+								   style={{ color: 'var(--wtm-text)' }}>Price</label>
+							<input
+							  type="number"
+							  step="0.01"
+							  value={dish.price || ''}
+							  onChange={(e) => updateDish(sectionIndex, dishIndex, { ...dish, price: parseFloat(e.target.value) || 0 })}
+							  className="input-field w-full"
+							/>
+						  </div>
 
                         {/* Actions */}
                         <div className="flex items-end">
@@ -526,77 +539,77 @@ const MenuEditorPage: React.FC = () => {
                         />
                       </div>
 
-                      {/* Dietary Tags */}
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium mb-2" 
-                               style={{ color: 'var(--wtm-text)' }}>Dietary Tags</label>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {dish.dietaryTags.map((tag, tagIndex) => (
-                            <span
-                              key={tagIndex}
-                              className="chip chip--veg flex items-center"
-                            >
-                              {tag}
-                              <button
-                                onClick={() => removeDietaryTag(sectionIndex, dishIndex, tag)}
-                                className="ml-1 hover:opacity-80"
-                                style={{ color: 'var(--chip-veg-fg)' }}
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Add dietary tag..."
-                            className="input-field flex-1 text-sm"
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                addDietaryTag(sectionIndex, dishIndex, e.currentTarget.value);
-                                e.currentTarget.value = '';
-                              }
-                            }}
-                          />
-                        </div>
-                      </div>
+						{/* Dietary Tags */}
+						<div className="mb-4">
+						  <label className="block text-sm font-medium mb-2" 
+								 style={{ color: 'var(--wtm-text)' }}>Dietary Tags</label>
+						  <div className="flex flex-wrap gap-2 mb-2">
+							{(dish.dietary_tags || dish.dietaryTags || []).map((tag, tagIndex) => (
+							  <span
+								key={tagIndex}
+								className="chip chip--veg flex items-center"
+							  >
+								{tag}
+								<button
+								  onClick={() => removeDietaryTag(sectionIndex, dishIndex, tag)}
+								  className="ml-1 hover:opacity-80"
+								  style={{ color: 'var(--chip-veg-fg)' }}
+								>
+								  ×
+								</button>
+							  </span>
+							))}
+						  </div>
+						  <div className="flex gap-2">
+							<input
+							  type="text"
+							  placeholder="Add dietary tag..."
+							  className="input-field flex-1 text-sm"
+							  onKeyPress={(e) => {
+								if (e.key === 'Enter') {
+								  addDietaryTag(sectionIndex, dishIndex, e.currentTarget.value);
+								  e.currentTarget.value = '';
+								}
+							  }}
+							/>
+						  </div>
+						</div>
 
-                      {/* Allergens */}
-                      <div>
-                        <label className="block text-sm font-medium mb-2" 
-                               style={{ color: 'var(--wtm-text)' }}>Allergens</label>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {dish.allergens.map((allergen, allergenIndex) => (
-                            <span
-                              key={allergenIndex}
-                              className="chip chip--gluten flex items-center"
-                            >
-                              {allergen}
-                              <button
-                                onClick={() => removeAllergen(sectionIndex, dishIndex, allergen)}
-                                className="ml-1 hover:opacity-80"
-                                style={{ color: 'var(--chip-gluten-fg)' }}
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Add allergen..."
-                            className="input-field flex-1 text-sm"
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                addAllergen(sectionIndex, dishIndex, e.currentTarget.value);
-                                e.currentTarget.value = '';
-                              }
-                            }}
-                          />
-                        </div>
-                      </div>
+					{/* Allergens */}
+					<div>
+					  <label className="block text-sm font-medium mb-2" 
+							 style={{ color: 'var(--wtm-text)' }}>Allergens</label>
+					  <div className="flex flex-wrap gap-2 mb-2">
+						{(dish.allergens || []).map((allergen, allergenIndex) => (
+						  <span
+							key={allergenIndex}
+							className="chip chip--gluten flex items-center"
+						  >
+							{allergen}
+							<button
+							  onClick={() => removeAllergen(sectionIndex, dishIndex, allergen)}
+							  className="ml-1 hover:opacity-80"
+							  style={{ color: 'var(--chip-gluten-fg)' }}
+							>
+							  ×
+							</button>
+						  </span>
+						))}
+					  </div>
+					  <div className="flex gap-2">
+						<input
+						  type="text"
+						  placeholder="Add allergen..."
+						  className="input-field flex-1 text-sm"
+						  onKeyPress={(e) => {
+							if (e.key === 'Enter') {
+							  addAllergen(sectionIndex, dishIndex, e.currentTarget.value);
+							  e.currentTarget.value = '';
+							}
+						  }}
+						/>
+					  </div>
+					</div>
                     </div>
                   ))}
 
