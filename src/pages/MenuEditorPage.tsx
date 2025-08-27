@@ -285,7 +285,7 @@ const MenuEditorPage: React.FC = () => {
     
     setIsDietaryAnalyzing(true);
     try {
-      const response = await fetch('/.netlify/functions/dietary_analyzer', {
+      const response = await fetch('/.netlify/functions/dietary-analyzer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

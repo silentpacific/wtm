@@ -78,7 +78,7 @@ For each dish, determine based on typical restaurant preparation:
 IMPORTANT: Return results for EVERY dish using the exact dish ID provided. If unsure about a dish, err on the side of including allergens and being conservative with dietary tags.`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-1.5-flash-8b',
     contents: { parts: [{ text: prompt }] },
     config: {
       responseMimeType: "application/json",
@@ -226,8 +226,8 @@ export const handler: Handler = async (event: HandlerEvent) => {
     let totalProcessed = 0;
     const totalDishes = dishes.length;
 
-    // Process in batches of 12 dishes (good balance for API limits and efficiency)
-    const BATCH_SIZE = 12;
+    // Process in batches of 4 dishes (good balance for API limits and efficiency)
+    const BATCH_SIZE = 4;
     const batches = [];
     for (let i = 0; i < dishes.length; i += BATCH_SIZE) {
       batches.push(dishes.slice(i, i + BATCH_SIZE));
