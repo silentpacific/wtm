@@ -47,11 +47,19 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
   isDemo = false
 }) => {
   // State Management
-  const [currentStep, setCurrentStep] = useState<'welcome' | 'language' | 'menu'>('welcome');
+  const [currentStep, setCurrentStep] = useState<'welcome' | 'language' | 'menu'>(isDemo ? 'welcome' : 'menu');
   const [language, setLanguage] = useState<Language>('en');
   const [dietaryFilters, setDietaryFilters] = useState<string[]>([]);
   const [allergenExclusions, setAllergenExclusions] = useState<string[]>([]);
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
+    // Only expand first section by default
+    const sections = Object.keys(menuData.menuItems.reduce((acc, item) => {
+      acc[item.section] = true;
+      return acc;
+    }, {} as Record<string, boolean>));
+    const firstSection = sections[0];
+    return new Set(sections.slice(1)); // Collapse all except first
+  });
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isOrderListExpanded, setIsOrderListExpanded] = useState(false);
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
@@ -649,6 +657,15 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
         ))}
       </div>
 
+      {/* Footer - Only for non-demo menus */}
+      {!isDemo && (
+        <div className="max-w-2xl mx-auto px-6 py-8 text-center">
+          <p className="text-sm text-wtm-muted">
+            Powered by <a href="https://whatthemenu.com" className="text-wtm-primary hover:text-wtm-primary-600 font-medium transition-colors" target="_blank" rel="noopener noreferrer">WhatTheMenu.com</a>
+          </p>
+        </div>
+      )}
+
       {/* Filter Panel - Pull-down style */}
       {isFiltersExpanded && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20">
@@ -740,166 +757,170 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
         </div>
       )}
 
-      {/* Order Drawer - Redesigned for tighter spacing */}
+      {/* Order Drawer - Redesigned to match menu width */}
       {isOrderListExpanded && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
           <div className="bg-white w-full max-h-[85vh] rounded-t-3xl overflow-hidden flex flex-col animate-slide-up">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h2 className="text-2xl font-bold text-wtm-text tracking-tight">{t.yourOrder}</h2>
-              <button
-                onClick={() => setIsOrderListExpanded(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                aria-label="Close order"
-              >
-                <X size={24} className="text-wtm-muted" />
-              </button>
-            </div>
+            <div className="max-w-2xl mx-auto w-full">
+              <div className="flex justify-between items-center p-6 border-b border-gray-100">
+                <h2 className="text-2xl font-bold text-wtm-text tracking-tight">{t.yourOrder}</h2>
+                <button
+                  onClick={() => setIsOrderListExpanded(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  aria-label="Close order"
+                >
+                  <X size={24} className="text-wtm-muted" />
+                </button>
+              </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-              {orderItems.map(orderItem => {
-                const menuItem = menuData.menuItems.find(item => item.id === orderItem.dishId);
-                if (!menuItem) return null;
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+                {orderItems.map(orderItem => {
+                  const menuItem = menuData.menuItems.find(item => item.id === orderItem.dishId);
+                  if (!menuItem) return null;
 
-                return (
-                  <div key={orderItem.dishId} className="bg-gray-50 rounded-2xl p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-wtm-text">
-                          {menuItem.name[language]}
-                        </h3>
-                        <p className="text-wtm-muted text-sm">
-                          ${menuItem.price.toFixed(2)} each
-                        </p>
-                      </div>
-                      <div className="text-lg font-bold text-wtm-primary">
-                        ${(menuItem.price * orderItem.quantity).toFixed(2)}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => updateQuantity(orderItem.dishId, -1)}
-                          className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition-colors"
-                          aria-label="Decrease quantity"
-                        >
-                          <Minus size={16} />
-                        </button>
-                        <span className="font-bold text-lg w-6 text-center">
-                          {orderItem.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateQuantity(orderItem.dishId, 1)}
-                          className="w-8 h-8 bg-wtm-primary text-white rounded-full flex items-center justify-center hover:bg-wtm-primary-600 transition-colors"
-                          aria-label="Increase quantity"
-                        >
-                          <Plus size={16} />
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => removeFromOrder(orderItem.dishId)}
-                        className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 transition-colors"
-                        aria-label="Remove item"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-
-                    {/* Custom Request - Improved Server Response System */}
-                    {orderItem.customRequest ? (
-                      <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl">
-                        <p className="text-blue-800 font-medium mb-3">
-                          "{orderItem.customRequest}"
-                        </p>
-                        
-                        <div className="text-xs text-blue-600 mb-2 font-medium">
-                          {t.showThisToServer}
+                  return (
+                    <div key={orderItem.dishId} className="bg-gray-50 rounded-2xl p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg text-wtm-text">
+                            {menuItem.name[language]}
+                          </h3>
+                          <p className="text-wtm-muted text-sm">
+                            ${menuItem.price.toFixed(2)} each
+                          </p>
                         </div>
-                        
-                        {!orderItem.serverResponse ? (
+                        <div className="text-lg font-bold text-wtm-primary">
+                          ${(menuItem.price * orderItem.quantity).toFixed(2)}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => updateQuantity(orderItem.dishId, -1)}
+                            className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition-colors"
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus size={16} />
+                          </button>
+                          <span className="font-bold text-lg w-6 text-center">
+                            {orderItem.quantity}
+                          </span>
+                          <button
+                            onClick={() => updateQuantity(orderItem.dishId, 1)}
+                            className="w-8 h-8 bg-wtm-primary text-white rounded-full flex items-center justify-center hover:bg-wtm-primary-600 transition-colors"
+                            aria-label="Increase quantity"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => removeFromOrder(orderItem.dishId)}
+                          className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 transition-colors"
+                          aria-label="Remove item"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      {/* Custom Request - Improved Server Response System */}
+                      {orderItem.customRequest ? (
+                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl">
+                          <p className="text-blue-800 font-medium mb-3">
+                            "{orderItem.customRequest}"
+                          </p>
+                          
+                          <div className="text-xs text-blue-600 mb-3 font-medium">
+                            {t.showThisToServer}
+                          </div>
+                          
                           <div className="flex gap-2 flex-wrap">
                             <button
                               onClick={() => handleServerResponse(orderItem.dishId, 'yes')}
-                              className="px-3 py-2 bg-green-100 text-green-700 rounded-xl hover:bg-green-200 transition-colors font-medium text-sm"
+                              className={`px-3 py-2 rounded-xl font-medium text-sm transition-colors ${
+                                orderItem.serverResponse === 'yes' 
+                                  ? 'bg-green-600 text-white'
+                                  : orderItem.serverResponse && orderItem.serverResponse !== 'checking'
+                                    ? 'bg-gray-200 text-gray-500'
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                              }`}
+                              disabled={orderItem.serverResponse && orderItem.serverResponse !== 'checking' && orderItem.serverResponse !== 'yes'}
                             >
                               {t.yes}
                             </button>
                             <button
                               onClick={() => handleServerResponse(orderItem.dishId, 'no')}
-                              className="px-3 py-2 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors font-medium text-sm"
+                              className={`px-3 py-2 rounded-xl font-medium text-sm transition-colors ${
+                                orderItem.serverResponse === 'no' 
+                                  ? 'bg-red-600 text-white'
+                                  : orderItem.serverResponse && orderItem.serverResponse !== 'checking'
+                                    ? 'bg-gray-200 text-gray-500'
+                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                              }`}
+                              disabled={orderItem.serverResponse && orderItem.serverResponse !== 'checking' && orderItem.serverResponse !== 'no'}
                             >
                               {t.no}
                             </button>
                             <button
                               onClick={() => handleServerResponse(orderItem.dishId, 'checking')}
-                              className="px-3 py-2 bg-yellow-100 text-yellow-700 rounded-xl hover:bg-yellow-200 transition-colors font-medium text-sm"
+                              className={`px-3 py-2 rounded-xl font-medium text-sm transition-colors ${
+                                orderItem.serverResponse === 'checking' 
+                                  ? 'bg-yellow-600 text-white'
+                                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                              }`}
                             >
                               {t.letMeCheck}
                             </button>
                           </div>
-                        ) : (
-                          <div className={`font-bold text-sm ${
-                            orderItem.serverResponse === 'yes' ? 'text-green-600' :
-                            orderItem.serverResponse === 'no' ? 'text-red-600' :
-                            'text-yellow-600'
-                          }`}>
-                            {orderItem.serverResponse === 'yes' ? '✅' :
-                             orderItem.serverResponse === 'no' ? '❌' : '⏳'} 
-                            {t.serverResponse}: {
-                              orderItem.serverResponse === 'yes' ? t.yes :
-                              orderItem.serverResponse === 'no' ? t.no :
-                              t.letMeCheck
-                            }
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder={t.addQuestion}
-                          value={customRequestInput[orderItem.dishId] || ''}
-                          onChange={(e) => setCustomRequestInput({
-                            ...customRequestInput,
-                            [orderItem.dishId]: e.target.value
-                          })}
-                          maxLength={200}
-                          className="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200"
-                        />
-                        <button
-                          onClick={() => addCustomRequest(orderItem.dishId, customRequestInput[orderItem.dishId] || '')}
-                          disabled={!customRequestInput[orderItem.dishId]?.trim()}
-                          className="px-4 py-3 bg-wtm-primary text-white rounded-xl hover:bg-wtm-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <MessageCircle size={16} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-gray-100 bg-white p-6 space-y-4">
-              <div className="flex justify-between items-center text-xl font-bold">
-                <span>{t.total}:</span>
-                <span className="text-wtm-primary">${orderTotal.toFixed(2)}</span>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder={t.addQuestion}
+                            value={customRequestInput[orderItem.dishId] || ''}
+                            onChange={(e) => setCustomRequestInput({
+                              ...customRequestInput,
+                              [orderItem.dishId]: e.target.value
+                            })}
+                            maxLength={200}
+                            className="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200"
+                          />
+                          <button
+                            onClick={() => addCustomRequest(orderItem.dishId, customRequestInput[orderItem.dishId] || '')}
+                            disabled={!customRequestInput[orderItem.dishId]?.trim()}
+                            className="px-4 py-3 bg-wtm-primary text-white rounded-xl hover:bg-wtm-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <MessageCircle size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setIsOrderListExpanded(false)}
-                  className="flex-1 px-4 py-3 bg-gray-100 text-wtm-text rounded-xl hover:bg-gray-200 transition-colors font-medium"
-                >
-                  {t.continueShopping}
-                </button>
-                <button
-                  onClick={confirmOrder}
-                  disabled={orderItems.length === 0}
-                  className="flex-1 bg-wtm-primary text-white font-semibold px-4 py-3 rounded-xl hover:bg-wtm-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {t.confirmOrder}
-                </button>
+
+              {/* Footer */}
+              <div className="border-t border-gray-100 bg-white p-6 space-y-4">
+                <div className="flex justify-between items-center text-xl font-bold">
+                  <span>{t.total}:</span>
+                  <span className="text-wtm-primary">${orderTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsOrderListExpanded(false)}
+                    className="flex-1 px-4 py-3 bg-gray-100 text-wtm-text rounded-xl hover:bg-gray-200 transition-colors font-medium"
+                  >
+                    {t.continueShopping}
+                  </button>
+                  <button
+                    onClick={confirmOrder}
+                    disabled={orderItems.length === 0}
+                    className="flex-1 bg-wtm-primary text-white font-semibold px-4 py-3 rounded-xl hover:bg-wtm-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {t.confirmOrder}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
