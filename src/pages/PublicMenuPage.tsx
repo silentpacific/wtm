@@ -34,6 +34,42 @@ const PublicMenuPage: React.FC = () => {
     }
   }, [restaurantSlug]);
 
+// src/pages/PublicMenuPage.tsx - Simplified approach using restaurant ID lookup
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
+import RestaurantMenuPage from '../components/RestaurantMenuPage';
+import { Loader, AlertCircle } from 'lucide-react';
+
+interface MenuItem {
+  id: string;
+  section: string;
+  name: Record<string, string>;
+  description: Record<string, string>;
+  price: number;
+  allergens: string[];
+  dietaryTags: string[];
+  explanation: Record<string, string>;
+}
+
+interface MenuData {
+  restaurantName: Record<string, string>;
+  menuItems: MenuItem[];
+  sections: Record<string, string[]>;
+}
+
+const PublicMenuPage: React.FC = () => {
+  const { restaurantSlug } = useParams<{ restaurantSlug: string }>();
+  const [menuData, setMenuData] = useState<MenuData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (restaurantSlug) {
+      loadMenuData();
+    }
+  }, [restaurantSlug]);
+
   const loadMenuData = async () => {
     if (!restaurantSlug) return;
 
@@ -41,33 +77,39 @@ const PublicMenuPage: React.FC = () => {
     setError(null);
 
     try {
-      // First, find the restaurant by slug
-      const { data: restaurants, error: restaurantError } = await supabase
+      // Step 1: Find all restaurants and create slugs to match
+      const { data: allRestaurants, error: restaurantError } = await supabase
         .from('user_restaurant_profiles')
         .select('id, restaurant_name')
-        .ilike('restaurant_name', `%${restaurantSlug.replace(/-/g, ' ')}%`)
-        .limit(1);
+        .not('restaurant_name', 'is', null);
 
       if (restaurantError) throw restaurantError;
 
-      if (!restaurants || restaurants.length === 0) {
-        // Try alternative slug matching
-        const alternativeSlug = restaurantSlug.replace(/-/g, '');
-        const { data: altRestaurants, error: altError } = await supabase
-          .from('user_restaurant_profiles')
-          .select('id, restaurant_name')
-          .or(`restaurant_name.ilike.%${alternativeSlug}%`)
-          .limit(1);
-
-        if (altError || !altRestaurants || altRestaurants.length === 0) {
-          throw new Error('Restaurant not found');
-        }
-        restaurants[0] = altRestaurants[0];
+      if (!allRestaurants || allRestaurants.length === 0) {
+        throw new Error('No restaurants found');
       }
 
-      const restaurant = restaurants[0];
+      // Step 2: Find matching restaurant by creating slug from each name
+      let matchingRestaurant = null;
+      
+      for (const restaurant of allRestaurants) {
+        if (restaurant.restaurant_name) {
+          const generatedSlug = restaurant.restaurant_name.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+          
+          if (generatedSlug === restaurantSlug) {
+            matchingRestaurant = restaurant;
+            break;
+          }
+        }
+      }
 
-      // Get the menu data for this restaurant
+      if (!matchingRestaurant) {
+        throw new Error(`Restaurant with URL "${restaurantSlug}" not found`);
+      }
+
+      // Step 3: Get the active menu for this restaurant
       const { data: menus, error: menuError } = await supabase
         .from('menus')
         .select(`
@@ -89,7 +131,7 @@ const PublicMenuPage: React.FC = () => {
             )
           )
         `)
-        .eq('restaurant_id', restaurant.id)
+        .eq('restaurant_id', matchingRestaurant.id)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1);
@@ -97,12 +139,12 @@ const PublicMenuPage: React.FC = () => {
       if (menuError) throw menuError;
 
       if (!menus || menus.length === 0) {
-        throw new Error('No active menu found for this restaurant');
+        throw new Error(`No published menu found for ${matchingRestaurant.restaurant_name}. The restaurant may still be setting up their menu.`);
       }
 
       const menu = menus[0];
 
-      // Transform the data to match RestaurantMenuPage format
+      // Step 4: Transform the data to match RestaurantMenuPage format
       const sections = (menu.menu_sections || [])
         .sort((a: any, b: any) => a.display_order - b.display_order)
         .map((section: any) => ({
@@ -114,7 +156,7 @@ const PublicMenuPage: React.FC = () => {
               section: section.name,
               name: {
                 en: item.name,
-                zh: item.name, // For now, same as English
+                zh: item.name,
                 es: item.name,
                 fr: item.name
               },
@@ -136,15 +178,15 @@ const PublicMenuPage: React.FC = () => {
             }))
         }));
 
-      // Flatten items for RestaurantMenuPage format
+      // Step 5: Flatten items for RestaurantMenuPage format
       const menuItems = sections.flatMap(section => section.items);
 
       const formattedMenuData: MenuData = {
         restaurantName: {
-          en: restaurant.restaurant_name,
-          zh: restaurant.restaurant_name,
-          es: restaurant.restaurant_name,
-          fr: restaurant.restaurant_name
+          en: matchingRestaurant.restaurant_name,
+          zh: matchingRestaurant.restaurant_name,
+          es: matchingRestaurant.restaurant_name,
+          fr: matchingRestaurant.restaurant_name
         },
         menuItems,
         sections: {
