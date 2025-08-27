@@ -376,10 +376,10 @@ Focus only on extracting the menu structure and basic information.`;
     console.log('Saving menu to database...');
     const savedMenu = await saveMenuToDatabase(menuId, userId, menuData);
 
-    console.log(`Menu saved successfully. Starting dietary analysis for ${totalDishes} dishes...`);
+    console.log(`Menu saved successfully. Ready for dietary analysis of ${totalDishes} dishes...`);
     
-    // Trigger background dietary analysis (non-blocking)
-    triggerDietaryAnalysis(menuId);
+    // Don't automatically trigger dietary analysis - wait for user action
+    // triggerDietaryAnalysis(menuId);
 
     const processingTime = Date.now() - startTime;
     console.log(`Menu extraction completed in ${processingTime}ms`);
@@ -403,7 +403,7 @@ Focus only on extracting the menu structure and basic information.`;
           totalDishes,
           processingTime
         },
-        message: `Menu extracted successfully! Found ${totalDishes} dishes across ${menuData.sections?.length || 0} sections. Dietary analysis is processing in the background and will complete in 1-2 minutes.`
+        message: `Menu extracted successfully! Found ${totalDishes} dishes across ${menuData.sections?.length || 0} sections. Click "Add Dietary Tags" when ready to analyze allergens and dietary information.`
       })
     };
 

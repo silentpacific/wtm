@@ -652,11 +652,11 @@ const MenuEditorPage: React.FC = () => {
               <div>
                 <h3 className="text-lg font-semibold text-blue-800 mb-2 flex items-center">
                   <Sparkles className="w-5 h-5 mr-2" />
-                  Populate Allergen and Dietary Tags
+                  Get Allergen and Dietary Information
                 </h3>
                 <p className="text-blue-700">
                   Your menu has been extracted successfully. Click below to automatically 
-                  analyze all dishes for allergens and dietary tags (vegetarian, gluten-free, etc.).
+                  analyze all dishes for allergens (nuts, dairy, etc.) and dietary tags (vegetarian, gluten-free, etc.).
                 </p>
               </div>
               <button
@@ -674,7 +674,7 @@ const MenuEditorPage: React.FC = () => {
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Add Dietary Tags
+                    Get Allergen and Dietary Tags Now
                   </>
                 )}
               </button>
