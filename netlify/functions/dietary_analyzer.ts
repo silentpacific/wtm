@@ -1,4 +1,4 @@
-// netlify/functions/dietary-analyzer.ts
+// netlify/functions/dietary-analyzer.ts - Complete updated version
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from '@supabase/supabase-js';
@@ -7,28 +7,28 @@ import { createClient } from '@supabase/supabase-js';
 const dietaryBatchSchema = {
   type: Type.OBJECT,
   properties: {
-    dishes: {
+    analyses: {
       type: Type.ARRAY,
       items: {
         type: Type.OBJECT,
         properties: {
-          dish_id: { type: Type.STRING },
+          dish_id: { type: Type.STRING, description: "The dish ID to update" },
           allergens: {
             type: Type.ARRAY,
             items: { type: Type.STRING },
-            description: "Common allergens: Gluten, Dairy, Eggs, Nuts, Peanuts, Soy, Fish, Shellfish, Sesame"
+            description: "Allergens present: Gluten, Dairy, Eggs, Nuts, Peanuts, Soy, Fish, Shellfish, Sesame"
           },
           dietary_tags: {
             type: Type.ARRAY,
             items: { type: Type.STRING },
-            description: "Dietary tags: Vegetarian, Vegan, Gluten-Free, Dairy-Free, Keto, High-Protein, Spicy, Healthy"
+            description: "Dietary classifications: Vegetarian, Vegan, Gluten-Free, Dairy-Free, Keto, Low-Carb, High-Protein, Spicy, Healthy"
           }
         },
         required: ["dish_id", "allergens", "dietary_tags"]
       }
     }
   },
-  required: ["dishes"]
+  required: ["analyses"]
 };
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -46,26 +46,36 @@ const corsHeaders = {
 // Process dishes in batches for efficiency
 async function processDishBatch(dishes: any[], ai: any): Promise<any[]> {
   const dishList = dishes.map(dish => 
-    `ID: ${dish.id}\nDish: "${dish.name}"\nDescription: "${dish.description || 'No description'}"`
-  ).join('\n\n');
+    `ID: ${dish.id}\nName: "${dish.name}"\nDescription: "${dish.description || 'No description provided'}"`
+  ).join('\n\n---\n\n');
 
-  const prompt = `Analyze these restaurant dishes for allergens and dietary information. Be conservative - only include allergens/tags you're confident about based on typical restaurant preparations.
+  const prompt = `You are a restaurant nutrition expert. Analyze these dishes for allergens and dietary information.
 
 DISHES TO ANALYZE:
 ${dishList}
 
-For each dish, determine:
-1. ALLERGENS: What allergens this dish likely contains based on typical ingredients and preparation methods
-   - Common allergens: Gluten, Dairy, Eggs, Nuts, Peanuts, Soy, Fish, Shellfish, Sesame
-   - Consider cross-contamination in restaurant kitchens
-   - If unsure, include the allergen to be safe
+For each dish, determine based on typical restaurant preparation:
 
-2. DIETARY TAGS: What dietary classifications apply
+1. ALLERGENS - What allergens this dish LIKELY contains:
+   - Standard allergens: Gluten, Dairy, Eggs, Nuts, Peanuts, Soy, Fish, Shellfish, Sesame
+   - Consider typical ingredients and cross-contamination in restaurant kitchens
+   - BE CONSERVATIVE: If there's any reasonable chance an allergen is present, include it
+   - Examples: 
+     * Most pasta dishes contain Gluten
+     * Creamy sauces usually contain Dairy
+     * Fried items often contain Gluten (breading) and may have cross-contamination
+     * Asian dishes often contain Soy
+
+2. DIETARY TAGS - What classifications clearly apply:
    - Available tags: Vegetarian, Vegan, Gluten-Free, Dairy-Free, Keto, Low-Carb, High-Protein, Spicy, Healthy
    - Only include if you're confident the dish typically meets that criteria
-   - Consider restaurant preparation methods
+   - Be conservative with Gluten-Free and Dairy-Free due to cross-contamination
+   - Examples:
+     * Obviously meat/fish dishes are not Vegetarian
+     * Salads without meat/dairy may be Vegan
+     * Grilled proteins are often High-Protein
 
-Return JSON with results for each dish using the provided dish ID.`;
+IMPORTANT: Return results for EVERY dish using the exact dish ID provided. If unsure about a dish, err on the side of including allergens and being conservative with dietary tags.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
@@ -73,47 +83,66 @@ Return JSON with results for each dish using the provided dish ID.`;
     config: {
       responseMimeType: "application/json",
       responseSchema: dietaryBatchSchema,
-      temperature: 0.2 // Low temperature for consistent analysis
+      temperature: 0.1,
+      maxOutputTokens: 4096
     },
   });
 
   const result = JSON.parse(response.text.trim());
-  return result.dishes || [];
+  return result.analyses || [];
 }
 
 // Update dishes in database
-async function updateDishesInDatabase(analyzedDishes: any[]) {
-  const updates = analyzedDishes.map(dish => ({
-    id: dish.dish_id,
-    allergens: dish.allergens,
-    dietary_tags: dish.dietary_tags,
-    needs_dietary_analysis: false,
-    dietary_analyzed_at: new Date().toISOString()
-  }));
+async function updateDishesInDatabase(analyzedDishes: any[]): Promise<number> {
+  if (analyzedDishes.length === 0) return 0;
 
-  const { error } = await supabaseAdmin
-    .from('menu_items')
-    .upsert(updates, { 
-      onConflict: 'id',
-      ignoreDuplicates: false 
-    });
+  let successCount = 0;
 
-  if (error) throw error;
-  return updates.length;
+  // Update dishes individually to handle any ID mismatches gracefully
+  for (const dish of analyzedDishes) {
+    try {
+      const { error } = await supabaseAdmin
+        .from('menu_items')
+        .update({
+          allergens: dish.allergens || [],
+          dietary_tags: dish.dietary_tags || [],
+          needs_dietary_analysis: false,
+          dietary_analyzed_at: new Date().toISOString()
+        })
+        .eq('id', dish.dish_id);
+
+      if (error) {
+        console.error(`Failed to update dish ${dish.dish_id}:`, error);
+      } else {
+        successCount++;
+      }
+    } catch (error) {
+      console.error(`Error updating dish ${dish.dish_id}:`, error);
+    }
+  }
+
+  return successCount;
 }
 
 // Mark menu as complete
-async function markMenuComplete(menuId: string) {
+async function markMenuComplete(menuId: string, successCount: number, totalCount: number): Promise<void> {
+  const status = successCount === totalCount ? 'active' : 'error';
+  const errorMessage = successCount < totalCount 
+    ? `Dietary analysis partially failed: ${successCount}/${totalCount} dishes analyzed`
+    : null;
+
   const { error } = await supabaseAdmin
     .from('menus')
     .update({ 
-      status: 'active',
-      dietary_analysis_completed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      status,
+      error_message: errorMessage,
+      dietary_analysis_completed_at: new Date().toISOString()
     })
     .eq('id', menuId);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to update menu status:', error);
+  }
 }
 
 export const handler: Handler = async (event: HandlerEvent) => {
@@ -127,7 +156,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
     return {
       statusCode: 405,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Method not allowed' })
+      body: JSON.stringify({ error: 'Method not allowed. Use POST.' })
     };
   }
 
@@ -138,7 +167,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
     return {
       statusCode: 400,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Invalid JSON' })
+      body: JSON.stringify({ error: 'Invalid JSON in request body' })
     };
   }
 
@@ -166,67 +195,98 @@ export const handler: Handler = async (event: HandlerEvent) => {
     // Get all dishes that need analysis
     const { data: dishes, error: fetchError } = await supabaseAdmin
       .from('menu_items')
-      .select('id, name, description')
+      .select('id, name, description, menu_id')
       .eq('menu_id', menuId)
-      .eq('needs_dietary_analysis', true);
+      .eq('needs_dietary_analysis', true)
+      .order('created_at');
 
-    if (fetchError) throw fetchError;
+    if (fetchError) {
+      console.error('Failed to fetch dishes:', fetchError);
+      throw fetchError;
+    }
 
     if (!dishes || dishes.length === 0) {
       console.log('No dishes need dietary analysis');
-      await markMenuComplete(menuId);
+      await markMenuComplete(menuId, 0, 0);
       return {
         statusCode: 200,
         headers: corsHeaders,
         body: JSON.stringify({
           success: true,
           message: 'No dishes needed analysis',
-          processed: 0
+          processed: 0,
+          menuId
         })
       };
     }
 
-    console.log(`Analyzing ${dishes.length} dishes`);
+    console.log(`Found ${dishes.length} dishes needing analysis`);
 
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
     let totalProcessed = 0;
+    const totalDishes = dishes.length;
 
-    // Process in batches of 15 dishes (good balance of efficiency and API limits)
-    const BATCH_SIZE = 15;
+    // Process in batches of 12 dishes (good balance for API limits and efficiency)
+    const BATCH_SIZE = 12;
+    const batches = [];
     for (let i = 0; i < dishes.length; i += BATCH_SIZE) {
-      const batch = dishes.slice(i, i + BATCH_SIZE);
-      
-      console.log(`Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(dishes.length/BATCH_SIZE)}: ${batch.length} dishes`);
+      batches.push(dishes.slice(i, i + BATCH_SIZE));
+    }
 
-      const analyzedDishes = await processDishBatch(batch, ai);
-      
-      if (analyzedDishes.length > 0) {
-        await updateDishesInDatabase(analyzedDishes);
-        totalProcessed += analyzedDishes.length;
-        console.log(`Updated ${analyzedDishes.length} dishes in database`);
-      }
+    console.log(`Processing ${batches.length} batches of up to ${BATCH_SIZE} dishes each`);
 
-      // Small delay between batches to avoid rate limits
-      if (i + BATCH_SIZE < dishes.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
+      const batchNum = i + 1;
+      
+      console.log(`Processing batch ${batchNum}/${batches.length}: ${batch.length} dishes`);
+
+      try {
+        const analyzedDishes = await processDishBatch(batch, ai);
+        console.log(`AI returned analysis for ${analyzedDishes.length} dishes`);
+        
+        if (analyzedDishes.length > 0) {
+          const updatedCount = await updateDishesInDatabase(analyzedDishes);
+          totalProcessed += updatedCount;
+          console.log(`Successfully updated ${updatedCount}/${analyzedDishes.length} dishes in batch ${batchNum}`);
+        }
+
+        // Small delay between batches to avoid rate limits
+        if (i < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+      } catch (batchError) {
+        console.error(`Error processing batch ${batchNum}:`, batchError);
+        // Continue with next batch rather than failing entirely
       }
     }
 
     // Mark menu as complete
-    await markMenuComplete(menuId);
+    await markMenuComplete(menuId, totalProcessed, totalDishes);
 
     const processingTime = Date.now() - startTime;
-    console.log(`Dietary analysis completed in ${processingTime}ms`);
+    const successRate = totalDishes > 0 ? Math.round((totalProcessed / totalDishes) * 100) : 0;
+
+    console.log(`Dietary analysis completed in ${processingTime}ms: ${totalProcessed}/${totalDishes} dishes (${successRate}%)`);
 
     return {
       statusCode: 200,
-      headers: corsHeaders,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'X-Processing-Time': processingTime.toString()
+      },
       body: JSON.stringify({
         success: true,
         menuId,
         processed: totalProcessed,
+        total: totalDishes,
+        successRate,
         processingTime,
-        message: `Dietary analysis completed for ${totalProcessed} dishes`
+        message: totalProcessed === totalDishes 
+          ? `Dietary analysis completed successfully for all ${totalProcessed} dishes`
+          : `Dietary analysis completed for ${totalProcessed}/${totalDishes} dishes (${successRate}% success rate)`
       })
     };
 
@@ -239,8 +299,8 @@ export const handler: Handler = async (event: HandlerEvent) => {
         .from('menus')
         .update({ 
           status: 'error',
-          error_message: error instanceof Error ? error.message : 'Unknown error',
-          updated_at: new Date().toISOString()
+          error_message: error instanceof Error ? error.message : 'Unknown error in dietary analysis',
+          dietary_analysis_completed_at: new Date().toISOString()
         })
         .eq('id', menuId);
     } catch (dbError) {

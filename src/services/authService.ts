@@ -1,4 +1,4 @@
-// src/services/authService.ts - Restaurant Authentication Service
+// src/services/authService.ts - Updated for user_restaurant_profiles table
 import { supabase } from './supabaseClient';
 import type { SignupData, LoginData, Restaurant } from './supabaseClient';
 
@@ -29,9 +29,12 @@ export class AuthService {
         throw new Error('Failed to create user account');
       }
 
-      // Step 2: Create restaurant profile
+      // Wait for auth to be fully established
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Step 2: Create restaurant profile using user_restaurant_profiles table
       const { data: restaurantData, error: restaurantError } = await supabase
-        .from('restaurants')
+        .from('user_restaurant_profiles')
         .insert([
           {
             auth_user_id: authData.user.id,
@@ -47,8 +50,6 @@ export class AuthService {
         .single();
 
       if (restaurantError) {
-        // If restaurant creation fails, we should clean up the auth user
-        // But for now, let's log the error and continue
         console.error('Restaurant creation error:', restaurantError);
         throw new Error('Failed to create restaurant profile');
       }
@@ -82,6 +83,9 @@ export class AuthService {
       if (!data.user) {
         throw new Error('Login failed');
       }
+
+      // Wait a moment for session to be fully established
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Get restaurant profile
       const restaurant = await this.getRestaurantProfile(data.user.id);
@@ -165,15 +169,15 @@ export class AuthService {
   }
 
   /**
-   * Get restaurant profile by auth user ID
+   * Get restaurant profile by auth user ID - Using user_restaurant_profiles
    */
   static async getRestaurantProfile(authUserId: string): Promise<Restaurant | null> {
     try {
       const { data, error } = await supabase
-        .from('restaurants')
+        .from('user_restaurant_profiles')
         .select('*')
         .eq('auth_user_id', authUserId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Get restaurant profile error:', error);
@@ -194,7 +198,7 @@ export class AuthService {
   static async updateRestaurantProfile(authUserId: string, updates: Partial<Restaurant>) {
     try {
       const { data, error } = await supabase
-        .from('restaurants')
+        .from('user_restaurant_profiles')
         .update(updates)
         .eq('auth_user_id', authUserId)
         .select()

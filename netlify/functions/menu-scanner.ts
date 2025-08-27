@@ -1,9 +1,9 @@
-// netlify/functions/menu-scanner.ts
+// netlify/functions/menu-scanner.ts - Complete updated version
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from '@supabase/supabase-js';
 
-// Schema for menu extraction - simplified for speed
+// Schema for menu extraction - optimized for speed
 const menuExtractionSchema = {
   type: Type.OBJECT,
   properties: {
@@ -60,90 +60,136 @@ function generateMenuId(): string {
   return 'menu_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-// Save menu to database
-async function saveMenuToDatabase(menuId: string, userId: string, menuData: any) {
-  // 1. Save/update restaurant info if provided
-  if (menuData.restaurant?.name) {
-    await supabaseAdmin
-      .from('restaurants')
-      .update({
-        name: menuData.restaurant.name,
-        address: menuData.restaurant.address || null,
-        phone: menuData.restaurant.phone || null,
-        website: menuData.restaurant.website || null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('auth_user_id', userId);
+// Rate limiting
+const rateLimitMap = new Map();
+function checkRateLimit(identifier: string, maxRequests: number = 5, windowMs: number = 3600000): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(identifier);
+
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(identifier, { count: 1, resetTime: now + windowMs });
+    return true;
   }
 
-  // 2. Save menu
-  const { data: menu, error: menuError } = await supabaseAdmin
-    .from('menus')
-    .upsert({
-      id: menuId,
-      restaurant_id: userId, // Using auth_user_id as restaurant identifier
-      name: menuData.restaurant?.name || 'Uploaded Menu',
-      status: 'processing', // Will be updated to 'active' after dietary analysis
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
-    .select()
-    .single();
+  if (entry.count >= maxRequests) return false;
+  entry.count++;
+  return true;
+}
 
-  if (menuError) throw menuError;
+// Save menu to database using clean schema
+async function saveMenuToDatabase(menuId: string, userId: string, menuData: any) {
+  try {
+    console.log(`Saving menu ${menuId} to database`);
 
-  // 3. Save sections and dishes
-  for (const section of menuData.sections) {
-    const { data: sectionData, error: sectionError } = await supabaseAdmin
-      .from('menu_sections')
-      .upsert({
-        menu_id: menuId,
-        name: section.name,
-        display_order: menuData.sections.indexOf(section)
+    // 1. Update restaurant info if provided
+    if (menuData.restaurant?.name) {
+      const { error: restaurantError } = await supabaseAdmin
+        .from('user_restaurant_profiles')
+        .update({
+          name: menuData.restaurant.name,
+          address: menuData.restaurant.address || null,
+          phone: menuData.restaurant.phone || null,
+          website: menuData.restaurant.website || null
+        })
+        .eq('auth_user_id', userId);
+      
+      if (restaurantError) {
+        console.warn('Failed to update restaurant info:', restaurantError);
+      }
+    }
+
+    // 2. Save menu
+    const { data: menu, error: menuError } = await supabaseAdmin
+      .from('menus')
+      .insert({
+        id: menuId,
+        restaurant_id: userId,
+        name: menuData.restaurant?.name || 'Uploaded Menu',
+        status: 'processing'
       })
       .select()
       .single();
 
-    if (sectionError) throw sectionError;
-
-    // Save dishes for this section
-    const dishInserts = section.dishes.map((dish: any, index: number) => ({
-      menu_id: menuId,
-      section_id: sectionData.id,
-      name: dish.name,
-      description: dish.description || null,
-      price: dish.price || null,
-      display_order: index,
-      // Placeholder values - will be filled by dietary analysis
-      allergens: [],
-      dietary_tags: [],
-      needs_dietary_analysis: true
-    }));
-
-    if (dishInserts.length > 0) {
-      const { error: dishError } = await supabaseAdmin
-        .from('menu_items')
-        .upsert(dishInserts);
-
-      if (dishError) throw dishError;
+    if (menuError) {
+      console.error('Menu save error:', menuError);
+      throw menuError;
     }
-  }
 
-  return menu;
+    console.log(`Menu saved: ${menu.id}`);
+
+    // 3. Save sections and dishes
+    for (const section of menuData.sections) {
+      const { data: sectionData, error: sectionError } = await supabaseAdmin
+        .from('menu_sections')
+        .insert({
+          menu_id: menuId,
+          name: section.name,
+          display_order: menuData.sections.indexOf(section)
+        })
+        .select()
+        .single();
+
+      if (sectionError) {
+        console.error('Section error:', sectionError);
+        continue;
+      }
+
+      console.log(`Section saved: ${sectionData.name} (${section.dishes?.length || 0} dishes)`);
+
+      // Save dishes for this section
+      if (section.dishes && section.dishes.length > 0) {
+        const dishInserts = section.dishes.map((dish: any, index: number) => ({
+          menu_id: menuId,
+          section_id: sectionData.id,
+          name: dish.name,
+          description: dish.description || null,
+          price: dish.price || null,
+          display_order: index,
+          allergens: [],
+          dietary_tags: [],
+          needs_dietary_analysis: true
+        }));
+
+        const { error: dishError } = await supabaseAdmin
+          .from('menu_items')
+          .insert(dishInserts);
+
+        if (dishError) {
+          console.error('Dish insert error:', dishError);
+        } else {
+          console.log(`Inserted ${dishInserts.length} dishes for section ${sectionData.name}`);
+        }
+      }
+    }
+
+    return menu;
+  } catch (error) {
+    console.error('Database save error:', error);
+    throw error;
+  }
 }
 
 // Trigger background dietary analysis
 async function triggerDietaryAnalysis(menuId: string) {
   try {
-    // Call the dietary analysis function
-    const response = await fetch(`${process.env.NETLIFY_URL}/.netlify/functions/dietary-analyzer`, {
+    const netlifyUrl = process.env.URL || process.env.DEPLOY_PRIME_URL;
+    if (!netlifyUrl) {
+      console.error('No Netlify URL found for background function');
+      return;
+    }
+
+    console.log(`Triggering dietary analysis for menu: ${menuId}`);
+    
+    const response = await fetch(`${netlifyUrl}/.netlify/functions/dietary-analyzer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ menuId })
     });
 
     if (!response.ok) {
-      console.error('Failed to trigger dietary analysis:', response.statusText);
+      console.error('Failed to trigger dietary analysis:', response.status, response.statusText);
+    } else {
+      console.log('Dietary analysis triggered successfully');
     }
   } catch (error) {
     console.error('Error triggering dietary analysis:', error);
@@ -153,6 +199,7 @@ async function triggerDietaryAnalysis(menuId: string) {
 export const handler: Handler = async (event: HandlerEvent) => {
   const startTime = Date.now();
 
+  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: corsHeaders, body: '' };
   }
@@ -161,11 +208,21 @@ export const handler: Handler = async (event: HandlerEvent) => {
     return {
       statusCode: 405,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Method not allowed' })
+      body: JSON.stringify({ error: 'Method not allowed. Use POST.' })
     };
   }
 
-  // Auth check
+  // Rate limiting
+  const clientIP = event.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
+  if (!checkRateLimit(clientIP, 10, 3600000)) {
+    return {
+      statusCode: 429,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Too many menu scans. Please wait before trying again.' })
+    };
+  }
+
+  // Authentication
   const authHeader = event.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return {
@@ -186,7 +243,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
       return {
         statusCode: 401,
         headers: corsHeaders,
-        body: JSON.stringify({ error: 'Invalid token' })
+        body: JSON.stringify({ error: 'Invalid authentication token' })
       };
     }
     
@@ -199,34 +256,43 @@ export const handler: Handler = async (event: HandlerEvent) => {
     };
   }
 
-  // Parse request
+  // Parse request body
   let requestBody;
   try {
-    requestBody = JSON.parse(event.body || '{}');
+    if (!event.body) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Request body is required' })
+      };
+    }
+    requestBody = JSON.parse(event.body);
   } catch {
     return {
       statusCode: 400,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Invalid JSON' })
+      body: JSON.stringify({ error: 'Invalid JSON in request body' })
     };
   }
 
   const { fileData, fileName, mimeType } = requestBody;
 
+  // Validate required fields
   if (!fileData || !fileName || !mimeType) {
     return {
       statusCode: 400,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'fileData, fileName, and mimeType required' })
+      body: JSON.stringify({ error: 'fileData, fileName, and mimeType are required' })
     };
   }
 
+  // Validate file type
   const supportedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
   if (!supportedTypes.includes(mimeType)) {
     return {
       statusCode: 400,
       headers: corsHeaders,
-      body: JSON.stringify({ error: `Unsupported file type: ${mimeType}` })
+      body: JSON.stringify({ error: `Unsupported file type: ${mimeType}. Supported: ${supportedTypes.join(', ')}` })
     };
   }
 
@@ -239,27 +305,32 @@ export const handler: Handler = async (event: HandlerEvent) => {
   }
 
   try {
-    console.log(`Processing menu: ${fileName} for user ${userId}`);
+    console.log(`Processing menu: ${fileName} (${mimeType}) for user ${userId}`);
     
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
     const menuId = generateMenuId();
 
     // Fast menu extraction - single API call
-    const extractionPrompt = `Extract menu information from this ${mimeType.includes('pdf') ? 'PDF' : 'image'}:
+    const extractionPrompt = `Extract menu information from this ${mimeType.includes('pdf') ? 'PDF document' : 'image'}:
 
 EXTRACT EXACTLY:
-1. Restaurant name/info (if visible)
-2. All menu sections in order (Appetizers, Mains, etc.)
-3. For each dish: name, description (if any), price as number
+1. Restaurant information (name, address, phone, website) if visible
+2. All menu sections in the exact order they appear (Appetizers, Soups, Salads, Mains, Desserts, Beverages, etc.)
+3. For each section, list ALL dishes in the exact order shown
+4. For each dish extract:
+   - Name exactly as written
+   - Description (if provided)  
+   - Price as a number only (from "$15.99" extract 15.99, from "£12.50" extract 12.50)
 
-IMPORTANT:
-- Extract prices as numbers only (from "$15.99" extract 15.99)
-- Maintain exact order of sections and dishes
-- Include ALL visible items
-- If no price visible, omit price field
-- Be precise with names and descriptions
+IMPORTANT RULES:
+- Maintain exact order of sections and dishes as they appear
+- Include ALL visible items, even if some information is missing
+- Extract prices as numbers only - remove currency symbols and text
+- If no price is visible, omit the price field entirely
+- Be precise with dish names and descriptions
+- Do NOT analyze ingredients, allergens, or dietary information (that comes later)
 
-This is the ONLY information needed - do not analyze ingredients or allergens.`;
+Focus only on extracting the menu structure and basic information.`;
 
     const menuParts = [
       { text: extractionPrompt },
@@ -278,22 +349,34 @@ This is the ONLY information needed - do not analyze ingredients or allergens.`;
       config: {
         responseMimeType: "application/json",
         responseSchema: menuExtractionSchema,
-        temperature: 0.1 // Low temperature for consistent extraction
+        temperature: 0.1,
+        maxOutputTokens: 8192
       },
     });
 
     const menuData = JSON.parse(extractionResponse.text.trim());
-    console.log(`Extracted ${menuData.sections?.length || 0} sections`);
+    console.log(`Extracted ${menuData.sections?.length || 0} sections from menu`);
+
+    // Validate extracted data
+    if (!menuData.sections || menuData.sections.length === 0) {
+      throw new Error('No menu sections found. Please ensure the image/PDF is clear and contains a visible menu.');
+    }
+
+    // Calculate total dishes
+    const totalDishes = menuData.sections.reduce((total: number, section: any) => 
+      total + (section.dishes?.length || 0), 0);
+
+    if (totalDishes === 0) {
+      throw new Error('No dishes found in menu. Please ensure the menu content is clearly visible.');
+    }
+
+    console.log(`Found ${totalDishes} dishes across ${menuData.sections.length} sections`);
 
     // Save to database
     console.log('Saving menu to database...');
     const savedMenu = await saveMenuToDatabase(menuId, userId, menuData);
 
-    // Calculate stats
-    const totalDishes = menuData.sections?.reduce((total: number, section: any) => 
-      total + (section.dishes?.length || 0), 0) || 0;
-
-    console.log(`Menu saved. Starting dietary analysis for ${totalDishes} dishes...`);
+    console.log(`Menu saved successfully. Starting dietary analysis for ${totalDishes} dishes...`);
     
     // Trigger background dietary analysis (non-blocking)
     triggerDietaryAnalysis(menuId);
@@ -306,6 +389,7 @@ This is the ONLY information needed - do not analyze ingredients or allergens.`;
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
+        'X-Processing-Time': processingTime.toString()
       },
       body: JSON.stringify({
         success: true,
@@ -319,20 +403,34 @@ This is the ONLY information needed - do not analyze ingredients or allergens.`;
           totalDishes,
           processingTime
         },
-        message: totalDishes > 0 
-          ? `Menu extracted successfully. Dietary analysis is processing in the background for ${totalDishes} dishes.`
-          : 'Menu extracted successfully.'
+        message: `Menu extracted successfully! Found ${totalDishes} dishes across ${menuData.sections?.length || 0} sections. Dietary analysis is processing in the background and will complete in 1-2 minutes.`
       })
     };
 
   } catch (error) {
     console.error('Menu scanning error:', error);
+    
+    // Provide helpful error messages
+    let errorMessage = 'Menu processing failed';
+    if (error instanceof Error) {
+      if (error.message.includes('No menu sections found') || error.message.includes('No dishes found')) {
+        errorMessage = error.message;
+      } else if (error.message.includes('JSON')) {
+        errorMessage = 'Failed to parse menu content. Please ensure the image/PDF is clear and readable.';
+      } else if (error.message.includes('quota') || error.message.includes('rate')) {
+        errorMessage = 'Service temporarily overloaded. Please try again in a few minutes.';
+      } else {
+        errorMessage = `Menu processing failed: ${error.message}`;
+      }
+    }
+
     return {
       statusCode: 500,
       headers: corsHeaders,
       body: JSON.stringify({ 
-        error: `Menu processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        processingTime: Date.now() - startTime
+        error: errorMessage,
+        processingTime: Date.now() - startTime,
+        details: process.env.NODE_ENV === 'development' ? error : undefined
       })
     };
   }
