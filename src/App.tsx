@@ -1,4 +1,4 @@
-// src/App.tsx - Clean routes matching final sitemap only
+// src/App.tsx - Updated with public menu route
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
@@ -23,10 +23,14 @@ import DashboardPage from './pages/DashboardPage';
 import MenuEditorPage from './pages/MenuEditorPage';
 import QRCodesPage from './pages/QRCodesPage';
 import ProfilePage from './pages/ProfilePage';
+import BillingPage from './pages/BillingPage';
 
 // Support pages
 import ContactPage from './pages/ContactPage';
 import FAQPage from './pages/FAQPage';
+
+// Public menu page
+import PublicMenuPage from './pages/PublicMenuPage';
 
 const App: React.FC = () => {
   return (
@@ -50,6 +54,9 @@ const App: React.FC = () => {
             <Route path="/demos/sample-menu-3" element={<SampleMenu3 />} />
             <Route path="/demos/sample-menu-4" element={<SampleMenu4 />} />
             
+            {/* Public Menu Routes - IMPORTANT: Place before wildcard */}
+            <Route path="/r/:restaurantSlug" element={<PublicMenuPage />} />
+            
             {/* Authentication routes */}
             <Route path="/signup" element={<RestaurantSignupPage />} />
             <Route path="/login" element={<RestaurantLoginPage />} />
@@ -60,6 +67,7 @@ const App: React.FC = () => {
             <Route path="/dashboard/menu-editor" element={<MenuEditorPage />} />
             <Route path="/dashboard/qr-codes" element={<QRCodesPage />} />
             <Route path="/dashboard/profile" element={<ProfilePage />} />
+            <Route path="/dashboard/billing" element={<BillingPage />} />
             
             {/* Support pages */}
             <Route path="/contact" element={<ContactPage />} />
