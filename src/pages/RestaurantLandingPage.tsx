@@ -31,10 +31,6 @@ const RestaurantLandingPage: React.FC = () => {
               <QrCode size={32} className="text-wtm-primary" />
               <span className="text-sm font-medium">Simplifies Access</span>
             </div>
-            <div className="flex flex-col items-center gap-3">
-              <Users size={32} className="text-wtm-primary" />
-              <span className="text-sm font-medium">Reduces Friction</span>
-            </div>
           </div>
           
           {/* CTA Buttons */}
