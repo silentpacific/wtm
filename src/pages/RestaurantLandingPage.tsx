@@ -32,7 +32,7 @@ const RestaurantLandingPage: React.FC = () => {
               <span className="text-sm font-medium">Simplifies Access</span>
             </div>
             <div className="flex flex-col items-center gap-3">
-              <Handshake size={32} className="text-wtm-primary" />
+              <Users size={32} className="text-wtm-primary" />
               <span className="text-sm font-medium">Reduces Friction</span>
             </div>
           </div>
