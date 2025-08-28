@@ -6,7 +6,7 @@ import Header from './components/Header';
 
 // Import pages
 import RestaurantLandingPage from './pages/RestaurantLandingPage';
-import RestaurantSignup from './pages/RestaurantSignup'; 
+import RestaurantSignup from './pages/RestaurantSignupPage';
 import RestaurantLoginPage from './pages/RestaurantLoginPage';
 import ConsumersPage from './pages/ConsumersPage';
 import ContactPage from './pages/ContactPage';
