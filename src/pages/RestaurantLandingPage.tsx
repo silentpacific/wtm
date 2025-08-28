@@ -15,8 +15,8 @@ const RestaurantLandingPage: React.FC = () => {
         // User has restaurant profile, go to dashboard
         navigate('/dashboard', { replace: true });
       } else {
-        // User exists but no restaurant profile, go to onboarding
-        navigate('/onboarding', { replace: true });
+        // User exists but no restaurant profile, go to dashboard
+        navigate('/dashboard', { replace: true });
       }
     }
   }, [user, restaurant, authLoading, navigate]);

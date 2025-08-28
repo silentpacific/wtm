@@ -183,52 +183,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       throw new Error('Failed to create user account');
     }
 
-    // Create restaurant profile if data provided
-    if (data.restaurantName && authData.user.id) {
-      const { error: profileError } = await supabase
-        .from('user_restaurant_profiles')
-        .insert([
-          {
-            auth_user_id: authData.user.id,
-            restaurant_name: data.restaurantName,
-            owner_name: data.ownerName,
-            cuisine_type: data.cuisineType,
-            phone: data.phone,
-            address: data.address,
-            city: data.city,
-            email: data.email
-          }
-        ]);
+	// Create restaurant profile if data provided
+	if (data.restaurantName && authData.user.id) {
+	  const profile = {
+		id: authData.user.id,               // required PK
+		auth_user_id: authData.user.id,     // foreign key
+		email: data.email,
+		full_name: data.ownerName || null,
+		restaurant_name: data.restaurantName || null,
+		owner_name: data.ownerName || null,
+		cuisine_type: data.cuisineType || null,
+		phone: data.phone || null,
+		address: data.address || null,
+		city: data.city || null,
+		// state and country can be added here if your form collects them
+	  };
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-      }
-    }
-  };
+	  // Strip out undefined values (Supabase rejects them)
+	  const cleanProfile = Object.fromEntries(
+		Object.entries(profile).filter(([_, v]) => v !== undefined)
+	  );
 
-  const refreshAuth = async (): Promise<void> => {
-    if (!user) return;
-    
-    try {
-      const profile = await getRestaurantProfile(user.id);
-      setRestaurant(profile);
-    } catch (error) {
-      console.error('Refresh error:', error);
-    }
-  };
+	  const { error: profileError } = await supabase
+		.from("user_restaurant_profiles")
+		.insert([cleanProfile]);
 
-  return (
-    <AuthContext.Provider value={{
-      user,
-      restaurant,
-      session,
-      authLoading,
-      signUp,
-      signIn,
-      signOut,
-      refreshAuth
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+	  if (profileError) {
+		console.error("Profile creation error:", profileError);
+	  }
+	}

@@ -370,9 +370,9 @@ const DashboardPage: React.FC = () => {
   }
 
   // Show onboarding for users without restaurant profile
-  if (user && !restaurant) {
-    return <RestaurantOnboarding />;
-  }
+  //   if (user && !restaurant) {
+   //    return <RestaurantOnboarding />;
+  //   }
 
   // Show main dashboard for users with complete profiles
   return (
