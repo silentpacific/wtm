@@ -1,4 +1,4 @@
-// src/components/RestaurantOnboardingWizard.tsx - Complete 5-step onboarding
+// src/components/RestaurantOnboardingWizard.tsx - Resumable onboarding with progress saving
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -28,6 +28,16 @@ interface OnboardingState {
   dietaryAnalysisComplete: boolean;
 }
 
+interface OnboardingProgress {
+  current_step: number;
+  step_1_complete: boolean;
+  step_2_complete: boolean;
+  step_3_complete: boolean;
+  step_4_complete: boolean;
+  step_5_complete: boolean;
+  form_data: any;
+}
+
 const RestaurantOnboardingWizard: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -35,6 +45,9 @@ const RestaurantOnboardingWizard: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [menuFile, setMenuFile] = useState<File | null>(null);
+  const [isResuming, setIsResuming] = useState(true);
   
   const [formData, setFormData] = useState<OnboardingState>({
     email: '',
@@ -55,21 +68,145 @@ const RestaurantOnboardingWizard: React.FC = () => {
     dietaryAnalysisComplete: false
   });
 
-  const [user, setUser] = useState<any>(null);
-  const [menuFile, setMenuFile] = useState<File | null>(null);
-
   const cuisineOptions = [
     'Italian', 'Chinese', 'Japanese', 'Indian', 'Thai', 'Mexican', 
     'French', 'American', 'Mediterranean', 'Vietnamese', 'Korean', 
     'Greek', 'Spanish', 'Modern Australian', 'Cafe', 'Other'
   ];
 
+  // Check for existing progress on mount
+  useEffect(() => {
+    checkExistingProgress();
+  }, []);
+
+  // Generate URL slug when restaurant name and city change
   useEffect(() => {
     if (formData.restaurantName && formData.city) {
       const slug = generateUrlSlug(formData.restaurantName, formData.city);
       setFormData(prev => ({ ...prev, urlSlug: slug }));
     }
   }, [formData.restaurantName, formData.city]);
+
+  const checkExistingProgress = async () => {
+    setIsResuming(true);
+    try {
+      // Check if user is already logged in
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        setUser(session.user);
+        await loadExistingProgress(session.user.id);
+      }
+    } catch (error) {
+      console.error('Error checking progress:', error);
+    } finally {
+      setIsResuming(false);
+    }
+  };
+
+  const loadExistingProgress = async (userId: string) => {
+    try {
+      // Check user_restaurant_profiles for existing data
+      const { data: profile } = await supabase
+        .from('user_restaurant_profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profile) {
+        // Restore form data from database
+        setFormData(prev => ({
+          ...prev,
+          email: profile.email || '',
+          restaurantName: profile.restaurant_name || '',
+          city: profile.city || '',
+          state: profile.state || '',
+          country: profile.country || 'Australia',
+          ownerName: profile.owner_name || '',
+          phone: profile.phone || '',
+          address: profile.address || '',
+          cuisineType: profile.cuisine_type || '',
+          urlSlug: profile.url_slug || ''
+        }));
+
+        // Determine current step based on completed data
+        if (profile.restaurant_name && profile.city && profile.url_slug) {
+          if (profile.url_slug) {
+            setCurrentStep(3); // Has restaurant profile, go to QR step
+          } else {
+            setCurrentStep(2); // Has basic info, continue with profile
+          }
+        }
+      }
+
+      // Check for existing menus
+      const { data: menus } = await supabase
+        .from('menus')
+        .select('id, status')
+        .eq('restaurant_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (menus && menus.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          menuUploaded: true,
+          menuId: menus[0].id,
+          dietaryAnalysisComplete: menus[0].status === 'active'
+        }));
+        
+        if (menus[0].status === 'active') {
+          // All complete, redirect to dashboard
+          navigate('/dashboard');
+        } else {
+          setCurrentStep(5); // Go to dietary analysis step
+        }
+      }
+
+    } catch (error) {
+      console.error('Error loading progress:', error);
+    }
+  };
+
+  const saveProgress = async (stepData: Partial<OnboardingState>, stepNumber: number) => {
+    if (!user) return;
+
+    try {
+      const updateData: any = {
+        updated_at: new Date().toISOString()
+      };
+
+      // Map form data to database fields
+      if (stepData.ownerName) updateData.owner_name = stepData.ownerName;
+      if (stepData.email) updateData.email = stepData.email;
+      if (stepData.restaurantName) updateData.restaurant_name = stepData.restaurantName;
+      if (stepData.city) updateData.city = stepData.city;
+      if (stepData.state) updateData.state = stepData.state;
+      if (stepData.country) updateData.country = stepData.country;
+      if (stepData.phone) updateData.phone = stepData.phone;
+      if (stepData.address) updateData.address = stepData.address;
+      if (stepData.cuisineType) updateData.cuisine_type = stepData.cuisineType;
+      if (stepData.urlSlug) updateData.url_slug = stepData.urlSlug;
+
+      const { error } = await supabase
+        .from('user_restaurant_profiles')
+        .upsert({
+          id: user.id,
+          auth_user_id: user.id,
+          ...updateData
+        }, {
+          onConflict: 'id'
+        });
+
+      if (error) {
+        console.error('Save progress error:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Failed to save progress:', error);
+      throw error;
+    }
+  };
 
   const generateUrlSlug = (restaurantName: string, city: string): string => {
     const combined = `${restaurantName}-${city}`;
@@ -83,6 +220,7 @@ const RestaurantOnboardingWizard: React.FC = () => {
   const validateStep1 = () => {
     if (!formData.email.trim()) return 'Email is required';
     if (!/\S+@\S+\.\S+/.test(formData.email)) return 'Email is invalid';
+    if (!formData.ownerName.trim()) return 'Owner name is required';
     if (!formData.password) return 'Password is required';
     if (formData.password.length < 6) return 'Password must be at least 6 characters';
     if (formData.password !== formData.confirmPassword) return 'Passwords do not match';
@@ -92,7 +230,6 @@ const RestaurantOnboardingWizard: React.FC = () => {
   const validateStep2 = () => {
     if (!formData.restaurantName.trim()) return 'Restaurant name is required';
     if (!formData.city.trim()) return 'City is required';
-    if (!formData.ownerName.trim()) return 'Owner name is required';
     if (!formData.cuisineType) return 'Cuisine type is required';
     if (!formData.phone.trim()) return 'Phone number is required';
     if (!formData.address.trim()) return 'Address is required';
@@ -110,6 +247,7 @@ const RestaurantOnboardingWizard: React.FC = () => {
     setError('');
 
     try {
+      // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -124,9 +262,17 @@ const RestaurantOnboardingWizard: React.FC = () => {
       if (!authData.user) throw new Error('Failed to create account');
 
       setUser(authData.user);
+
+      // Save initial progress
+      await saveProgress({
+        email: formData.email,
+        ownerName: formData.ownerName
+      }, 1);
+
       setCurrentStep(2);
       
     } catch (err: any) {
+      console.error('Step 1 error:', err);
       setError(err.message || 'Failed to create account');
     } finally {
       setIsLoading(false);
@@ -141,7 +287,7 @@ const RestaurantOnboardingWizard: React.FC = () => {
     }
 
     if (!user) {
-      setError('Authentication error. Please start over.');
+      setError('Authentication error. Please refresh and try again.');
       return;
     }
 
@@ -149,11 +295,13 @@ const RestaurantOnboardingWizard: React.FC = () => {
     setError('');
 
     try {
+      // Check if URL slug is unique
       let finalSlug = formData.urlSlug;
       const { data: existingRestaurant } = await supabase
         .from('user_restaurant_profiles')
         .select('id')
         .eq('url_slug', finalSlug)
+        .neq('id', user.id) // Exclude current user
         .maybeSingle();
 
       if (existingRestaurant) {
@@ -164,6 +312,7 @@ const RestaurantOnboardingWizard: React.FC = () => {
             .from('user_restaurant_profiles')
             .select('id')
             .eq('url_slug', testSlug)
+            .neq('id', user.id)
             .maybeSingle();
             
           if (!existing) {
@@ -174,30 +323,23 @@ const RestaurantOnboardingWizard: React.FC = () => {
         }
       }
 
-      const { error: profileError } = await supabase
-        .from('user_restaurant_profiles')
-        .insert({
-          id: user.id,
-          auth_user_id: user.id,
-          full_name: formData.ownerName,
-          email: formData.email,
-          restaurant_name: formData.restaurantName,
-          cuisine_type: formData.cuisineType,
-          owner_name: formData.ownerName,
-          phone: formData.phone,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          country: formData.country,
-          url_slug: finalSlug
-        });
-
-      if (profileError) throw new Error('Failed to save restaurant profile');
+      // Save restaurant profile progress
+      await saveProgress({
+        restaurantName: formData.restaurantName,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        phone: formData.phone,
+        address: formData.address,
+        cuisineType: formData.cuisineType,
+        urlSlug: finalSlug
+      }, 2);
 
       setFormData(prev => ({ ...prev, urlSlug: finalSlug }));
       setCurrentStep(3);
       
     } catch (err: any) {
+      console.error('Step 2 error:', err);
       setError(err.message || 'Failed to save restaurant information');
     } finally {
       setIsLoading(false);
@@ -256,11 +398,13 @@ const RestaurantOnboardingWizard: React.FC = () => {
         throw new Error(result.error || `HTTP ${response.status}`);
       }
 
+      // Save menu progress
       setFormData(prev => ({ 
         ...prev, 
         menuUploaded: true, 
         menuId: result.menuId 
       }));
+      
       setCurrentStep(5);
       
     } catch (err: any) {
@@ -319,14 +463,25 @@ const RestaurantOnboardingWizard: React.FC = () => {
   };
 
   const steps = [
-    { number: 1, title: 'Create Account', completed: currentStep > 1 },
-    { number: 2, title: 'Restaurant Profile', completed: currentStep > 2 },
+    { number: 1, title: 'Create Account', completed: currentStep > 1 || (user && formData.email) },
+    { number: 2, title: 'Restaurant Profile', completed: currentStep > 2 || (formData.restaurantName && formData.urlSlug) },
     { number: 3, title: 'QR Code Setup', completed: currentStep > 3 },
-    { number: 4, title: 'Menu Upload', completed: currentStep > 4 },
-    { number: 5, title: 'Dietary Analysis', completed: currentStep > 5 }
+    { number: 4, title: 'Menu Upload', completed: currentStep > 4 || formData.menuUploaded },
+    { number: 5, title: 'Dietary Analysis', completed: formData.dietaryAnalysisComplete }
   ];
 
   const menuUrl = `${window.location.origin}/r/${formData.urlSlug}`;
+
+  if (isResuming) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking your progress...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-6">
@@ -338,7 +493,7 @@ const RestaurantOnboardingWizard: React.FC = () => {
             </span>
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Let's Get Your Restaurant Online
+            {user ? 'Continue Setting Up Your Restaurant' : 'Let\'s Get Your Restaurant Online'}
           </h1>
           <p className="text-xl text-gray-600">
             5 quick steps to make your menu accessible to all customers
@@ -673,13 +828,21 @@ const RestaurantOnboardingWizard: React.FC = () => {
                   <ArrowLeft className="w-5 h-5 mr-2" />
                   Back
                 </button>
-                <button
-                  onClick={() => setCurrentStep(4)}
-                  className="bg-orange-500 text-white px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-orange-600 flex items-center"
-                >
-                  <ArrowRight className="w-5 h-5 mr-2" />
-                  Continue to Menu Upload
-                </button>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="bg-gray-100 text-gray-700 px-6 py-4 rounded-2xl font-semibold text-lg hover:bg-gray-200"
+                  >
+                    Skip Menu Upload
+                  </button>
+                  <button
+                    onClick={() => setCurrentStep(4)}
+                    className="bg-orange-500 text-white px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-orange-600 flex items-center"
+                  >
+                    <ArrowRight className="w-5 h-5 mr-2" />
+                    Continue to Menu Upload
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -767,15 +930,13 @@ const RestaurantOnboardingWizard: React.FC = () => {
                   <ArrowLeft className="w-5 h-5 mr-2" />
                   Back
                 </button>
-                {formData.menuUploaded && (
-                  <button
-                    onClick={() => setCurrentStep(5)}
-                    className="bg-orange-500 text-white px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-orange-600 flex items-center"
-                  >
-                    <ArrowRight className="w-5 h-5 mr-2" />
-                    Continue
-                  </button>
-                )}
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  disabled={isLoading}
+                  className="bg-gray-100 text-gray-700 px-6 py-4 rounded-2xl font-semibold text-lg hover:bg-gray-200 disabled:opacity-50"
+                >
+                  Skip for Now
+                </button>
               </div>
             </div>
           )}
@@ -800,23 +961,31 @@ const RestaurantOnboardingWizard: React.FC = () => {
                       This usually takes 10-60 seconds depending on menu size.
                     </p>
                     
-                    <button
-                      onClick={runDietaryAnalysis}
-                      disabled={isLoading}
-                      className="bg-orange-500 text-white px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center mx-auto"
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader className="w-5 h-5 mr-2 animate-spin" />
-                          Analyzing Menu...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-5 h-5 mr-2" />
-                          Start Analysis
-                        </>
-                      )}
-                    </button>
+                    <div className="flex justify-center space-x-4">
+                      <button
+                        onClick={() => navigate('/dashboard')}
+                        className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200"
+                      >
+                        Skip for Now
+                      </button>
+                      <button
+                        onClick={runDietaryAnalysis}
+                        disabled={isLoading}
+                        className="bg-orange-500 text-white px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader className="w-5 h-5 mr-2 animate-spin" />
+                            Analyzing Menu...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-5 h-5 mr-2" />
+                            Start Analysis
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
