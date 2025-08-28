@@ -263,11 +263,21 @@ const RestaurantOnboardingWizard: React.FC = () => {
 
       setUser(authData.user);
 
-      // Save initial progress
-      await saveProgress({
-        email: formData.email,
-        ownerName: formData.ownerName
-      }, 1);
+      // Create initial profile record
+      const { error: profileError } = await supabase
+        .from('user_restaurant_profiles')
+        .insert({
+          id: authData.user.id,
+          auth_user_id: authData.user.id,
+          full_name: formData.ownerName,
+          email: formData.email,
+          subscription_type: 'free'
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        // Don't fail the step, just log the error - we can create it in step 2
+      }
 
       setCurrentStep(2);
       
