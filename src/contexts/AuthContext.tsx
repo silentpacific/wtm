@@ -215,7 +215,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 		const { error: profileError } = await supabase
 		  .from("user_restaurant_profiles")
-		  .upsert([cleanProfile], { onConflict: "id" });
+		  .upsert([cleanProfile], { onConflict: "id,auth_user_id" });
 
 		if (profileError) {
 		  console.error("Profile creation/upsert error:", profileError);
