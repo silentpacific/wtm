@@ -204,12 +204,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 		Object.entries(profile).filter(([_, v]) => v !== undefined)
 	  );
 
-	  const { error: profileError } = await supabase
-		.from("user_restaurant_profiles")
-		.insert([cleanProfile]);
+	const { error: profileError } = await supabase
+	  .from("user_restaurant_profiles")
+	  .upsert([cleanProfile], { onConflict: "id" });
 
     if (profileError) {
-      console.error("Profile creation error:", profileError);
+    console.error("Profile creation/upsert error:", profileError);
 		}
 	  }
 	}; // <-- closes signUp function
