@@ -208,7 +208,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 		.from("user_restaurant_profiles")
 		.insert([cleanProfile]);
 
-	  if (profileError) {
-		console.error("Profile creation error:", profileError);
+    if (profileError) {
+      console.error("Profile creation error:", profileError);
+		}
 	  }
-	}
+	}; // <-- closes signUp function
+
+	const refreshAuth = async (): Promise<void> => {
+	  if (!user) return;
+	  
+	  try {
+		const profile = await getRestaurantProfile(user.id);
+		setRestaurant(profile);
+	  } catch (error) {
+		console.error("Refresh error:", error);
+	  }
+	};
+
+	return (
+	  <AuthContext.Provider value={{
+		user,
+		restaurant,
+		session,
+		authLoading,
+		signUp,
+		signIn,
+		signOut,
+		refreshAuth
+	  }}>
+		{children}
+	  </AuthContext.Provider>
+	);
+	};
