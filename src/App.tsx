@@ -114,14 +114,14 @@ const App: React.FC = () => {
           <Route path="/demos" element={<Layout><DemosPage /></Layout>} />
 
           {/* Auth routes */}
-          <Route path="/signup" element={<Layout showHeader={false}><RestaurantOnboardingWizard /></Layout>} />
+          <Route path="/signup" element={<Layout showHeader={false}><RestaurantSignup /></Layout>} />
           <Route path="/login" element={<Layout showHeader={false}><RestaurantLoginPage /></Layout>} />
           
           {/* Onboarding route - only accessible if user exists but no restaurant profile */}
           <Route path="/onboarding" element={
             <OnboardingRoute>
               <Layout showHeader={false}>
-                <RestaurantOnboardingWizard />
+                <RestaurantSignup />
               </Layout>
             </OnboardingRoute>
           } />
