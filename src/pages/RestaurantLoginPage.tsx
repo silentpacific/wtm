@@ -1,12 +1,11 @@
-// src/pages/RestaurantLoginPage.tsx - Fixed with proper navigation
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+// src/pages/RestaurantLoginPage.tsx - Removed manual navigation
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, Loader } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const RestaurantLoginPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { signIn, user, restaurant, authLoading } = useAuth();
+  const { signIn, user, authLoading } = useAuth();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -17,18 +16,17 @@ const RestaurantLoginPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Handle navigation after successful login
-  useEffect(() => {
-    if (user && !authLoading) {
-      if (restaurant) {
-        // User has restaurant profile, go to dashboard
-        navigate('/dashboard', { replace: true });
-      } else {
-        // User exists but no restaurant profile, go to onboarding
-        navigate('/onboarding', { replace: true });
-      }
-    }
-  }, [user, restaurant, authLoading, navigate]);
+  // Don't render if user is already logged in - let App.tsx routing handle it
+  if (user && !authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -37,7 +35,6 @@ const RestaurantLoginPage: React.FC = () => {
       [name]: value
     }));
     
-    // Clear error when user starts typing
     if (error) {
       setError('');
     }
@@ -61,7 +58,7 @@ const RestaurantLoginPage: React.FC = () => {
     
     try {
       await signIn(formData.email, formData.password);
-      // Navigation will be handled by useEffect above
+      // DO NOT NAVIGATE HERE - Let the App.tsx routing handle it automatically
       
     } catch (error: any) {
       console.error('Login error:', error);
@@ -77,11 +74,6 @@ const RestaurantLoginPage: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  // Don't render if user is already logged in
-  if (user && !authLoading) {
-    return null; // Let useEffect handle navigation
-  }
 
   return (
     <div className="min-h-screen bg-wtm-bg py-16 px-6">
