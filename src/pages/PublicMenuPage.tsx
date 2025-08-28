@@ -34,42 +34,6 @@ const PublicMenuPage: React.FC = () => {
     }
   }, [restaurantSlug]);
 
-// src/pages/PublicMenuPage.tsx - Simplified approach using restaurant ID lookup
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '../services/supabaseClient';
-import RestaurantMenuPage from '../components/RestaurantMenuPage';
-import { Loader, AlertCircle } from 'lucide-react';
-
-interface MenuItem {
-  id: string;
-  section: string;
-  name: Record<string, string>;
-  description: Record<string, string>;
-  price: number;
-  allergens: string[];
-  dietaryTags: string[];
-  explanation: Record<string, string>;
-}
-
-interface MenuData {
-  restaurantName: Record<string, string>;
-  menuItems: MenuItem[];
-  sections: Record<string, string[]>;
-}
-
-const PublicMenuPage: React.FC = () => {
-  const { restaurantSlug } = useParams<{ restaurantSlug: string }>();
-  const [menuData, setMenuData] = useState<MenuData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (restaurantSlug) {
-      loadMenuData();
-    }
-  }, [restaurantSlug]);
-
   const loadMenuData = async () => {
     if (!restaurantSlug) return;
 
