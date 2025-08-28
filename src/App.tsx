@@ -1,12 +1,12 @@
-// src/App.tsx - Simplified for debugging routing issues
+// src/App.tsx - Complete working solution
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Header';
 
-// Import pages
+// Import pages - CORRECTED to use the right files
 import RestaurantLandingPage from './pages/RestaurantLandingPage';
-import RestaurantSignupPage from './pages/RestaurantSignupPage';
+import RestaurantSignupPage from './pages/RestaurantSignupPage';  // From pages folder
 import RestaurantLoginPage from './pages/RestaurantLoginPage';
 import ConsumersPage from './pages/ConsumersPage';
 import ContactPage from './pages/ContactPage';
@@ -14,7 +14,6 @@ import FAQPage from './pages/FAQPage';
 import DemosPage from './pages/DemosPage';
 
 // Dashboard pages
-import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import QRCodesPage from './pages/QRCodesPage';
 import MenuEditorPage from './pages/MenuEditorPage';
@@ -27,6 +26,9 @@ import SampleMenu3 from './pages/SampleMenu3';
 import SampleMenu4 from './pages/SampleMenu4';
 import PublicMenuPage from './pages/PublicMenuPage';
 
+// Dashboard layout
+import DashboardLayout from './components/DashboardLayout';
+
 // Simple loading component
 const LoadingPage: React.FC = () => (
   <div className="min-h-screen flex items-center justify-center bg-white">
@@ -37,55 +39,58 @@ const LoadingPage: React.FC = () => (
   </div>
 );
 
-// Protected route wrapper - SIMPLIFIED
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, authLoading } = useAuth();
+// Dashboard component that handles both complete and incomplete profiles
+const Dashboard: React.FC = () => {
+  const { user, restaurant, authLoading } = useAuth();
 
-  console.log('ProtectedRoute - user:', !!user, 'authLoading:', authLoading);
-
-  if (authLoading) {
-    return <LoadingPage />;
-  }
+  if (authLoading) return <LoadingPage />;
 
   if (!user) {
-    console.log('No user, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
-  console.log('User authenticated, showing protected content');
-  return <>{children}</>;
-};
-
-// Layout wrapper
-const Layout: React.FC<{ children: React.ReactNode; showHeader?: boolean }> = ({ 
-  children, 
-  showHeader = true 
-}) => {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {showHeader && <Header />}
-      <main>{children}</main>
-    </div>
-  );
-};
-
-// Simple dashboard component for testing
-const SimpleDashboard: React.FC = () => {
-  const { user, restaurant } = useAuth();
-  
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="max-w-4xl mx-auto py-12 px-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
-        
-        <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Authentication Status</h2>
-          <p className="mb-2"><strong>User ID:</strong> {user?.id || 'Not logged in'}</p>
-          <p className="mb-2"><strong>Email:</strong> {user?.email || 'N/A'}</p>
-          <p className="mb-2"><strong>Restaurant Name:</strong> {restaurant?.restaurant_name || 'No restaurant profile'}</p>
-          <p className="mb-2"><strong>Restaurant ID:</strong> {restaurant?.id || 'N/A'}</p>
+  // If no restaurant profile, show simple setup message
+  if (!restaurant) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-2xl mx-auto py-12 px-6">
+          <div className="bg-white rounded-2xl p-8 text-center shadow-sm border">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Complete Your Setup</h1>
+            <p className="text-gray-600 mb-6">
+              It looks like your restaurant profile wasn't created during signup. 
+              Please sign up again to complete your profile, or contact support if you need help.
+            </p>
+            <div className="space-y-3">
+              <a
+                href="/signup"
+                className="block w-full bg-orange-500 text-white py-3 px-6 rounded-xl hover:bg-orange-600 transition-colors"
+              >
+                Complete Profile Setup
+              </a>
+              <a
+                href="/contact"
+                className="block w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                Contact Support
+              </a>
+            </div>
+          </div>
         </div>
+      </div>
+    );
+  }
+
+  // Show main dashboard for complete profiles
+  return (
+    <DashboardLayout>
+      <div className="p-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Welcome back, {restaurant.owner_name || 'Restaurant Owner'}!
+        </h1>
+        <p className="text-gray-600 mb-8">
+          {restaurant.restaurant_name} Dashboard
+        </p>
 
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow-sm border p-6">
@@ -98,25 +103,45 @@ const SimpleDashboard: React.FC = () => {
                 Menu Editor
               </a>
               <a
-                href="/dashboard/profile"
+                href="/dashboard/qr-codes"
                 className="block w-full bg-blue-500 text-white text-center py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors"
               >
-                Profile
+                QR Codes
               </a>
             </div>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h3 className="text-lg font-semibold mb-4">Status</h3>
-            <p className="text-gray-600">
-              {restaurant 
-                ? 'Your restaurant profile is complete.' 
-                : 'Complete your restaurant profile to get started.'
-              }
-            </p>
+            <h3 className="text-lg font-semibold mb-4">Restaurant Info</h3>
+            <p><strong>Name:</strong> {restaurant.restaurant_name}</p>
+            <p><strong>Cuisine:</strong> {restaurant.cuisine_type}</p>
+            <p><strong>City:</strong> {restaurant.city}</p>
           </div>
         </div>
       </div>
+    </DashboardLayout>
+  );
+};
+
+// Protected route wrapper - SIMPLIFIED
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, authLoading } = useAuth();
+
+  if (authLoading) return <LoadingPage />;
+  if (!user) return <Navigate to="/login" replace />;
+  
+  return <>{children}</>;
+};
+
+// Layout wrapper
+const Layout: React.FC<{ children: React.ReactNode; showHeader?: boolean }> = ({ 
+  children, 
+  showHeader = true 
+}) => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {showHeader && <Header />}
+      <main>{children}</main>
     </div>
   );
 };
@@ -138,44 +163,18 @@ const App: React.FC = () => {
           <Route path="/signup" element={<Layout showHeader={false}><RestaurantSignupPage /></Layout>} />
           <Route path="/login" element={<Layout showHeader={false}><RestaurantLoginPage /></Layout>} />
           
-          {/* SIMPLIFIED Protected dashboard routes */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <SimpleDashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/dashboard/profile" element={
-            <ProtectedRoute>
-              <Layout><ProfilePage /></Layout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/dashboard/qr-codes" element={
-            <ProtectedRoute>
-              <Layout><QRCodesPage /></Layout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/dashboard/menu-editor" element={
-            <ProtectedRoute>
-              <Layout><MenuEditorPage /></Layout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/dashboard/billing" element={
-            <ProtectedRoute>
-              <Layout><BillingPage /></Layout>
-            </ProtectedRoute>
-          } />
+          {/* Dashboard routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/profile" element={<ProtectedRoute><DashboardLayout><ProfilePage /></DashboardLayout></ProtectedRoute>} />
+          <Route path="/dashboard/qr-codes" element={<ProtectedRoute><DashboardLayout><QRCodesPage /></DashboardLayout></ProtectedRoute>} />
+          <Route path="/dashboard/menu-editor" element={<ProtectedRoute><DashboardLayout><MenuEditorPage /></DashboardLayout></ProtectedRoute>} />
+          <Route path="/dashboard/billing" element={<ProtectedRoute><DashboardLayout><BillingPage /></DashboardLayout></ProtectedRoute>} />
 
           {/* Public menu routes */}
           <Route path="/demos/sample-menu-1" element={<Layout><SampleMenu1 /></Layout>} />
           <Route path="/demos/sample-menu-2" element={<Layout><SampleMenu2 /></Layout>} />
           <Route path="/demos/sample-menu-3" element={<Layout><SampleMenu3 /></Layout>} />
           <Route path="/demos/sample-menu-4" element={<Layout><SampleMenu4 /></Layout>} />
-          
-          {/* Dynamic restaurant menu route */}
           <Route path="/r/:slug" element={<Layout><PublicMenuPage /></Layout>} />
 
           {/* Catch-all redirect */}
