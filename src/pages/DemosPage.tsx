@@ -103,12 +103,6 @@ const DemosPage: React.FC = () => {
                   >
                     Try Interactive Menu
                   </Link>
-                  <Link 
-                    to={`/demos/${restaurant.id}/features`}
-                    className="px-6 py-4 text-wtm-primary border-2 border-wtm-primary font-semibold rounded-2xl hover:bg-wtm-primary hover:text-white transition-all duration-200"
-                  >
-                    Features
-                  </Link>
                 </div>
               </div>
             ))}

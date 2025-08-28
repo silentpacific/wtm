@@ -105,28 +105,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
+	const { data: { subscription } } = supabase.auth.onAuthStateChange(
+	  async (event, session) => {
+		if (!mounted) return;
 
-        if (event === 'SIGNED_IN') {
-          setUser(session?.user || null);
-          setSession(session);
-          
-          if (session?.user) {
-            const profile = await getRestaurantProfile(session.user.id);
-            setRestaurant(profile);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setRestaurant(null);
-          setSession(null);
-        }
+		if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+		  setUser(session?.user || null);
+		  setSession(session);
 
-        setAuthLoading(false);
-      }
-    );
+		  if (session?.user) {
+			const profile = await getRestaurantProfile(session.user.id);
+			setRestaurant(profile);
+		  }
+		} else if (event === 'SIGNED_OUT') {
+		  setUser(null);
+		  setRestaurant(null);
+		  setSession(null);
+		}
 
+		setAuthLoading(false); // ✅ always clear loading
+	  }
+	);
+
+	  // ✅ Fallback: ensure authLoading eventually clears
+	  const timeout = setTimeout(() => {
+		if (authLoading) {
+		  console.warn("Auth still loading after 5s, forcing false.");
+		  setAuthLoading(false);
+		}
+	  }, 5000);
+	  
     return () => {
       mounted = false;
       subscription.unsubscribe();
