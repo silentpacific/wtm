@@ -164,55 +164,65 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSession(null);
   };
 
-  const signUp = async (data: SignUpData): Promise<void> => {
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          full_name: data.ownerName
-        }
-      }
-    });
-
-    if (authError) {
-      throw new Error(authError.message);
-    }
-
-    if (!authData.user) {
-      throw new Error('Failed to create user account');
-    }
-
-	// Create restaurant profile if data provided
-	if (data.restaurantName && authData.user.id) {
-	  const profile = {
-		id: authData.user.id,               // required PK
-		auth_user_id: authData.user.id,     // foreign key
+	const signUp = async (data: SignUpData): Promise<void> => {
+	  const { data: authData, error: authError } = await supabase.auth.signUp({
 		email: data.email,
-		full_name: data.ownerName || null,
-		restaurant_name: data.restaurantName || null,
-		owner_name: data.ownerName || null,
-		cuisine_type: data.cuisineType || null,
-		phone: data.phone || null,
-		address: data.address || null,
-		city: data.city || null,
-		// state and country can be added here if your form collects them
-	  };
+		password: data.password,
+		options: {
+		  data: {
+			full_name: data.ownerName
+		  }
+		}
+	  });
 
-	  // Strip out undefined values (Supabase rejects them)
-	  const cleanProfile = Object.fromEntries(
-		Object.entries(profile).filter(([_, v]) => v !== undefined)
-	  );
+	  if (authError) {
+		throw new Error(authError.message);
+	  }
 
-	const { error: profileError } = await supabase
-	  .from("user_restaurant_profiles")
-	  .upsert([cleanProfile], { onConflict: "id" });
+	  if (!authData.user) {
+		throw new Error('Failed to create user account');
+	  }
 
-    if (profileError) {
-    console.error("Profile creation/upsert error:", profileError);
+	  // Fetch the user ID from session after signup (safer)
+	  let userId = authData.user?.id;
+	  if (!userId) {
+		const { data: { user }, error } = await supabase.auth.getUser();
+		if (error || !user) {
+		  throw new Error("Could not retrieve user after signup");
+		}
+		userId = user.id;
+	  }
+
+	  // ✅ Use userId here instead of authData.user.id
+	  if (data.restaurantName && userId) {
+		const profile = {
+		  id: userId,                // required PK
+		  auth_user_id: userId,      // foreign key
+		  email: data.email,
+		  full_name: data.ownerName || null,
+		  restaurant_name: data.restaurantName || null,
+		  owner_name: data.ownerName || null,
+		  cuisine_type: data.cuisineType || null,
+		  phone: data.phone || null,
+		  address: data.address || null,
+		  city: data.city || null,
+		  // state and country can be added here if your form collects them
+		};
+
+		const cleanProfile = Object.fromEntries(
+		  Object.entries(profile).filter(([_, v]) => v !== undefined)
+		);
+
+		const { error: profileError } = await supabase
+		  .from("user_restaurant_profiles")
+		  .upsert([cleanProfile], { onConflict: "id" });
+
+		if (profileError) {
+		  console.error("Profile creation/upsert error:", profileError);
 		}
 	  }
-	}; // <-- closes signUp function
+	};
+
 
 	const refreshAuth = async (): Promise<void> => {
 	  if (!user) return;
