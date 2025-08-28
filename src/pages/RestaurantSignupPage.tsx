@@ -1,12 +1,12 @@
-// src/pages/RestaurantSignupPage.tsx - Minimalist redesign
-import React, { useState } from 'react';
+// src/pages/RestaurantSignupPage.tsx - Fixed with proper navigation
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Phone, MapPin, User, Building, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const RestaurantSignupPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signUp } = useAuth();
+  const { signUp, user, restaurant, authLoading } = useAuth();
   const [formData, setFormData] = useState({
     restaurantName: '',
     cuisineType: '',
@@ -23,6 +23,19 @@ const RestaurantSignupPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Handle navigation after successful signup
+  useEffect(() => {
+    if (user && !authLoading) {
+      if (restaurant) {
+        // User has restaurant profile, go to dashboard
+        navigate('/dashboard', { replace: true });
+      } else {
+        // User exists but no restaurant profile, go to onboarding
+        navigate('/onboarding', { replace: true });
+      }
+    }
+  }, [user, restaurant, authLoading, navigate]);
 
   const cuisineOptions = [
     'Italian', 'Chinese', 'Japanese', 'Indian', 'Thai', 'Mexican', 
@@ -95,7 +108,7 @@ const RestaurantSignupPage: React.FC = () => {
         city: formData.city
       });
       
-      navigate('/dashboard');
+      // Navigation will be handled by useEffect above
       
     } catch (error: any) {
       console.error('Signup error:', error);
@@ -111,6 +124,11 @@ const RestaurantSignupPage: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // Don't render if user is already logged in
+  if (user && !authLoading) {
+    return null; // Let useEffect handle navigation
+  }
 
   return (
     <div className="min-h-screen bg-wtm-bg py-16 px-6">
@@ -161,6 +179,7 @@ const RestaurantSignupPage: React.FC = () => {
                       errors.restaurantName ? 'border-red-300' : 'border-gray-200'
                     }`}
                     placeholder="Your Restaurant Name"
+                    disabled={isLoading}
                   />
                   {errors.restaurantName && <p className="text-red-600 text-sm mt-2">{errors.restaurantName}</p>}
                 </div>
@@ -173,6 +192,7 @@ const RestaurantSignupPage: React.FC = () => {
                     name="cuisineType"
                     value={formData.cuisineType}
                     onChange={handleInputChange}
+                    disabled={isLoading}
                     className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
                       errors.cuisineType ? 'border-red-300' : 'border-gray-200'
                     }`}
@@ -199,6 +219,7 @@ const RestaurantSignupPage: React.FC = () => {
                       errors.address ? 'border-red-300' : 'border-gray-200'
                     }`}
                     placeholder="123 Main Street"
+                    disabled={isLoading}
                   />
                   {errors.address && <p className="text-red-600 text-sm mt-2">{errors.address}</p>}
                 </div>
@@ -216,6 +237,7 @@ const RestaurantSignupPage: React.FC = () => {
                       errors.city ? 'border-red-300' : 'border-gray-200'
                     }`}
                     placeholder="Adelaide"
+                    disabled={isLoading}
                   />
                   {errors.city && <p className="text-red-600 text-sm mt-2">{errors.city}</p>}
                 </div>
@@ -234,6 +256,7 @@ const RestaurantSignupPage: React.FC = () => {
                       errors.phone ? 'border-red-300' : 'border-gray-200'
                     }`}
                     placeholder="+61 8 1234 5678"
+                    disabled={isLoading}
                   />
                   {errors.phone && <p className="text-red-600 text-sm mt-2">{errors.phone}</p>}
                 </div>
@@ -261,6 +284,8 @@ const RestaurantSignupPage: React.FC = () => {
                       errors.ownerName ? 'border-red-300' : 'border-gray-200'
                     }`}
                     placeholder="Your Full Name"
+                    disabled={isLoading}
+                    autoComplete="name"
                   />
                   {errors.ownerName && <p className="text-red-600 text-sm mt-2">{errors.ownerName}</p>}
                 </div>
@@ -279,6 +304,8 @@ const RestaurantSignupPage: React.FC = () => {
                       errors.email ? 'border-red-300' : 'border-gray-200'
                     }`}
                     placeholder="your.email@restaurant.com"
+                    disabled={isLoading}
+                    autoComplete="email"
                   />
                   {errors.email && <p className="text-red-600 text-sm mt-2">{errors.email}</p>}
                 </div>
@@ -298,11 +325,14 @@ const RestaurantSignupPage: React.FC = () => {
                         errors.password ? 'border-red-300' : 'border-gray-200'
                       }`}
                       placeholder="••••••••"
+                      disabled={isLoading}
+                      autoComplete="new-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 text-wtm-muted hover:text-wtm-text transition-colors"
+                      disabled={isLoading}
                     >
                       {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                     </button>
@@ -324,11 +354,14 @@ const RestaurantSignupPage: React.FC = () => {
                         errors.confirmPassword ? 'border-red-300' : 'border-gray-200'
                       }`}
                       placeholder="••••••••"
+                      disabled={isLoading}
+                      autoComplete="new-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 text-wtm-muted hover:text-wtm-text transition-colors"
+                      disabled={isLoading}
                     >
                       {showConfirmPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                     </button>

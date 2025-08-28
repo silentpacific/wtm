@@ -1,9 +1,44 @@
-// src/pages/RestaurantLandingPage.tsx - Apple-inspired minimalist redesign
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Globe, Shield, QrCode, Upload, CheckCircle, MessageCircle, Handshake } from 'lucide-react';
+// src/pages/RestaurantLandingPage.tsx - Redirects logged-in users to dashboard
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Globe, Shield, QrCode, Upload, CheckCircle, MessageCircle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const RestaurantLandingPage: React.FC = () => {
+  const { user, restaurant, authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (user && !authLoading) {
+      if (restaurant) {
+        // User has restaurant profile, go to dashboard
+        navigate('/dashboard', { replace: true });
+      } else {
+        // User exists but no restaurant profile, go to onboarding
+        navigate('/onboarding', { replace: true });
+      }
+    }
+  }, [user, restaurant, authLoading, navigate]);
+
+  // Show loading spinner while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render landing page if user is logged in (let useEffect handle redirect)
+  if (user) {
+    return null;
+  }
+
+  // Show marketing landing page for non-logged in users
   return (
     <div className="min-h-screen font-sans bg-white">
       {/* Hero Section */}

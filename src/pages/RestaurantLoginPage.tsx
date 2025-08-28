@@ -1,12 +1,12 @@
-// src/pages/RestaurantLoginPage.tsx - Updated for new onboarding flow
-import React, { useState } from 'react';
+// src/pages/RestaurantLoginPage.tsx - Fixed with proper navigation
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, Loader } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const RestaurantLoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, user, restaurant, authLoading } = useAuth();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -16,6 +16,19 @@ const RestaurantLoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Handle navigation after successful login
+  useEffect(() => {
+    if (user && !authLoading) {
+      if (restaurant) {
+        // User has restaurant profile, go to dashboard
+        navigate('/dashboard', { replace: true });
+      } else {
+        // User exists but no restaurant profile, go to onboarding
+        navigate('/onboarding', { replace: true });
+      }
+    }
+  }, [user, restaurant, authLoading, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -48,9 +61,7 @@ const RestaurantLoginPage: React.FC = () => {
     
     try {
       await signIn(formData.email, formData.password);
-      // Navigation will be handled by auth state change in AuthContext
-      // User will be redirected to dashboard if they have a restaurant profile
-      // or to onboarding if they don't
+      // Navigation will be handled by useEffect above
       
     } catch (error: any) {
       console.error('Login error:', error);
@@ -66,6 +77,11 @@ const RestaurantLoginPage: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // Don't render if user is already logged in
+  if (user && !authLoading) {
+    return null; // Let useEffect handle navigation
+  }
 
   return (
     <div className="min-h-screen bg-wtm-bg py-16 px-6">
@@ -109,6 +125,7 @@ const RestaurantLoginPage: React.FC = () => {
                 className="w-full px-5 py-4 border border-gray-200 rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg"
                 placeholder="your.email@restaurant.com"
                 disabled={isLoading}
+                autoComplete="email"
               />
             </div>
 
@@ -127,6 +144,7 @@ const RestaurantLoginPage: React.FC = () => {
                   className="w-full px-5 py-4 pr-14 border border-gray-200 rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg"
                   placeholder="••••••••"
                   disabled={isLoading}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"

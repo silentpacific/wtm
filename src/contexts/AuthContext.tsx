@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - Complete auth context for onboarding flow
+// src/contexts/AuthContext.tsx - Fixed auth context
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
@@ -64,12 +64,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  const getRestaurantProfile = async (userId: string): Promise<Restaurant | null> => {
+  const getRestaurantProfile = async (authUserId: string): Promise<Restaurant | null> => {
     try {
+      // FIX: Query by auth_user_id, not id
       const { data, error } = await supabase
         .from('user_restaurant_profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('auth_user_id', authUserId) // Changed from 'id' to 'auth_user_id'
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
@@ -102,6 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(session.user);
           setSession(session);
           
+          // Use auth_user_id for restaurant profile lookup
           const restaurantProfile = await getRestaurantProfile(session.user.id);
           if (isMounted) {
             setRestaurant(restaurantProfile);
@@ -154,6 +156,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthLoading(true);
     
     try {
+      // Step 1: Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -170,6 +173,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (!authData.user) {
         throw new Error('Failed to create user account');
+      }
+
+      // Step 2: Create restaurant profile if signup data provided
+      if (data.restaurantName) {
+        // Wait for auth to be established
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const { data: restaurantData, error: restaurantError } = await supabase
+          .from('user_restaurant_profiles')
+          .insert([
+            {
+              auth_user_id: authData.user.id,
+              restaurant_name: data.restaurantName,
+              owner_name: data.ownerName,
+              cuisine_type: data.cuisineType,
+              phone: data.phone,
+              address: data.address,
+              city: data.city,
+              email: data.email
+            }
+          ])
+          .select()
+          .single();
+
+        if (restaurantError) {
+          console.error('Restaurant creation error:', restaurantError);
+          // Don't throw here - user account exists, they can complete profile later
+        }
       }
       
     } catch (error: any) {
@@ -192,6 +223,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) {
         throw new Error(error.message);
       }
+
+      // Auth state change will handle setting user/restaurant via useEffect
       
     } catch (error: any) {
       console.error('SignIn error:', error);
@@ -201,8 +234,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signOut = async (): Promise<void> => {
-    setAuthLoading(true);
-    
     try {
       const { error } = await supabase.auth.signOut();
       
@@ -210,9 +241,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error(error.message);
       }
       
+      // Clear state immediately 
+      setUser(null);
+      setRestaurant(null);
+      setSession(null);
+      
     } catch (error: any) {
       console.error('SignOut error:', error);
-      setAuthLoading(false);
       throw error;
     }
   };
