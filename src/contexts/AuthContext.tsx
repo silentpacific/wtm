@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - Fixed auth context
+// src/contexts/AuthContext.tsx - Fixed loading state issue
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
@@ -66,11 +66,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const getRestaurantProfile = async (authUserId: string): Promise<Restaurant | null> => {
     try {
-      // FIX: Query by auth_user_id, not id
+      console.log('Fetching restaurant profile for user:', authUserId);
+      
       const { data, error } = await supabase
         .from('user_restaurant_profiles')
         .select('*')
-        .eq('auth_user_id', authUserId) // Changed from 'id' to 'auth_user_id'
+        .eq('auth_user_id', authUserId)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
@@ -78,6 +79,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
 
+      console.log('Restaurant profile result:', data);
       return data || null;
     } catch (error) {
       console.error('Error in getRestaurantProfile:', error);
@@ -90,20 +92,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error getting session:', error);
+          if (isMounted) setAuthLoading(false);
           return;
         }
+
+        console.log('Session result:', !!session?.user);
 
         if (!isMounted) return;
 
         if (session?.user) {
+          console.log('Setting user from session');
           setUser(session.user);
           setSession(session);
           
-          // Use auth_user_id for restaurant profile lookup
+          // Fetch restaurant profile
           const restaurantProfile = await getRestaurantProfile(session.user.id);
           if (isMounted) {
             setRestaurant(restaurantProfile);
@@ -113,6 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Error initializing auth:', error);
       } finally {
         if (isMounted) {
+          console.log('Setting authLoading to false');
           setAuthLoading(false);
         }
       }
@@ -126,23 +134,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         console.log('Auth state changed:', event, session?.user?.id);
 
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          setUser(session?.user || null);
-          setSession(session);
-          
-          if (session?.user) {
-            const restaurantProfile = await getRestaurantProfile(session.user.id);
-            if (isMounted) {
-              setRestaurant(restaurantProfile);
+        // CRITICAL FIX: Always set loading to false after handling auth change
+        try {
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            setUser(session?.user || null);
+            setSession(session);
+            
+            if (session?.user) {
+              const restaurantProfile = await getRestaurantProfile(session.user.id);
+              if (isMounted) {
+                setRestaurant(restaurantProfile);
+              }
             }
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+            setRestaurant(null);
+            setSession(null);
           }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setRestaurant(null);
-          setSession(null);
+        } catch (error) {
+          console.error('Error handling auth state change:', error);
+        } finally {
+          // ALWAYS set loading to false after processing auth change
+          if (isMounted) {
+            console.log('Auth state change processed, setting authLoading to false');
+            setAuthLoading(false);
+          }
         }
-
-        setAuthLoading(false);
       }
     );
 
@@ -156,6 +173,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthLoading(true);
     
     try {
+      console.log('Starting signup process');
+      
       // Step 1: Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -174,6 +193,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!authData.user) {
         throw new Error('Failed to create user account');
       }
+
+      console.log('Auth user created, creating restaurant profile');
 
       // Step 2: Create restaurant profile if signup data provided
       if (data.restaurantName) {
@@ -200,6 +221,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (restaurantError) {
           console.error('Restaurant creation error:', restaurantError);
           // Don't throw here - user account exists, they can complete profile later
+        } else {
+          console.log('Restaurant profile created');
         }
       }
       
@@ -207,7 +230,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('SignUp error:', error);
       throw error;
     } finally {
-      setAuthLoading(false);
+      // Don't set loading to false here - let the auth state change handler do it
     }
   };
 
@@ -215,6 +238,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthLoading(true);
     
     try {
+      console.log('Starting signin process');
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -224,11 +249,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error(error.message);
       }
 
-      // Auth state change will handle setting user/restaurant via useEffect
+      console.log('Signin successful, auth state change will handle the rest');
+      // Don't set loading to false here - let the auth state change handler do it
       
     } catch (error: any) {
       console.error('SignIn error:', error);
-      setAuthLoading(false);
+      setAuthLoading(false); // Only set to false on error
       throw error;
     }
   };
@@ -273,6 +299,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signOut,
     refreshAuth
   };
+
+  console.log('AuthContext render - user:', !!user, 'authLoading:', authLoading);
 
   return (
     <AuthContext.Provider value={value}>
