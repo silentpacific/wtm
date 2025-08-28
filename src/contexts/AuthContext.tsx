@@ -189,7 +189,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 	  }
 
 	  // ✅ Use userId here instead of authData.user.id
-	  if (data.restaurantName && userId) {
+	  if (userId) {
 		const profile = {
 		  id: userId,                // required PK
 		  auth_user_id: userId,      // foreign key
