@@ -168,11 +168,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 	  const { data: authData, error: authError } = await supabase.auth.signUp({
 		email: data.email,
 		password: data.password,
-		options: {
-		  data: {
-			full_name: data.ownerName
-		  }
-		}
 	  });
 
 	  if (authError) {
