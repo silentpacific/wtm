@@ -1,119 +1,171 @@
-// src/App.tsx - Updated with public menu route
+// src/App.tsx - Complete routing with onboarding wizard
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Header';
 
-// Existing pages
+// Import pages
 import RestaurantLandingPage from './pages/RestaurantLandingPage';
+import RestaurantOnboardingWizard from './components/RestaurantOnboardingWizard';
+import RestaurantLoginPage from './pages/RestaurantLoginPage';
 import ConsumersPage from './pages/ConsumersPage';
+import ContactPage from './pages/ContactPage';
+import FAQPage from './pages/FAQPage';
 import DemosPage from './pages/DemosPage';
+
+// Dashboard pages
+import DashboardPage from './pages/DashboardPage';
+import ProfilePage from './pages/ProfilePage';
+import QRCodesPage from './pages/QRCodesPage';
+import MenuEditorPage from './pages/MenuEditorPage';
+import BillingPage from './pages/BillingPage';
+
+// Sample menu pages
 import SampleMenu1 from './pages/SampleMenu1';
 import SampleMenu2 from './pages/SampleMenu2';
 import SampleMenu3 from './pages/SampleMenu3';
 import SampleMenu4 from './pages/SampleMenu4';
-
-// Auth pages
-import RestaurantSignupPage from './pages/RestaurantSignupPage';
-import RestaurantLoginPage from './pages/RestaurantLoginPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-
-// Dashboard pages
-import DashboardPage from './pages/DashboardPage';
-import MenuEditorPage from './pages/MenuEditorPage';
-import QRCodesPage from './pages/QRCodesPage';
-import ProfilePage from './pages/ProfilePage';
-import BillingPage from './pages/BillingPage';
-
-// Support pages
-import ContactPage from './pages/ContactPage';
-import FAQPage from './pages/FAQPage';
-
-// Public menu page
 import PublicMenuPage from './pages/PublicMenuPage';
+
+// Protected route wrapper
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { user, restaurant, authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // If user exists but no restaurant profile, redirect to onboarding
+  if (!restaurant) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Onboarding route wrapper - only accessible if user exists but no restaurant profile
+const OnboardingRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { user, restaurant, authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // If restaurant profile already exists, redirect to dashboard
+  if (restaurant) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Layout wrapper for pages that need header
+interface LayoutProps {
+  children: React.ReactNode;
+  showHeader?: boolean;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children, showHeader = true }) => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {showHeader && <Header />}
+      <main>{children}</main>
+    </div>
+  );
+};
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-      <div className="min-h-screen bg-white">
-        <Header />
-        
-        <main>
-          <Routes>
-            {/* Homepage - Restaurant marketing */}
-            <Route path="/" element={<RestaurantLandingPage />} />
-            
-            {/* Hidden consumer page - URL discovery only */}
-            <Route path="/consumers" element={<ConsumersPage />} />
-            
-            {/* Demo system routes */}
-            <Route path="/demos" element={<DemosPage />} />
-            <Route path="/demos/sample-menu-1" element={<SampleMenu1 />} />
-            <Route path="/demos/sample-menu-2" element={<SampleMenu2 />} />
-            <Route path="/demos/sample-menu-3" element={<SampleMenu3 />} />
-            <Route path="/demos/sample-menu-4" element={<SampleMenu4 />} />
-            
-            {/* Public Menu Routes - IMPORTANT: Place before wildcard */}
-            <Route path="/r/:restaurantSlug" element={<PublicMenuPage />} />
-            
-            {/* Authentication routes */}
-            <Route path="/signup" element={<RestaurantSignupPage />} />
-            <Route path="/login" element={<RestaurantLoginPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            
-            {/* Dashboard */}
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/dashboard/menu-editor" element={<MenuEditorPage />} />
-            <Route path="/dashboard/qr-codes" element={<QRCodesPage />} />
-            <Route path="/dashboard/profile" element={<ProfilePage />} />
-            <Route path="/dashboard/billing" element={<BillingPage />} />
-            
-            {/* Support pages */}
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/faq" element={<FAQPage />} />
-            
-            <Route path="/terms" element={
-              <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">Terms of Service</h1>
-                <p className="text-gray-600">Terms of service coming soon</p>
-              </div>
-            } />
-            
-            <Route path="/privacy" element={
-              <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">Privacy Policy</h1>
-                <p className="text-gray-600">Privacy policy coming soon</p>
-              </div>
-            } />
-            
-            <Route path="/help" element={
-              <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">Help Center</h1>
-                <p className="text-gray-600">Help documentation coming soon</p>
-              </div>
-            } />
-            
-            {/* 404 - Redirect to homepage */}
-            <Route path="*" element={
-              <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">Page Not Found</h1>
-                <p className="text-gray-600">This page doesn't exist yet.</p>
-                <a href="/" className="text-coral-600 hover:text-coral-700 font-semibold">
-                  Return to Homepage
-                </a>
-              </div>
-            } />
-          </Routes>
-        </main>
-        
-        <footer className="bg-gray-50 py-8 border-t">
-          <div className="max-w-4xl mx-auto px-4 text-center text-gray-600">
-            <p>&copy; 2025 WhatTheMenu - Making restaurants accessible to everyone</p>
-          </div>
-        </footer>
-      </div>
-    </Router>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Layout><RestaurantLandingPage /></Layout>} />
+          <Route path="/restaurants" element={<Layout><RestaurantLandingPage /></Layout>} />
+          <Route path="/consumers" element={<Layout><ConsumersPage /></Layout>} />
+          <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
+          <Route path="/faq" element={<Layout><FAQPage /></Layout>} />
+          <Route path="/demos" element={<Layout><DemosPage /></Layout>} />
+
+          {/* Auth routes */}
+          <Route path="/signup" element={<Layout showHeader={false}><RestaurantOnboardingWizard /></Layout>} />
+          <Route path="/login" element={<Layout showHeader={false}><RestaurantLoginPage /></Layout>} />
+          
+          {/* Onboarding route - only accessible if user exists but no restaurant profile */}
+          <Route path="/onboarding" element={
+            <OnboardingRoute>
+              <Layout showHeader={false}>
+                <RestaurantOnboardingWizard />
+              </Layout>
+            </OnboardingRoute>
+          } />
+
+          {/* Protected dashboard routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/profile" element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/qr-codes" element={
+            <ProtectedRoute>
+              <QRCodesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/menu-editor" element={
+            <ProtectedRoute>
+              <MenuEditorPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/billing" element={
+            <ProtectedRoute>
+              <BillingPage />
+            </ProtectedRoute>
+          } />
+
+          {/* Public menu routes */}
+          <Route path="/demos/sample-menu-1" element={<Layout><SampleMenu1 /></Layout>} />
+          <Route path="/demos/sample-menu-2" element={<Layout><SampleMenu2 /></Layout>} />
+          <Route path="/demos/sample-menu-3" element={<Layout><SampleMenu3 /></Layout>} />
+          <Route path="/demos/sample-menu-4" element={<Layout><SampleMenu4 /></Layout>} />
+          
+          {/* Dynamic restaurant menu route */}
+          <Route path="/r/:slug" element={<Layout><PublicMenuPage /></Layout>} />
+
+          {/* Catch-all redirect */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
     </AuthProvider>
   );
 };

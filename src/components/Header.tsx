@@ -1,4 +1,4 @@
-// src/components/Header.tsx - Updated for minimalist design system
+// src/components/Header.tsx - Updated for new auth structure
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, User, LogOut } from 'lucide-react';
@@ -29,8 +29,8 @@ const Header: React.FC = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <span className="text-3xl font-bold text-wtm-text tracking-tight">
-              WhatThe<span className="text-wtm-primary">Menu</span>
+            <span className="text-3xl font-bold text-gray-900 tracking-tight">
+              WhatThe<span className="text-orange-500">Menu</span>
             </span>
           </Link>
 
@@ -38,8 +38,8 @@ const Header: React.FC = () => {
           <nav className="hidden md:flex items-center space-x-12">
             <Link
               to="/demos"
-              className={`font-medium text-lg transition-colors hover:text-wtm-primary ${
-                isActive('/demos') ? 'text-wtm-primary' : 'text-wtm-muted'
+              className={`font-medium text-lg transition-colors hover:text-orange-500 ${
+                isActive('/demos') ? 'text-orange-500' : 'text-gray-600'
               }`}
             >
               Demo Menus
@@ -47,8 +47,8 @@ const Header: React.FC = () => {
             
             <Link
               to="/contact"
-              className={`font-medium text-lg transition-colors hover:text-wtm-primary ${
-                isActive('/contact') ? 'text-wtm-primary' : 'text-wtm-muted'
+              className={`font-medium text-lg transition-colors hover:text-orange-500 ${
+                isActive('/contact') ? 'text-orange-500' : 'text-gray-600'
               }`}
             >
               Contact
@@ -56,8 +56,8 @@ const Header: React.FC = () => {
             
             <Link
               to="/faq"
-              className={`font-medium text-lg transition-colors hover:text-wtm-primary ${
-                isActive('/faq') ? 'text-wtm-primary' : 'text-wtm-muted'
+              className={`font-medium text-lg transition-colors hover:text-orange-500 ${
+                isActive('/faq') ? 'text-orange-500' : 'text-gray-600'
               }`}
             >
               FAQ
@@ -66,28 +66,32 @@ const Header: React.FC = () => {
             {/* Auth buttons or Profile */}
             <div className="flex items-center space-x-6">
               {user ? (
-                // Logged in - show profile menu
                 <div className="relative">
                   <button
                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                    className="flex items-center space-x-3 p-3 rounded-2xl transition-colors hover:bg-wtm-bg"
+                    className="flex items-center space-x-3 p-3 rounded-2xl transition-colors hover:bg-gray-50"
                   >
-                    <div className="w-10 h-10 rounded-full bg-wtm-primary/10 flex items-center justify-center">
-                      <span className="font-semibold text-wtm-primary">
+                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                      <span className="font-semibold text-orange-600">
                         {restaurant?.owner_name?.charAt(0) || user.email?.charAt(0) || 'U'}
                       </span>
                     </div>
-                    <span className="hidden sm:block font-medium text-wtm-text">
+                    <span className="hidden sm:block font-medium text-gray-900">
                       {restaurant?.owner_name || user.email}
                     </span>
                   </button>
 
-                  {/* Profile dropdown */}
                   {isProfileMenuOpen && (
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900">
+                          {restaurant?.restaurant_name || 'Restaurant'}
+                        </p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                      </div>
                       <Link
                         to="/dashboard"
-                        className="flex items-center px-4 py-3 text-wtm-text hover:bg-wtm-bg transition-colors"
+                        className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
                         onClick={() => setIsProfileMenuOpen(false)}
                       >
                         <User size={18} className="mr-3" />
@@ -105,19 +109,18 @@ const Header: React.FC = () => {
                   )}
                 </div>
               ) : (
-                // Not logged in - show auth buttons
                 <>
                   <Link
                     to="/login"
-                    className={`font-medium text-lg transition-colors hover:text-wtm-primary ${
-                      isActive('/login') ? 'text-wtm-primary' : 'text-wtm-muted'
+                    className={`font-medium text-lg transition-colors hover:text-orange-500 ${
+                      isActive('/login') ? 'text-orange-500' : 'text-gray-600'
                     }`}
                   >
                     Login
                   </Link>
                   <Link
                     to="/signup"
-                    className="bg-wtm-primary text-white font-semibold px-8 py-3 rounded-2xl hover:bg-wtm-primary-600 hover:scale-[1.02] transition-all duration-200 shadow-md"
+                    className="bg-orange-500 text-white font-semibold px-8 py-3 rounded-2xl hover:bg-orange-600 hover:scale-[1.02] transition-all duration-200 shadow-md"
                   >
                     Start Free Trial
                   </Link>
@@ -129,7 +132,7 @@ const Header: React.FC = () => {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 text-wtm-muted hover:text-wtm-primary transition-colors"
+            className="md:hidden p-2 text-gray-600 hover:text-orange-500 transition-colors"
           >
             {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
@@ -142,8 +145,8 @@ const Header: React.FC = () => {
               <Link
                 to="/demos"
                 onClick={() => setIsMenuOpen(false)}
-                className={`font-medium text-lg py-2 transition-colors hover:text-wtm-primary ${
-                  isActive('/demos') ? 'text-wtm-primary' : 'text-wtm-muted'
+                className={`font-medium text-lg py-2 transition-colors hover:text-orange-500 ${
+                  isActive('/demos') ? 'text-orange-500' : 'text-gray-600'
                 }`}
               >
                 Demo Menus
@@ -152,8 +155,8 @@ const Header: React.FC = () => {
               <Link
                 to="/contact"
                 onClick={() => setIsMenuOpen(false)}
-                className={`font-medium text-lg py-2 transition-colors hover:text-wtm-primary ${
-                  isActive('/contact') ? 'text-wtm-primary' : 'text-wtm-muted'
+                className={`font-medium text-lg py-2 transition-colors hover:text-orange-500 ${
+                  isActive('/contact') ? 'text-orange-500' : 'text-gray-600'
                 }`}
               >
                 Contact
@@ -162,8 +165,8 @@ const Header: React.FC = () => {
               <Link
                 to="/faq"
                 onClick={() => setIsMenuOpen(false)}
-                className={`font-medium text-lg py-2 transition-colors hover:text-wtm-primary ${
-                  isActive('/faq') ? 'text-wtm-primary' : 'text-wtm-muted'
+                className={`font-medium text-lg py-2 transition-colors hover:text-orange-500 ${
+                  isActive('/faq') ? 'text-orange-500' : 'text-gray-600'
                 }`}
               >
                 FAQ
@@ -171,12 +174,17 @@ const Header: React.FC = () => {
 
               <div className="pt-4 border-t border-gray-100 space-y-4">
                 {user ? (
-                  // Logged in mobile menu
                   <>
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-900">
+                        {restaurant?.restaurant_name || 'Restaurant'}
+                      </p>
+                      <p className="text-sm text-gray-500">{user.email}</p>
+                    </div>
                     <Link
                       to="/dashboard"
                       onClick={() => setIsMenuOpen(false)}
-                      className="block font-medium text-lg py-2 text-wtm-muted hover:text-wtm-primary transition-colors"
+                      className="block font-medium text-lg py-2 text-gray-600 hover:text-orange-500 transition-colors"
                     >
                       Dashboard
                     </Link>
@@ -191,19 +199,18 @@ const Header: React.FC = () => {
                     </button>
                   </>
                 ) : (
-                  // Not logged in mobile menu
                   <>
                     <Link
                       to="/login"
                       onClick={() => setIsMenuOpen(false)}
-                      className="block font-medium text-lg py-2 text-wtm-muted hover:text-wtm-primary transition-colors"
+                      className="block font-medium text-lg py-2 text-gray-600 hover:text-orange-500 transition-colors"
                     >
                       Login
                     </Link>
                     <Link
                       to="/signup"
                       onClick={() => setIsMenuOpen(false)}
-                      className="block bg-wtm-primary text-white font-semibold px-8 py-4 rounded-2xl text-center hover:bg-wtm-primary-600 transition-colors"
+                      className="block bg-orange-500 text-white font-semibold px-8 py-4 rounded-2xl text-center hover:bg-orange-600 transition-colors"
                     >
                       Start Free Trial
                     </Link>

@@ -1,4 +1,4 @@
-// src/pages/ProfilePage.tsx - Updated with account section and new design system
+// src/pages/ProfilePage.tsx - Updated for new auth structure and design system
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,11 +6,9 @@ import { supabase } from '../services/supabaseClient';
 
 interface UserRestaurantProfile {
   id: string;
-  // User fields
+  auth_user_id: string;
   full_name: string | null;
-  subscription_type: string;
   email: string | null;
-  // Restaurant fields
   restaurant_name: string | null;
   cuisine_type: string | null;
   owner_name: string | null;
@@ -19,10 +17,12 @@ interface UserRestaurantProfile {
   city: string | null;
   state: string | null;
   country: string | null;
+  url_slug: string | null;
+  subscription_type: string;
 }
 
 const ProfilePage: React.FC = () => {
-  const { user, authLoading } = useAuth();
+  const { user, restaurant, authLoading, refreshAuth } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,50 +37,59 @@ const ProfilePage: React.FC = () => {
       return;
     }
 
-    const fetchProfileData = async () => {
-      setLoading(true);
+    if (restaurant) {
+      setProfile(restaurant);
+      setLoading(false);
+    } else {
+      fetchProfileData();
+    }
+  }, [user, restaurant, authLoading]);
 
-      try {
-        const { data: profileData, error } = await supabase
-          .from('user_restaurant_profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
+  const fetchProfileData = async () => {
+    if (!user) return;
+    setLoading(true);
 
-        if (error) {
-          throw new Error(`Failed to load profile: ${error.message}`);
-        }
+    try {
+      const { data: profileData, error } = await supabase
+        .from('user_restaurant_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
 
-        // If no profile exists, create a default one
-        if (!profileData) {
-          setProfile({
-            id: user.id,
-            full_name: null,
-            subscription_type: 'free',
-            email: user.email || null,
-            restaurant_name: null,
-            cuisine_type: null,
-            owner_name: null,
-            phone: null,
-            address: null,
-            city: null,
-            state: null,
-            country: null,
-          });
-        } else {
-          setProfile(profileData);
-        }
-        
-      } catch (err: any) {
-        console.error('Profile fetch error:', err);
-        setMessage({ type: 'error', text: err.message || 'Failed to load profile data' });
-      } finally {
-        setLoading(false);
+      if (error) {
+        throw new Error(`Failed to load profile: ${error.message}`);
       }
-    };
 
-    fetchProfileData();
-  }, [user, authLoading]);
+      if (!profileData) {
+        // Create default profile if none exists
+        const defaultProfile: UserRestaurantProfile = {
+          id: user.id,
+          auth_user_id: user.id,
+          full_name: null,
+          email: user.email || null,
+          restaurant_name: null,
+          cuisine_type: null,
+          owner_name: null,
+          phone: null,
+          address: null,
+          city: null,
+          state: null,
+          country: null,
+          url_slug: null,
+          subscription_type: 'free'
+        };
+        setProfile(defaultProfile);
+      } else {
+        setProfile(profileData);
+      }
+      
+    } catch (err: any) {
+      console.error('Profile fetch error:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to load profile data' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user || !profile) return;
@@ -92,8 +101,8 @@ const ProfilePage: React.FC = () => {
         .from('user_restaurant_profiles')
         .upsert({
           id: user.id,
+          auth_user_id: user.id,
           full_name: profile.full_name?.trim() || null,
-          subscription_type: profile.subscription_type || 'free',
           email: profile.email || user.email || null,
           restaurant_name: profile.restaurant_name?.trim() || null,
           cuisine_type: profile.cuisine_type?.trim() || null,
@@ -103,6 +112,8 @@ const ProfilePage: React.FC = () => {
           city: profile.city?.trim() || null,
           state: profile.state?.trim() || null,
           country: profile.country?.trim() || null,
+          url_slug: profile.url_slug,
+          subscription_type: profile.subscription_type || 'free'
         }, {
           onConflict: 'id'
         });
@@ -112,6 +123,9 @@ const ProfilePage: React.FC = () => {
       }
 
       setMessage({ type: 'success', text: 'Profile saved successfully!' });
+      
+      // Refresh auth context to update restaurant data
+      await refreshAuth();
       
     } catch (err: any) {
       console.error('Save error:', err);
@@ -166,7 +180,7 @@ const ProfilePage: React.FC = () => {
   if (authLoading) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12" style={{ color: 'var(--wtm-muted)' }}>
+        <div className="text-center py-12 text-gray-500">
           Loading authentication...
         </div>
       </DashboardLayout>
@@ -176,7 +190,7 @@ const ProfilePage: React.FC = () => {
   if (!user) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12" style={{ color: '#B91C1C' }}>
+        <div className="text-center py-12 text-red-600">
           Please log in to view your profile.
         </div>
       </DashboardLayout>
@@ -186,7 +200,7 @@ const ProfilePage: React.FC = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12" style={{ color: 'var(--wtm-muted)' }}>
+        <div className="text-center py-12 text-gray-500">
           Loading your profile...
         </div>
       </DashboardLayout>
@@ -196,7 +210,7 @@ const ProfilePage: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--wtm-text)' }}>
+        <h1 className="text-2xl font-bold mb-6 text-gray-900">
           Profile Settings
         </h1>
 
@@ -214,32 +228,28 @@ const ProfilePage: React.FC = () => {
 
         <div className="space-y-8">
           {/* Account Section */}
-          <div className="card p-6">
-            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--wtm-text)' }}>
+          <div className="bg-white rounded-2xl border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold mb-4 text-gray-900">
               Account
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
+                <label className="block text-sm font-medium mb-2 text-gray-900">
                   Email Address
                 </label>
                 <input
                   type="email"
                   value={profile?.email || user?.email || ''}
                   disabled
-                  className="input-field cursor-not-allowed"
-                  style={{ 
-                    backgroundColor: 'var(--wtm-bg)',
-                    color: 'var(--wtm-muted)'
-                  }}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed"
                 />
-                <p className="mt-1 text-xs" style={{ color: 'var(--wtm-muted)' }}>
+                <p className="mt-1 text-xs text-gray-500">
                   Contact support to change your email address
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
+                <label className="block text-sm font-medium mb-2 text-gray-900">
                   Change Password
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -248,23 +258,23 @@ const ProfilePage: React.FC = () => {
                     placeholder="New password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="input-field"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                   />
                   <input
                     type="password"
                     placeholder="Confirm new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="input-field"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                   />
                 </div>
                 <button
                   onClick={handlePasswordChange}
                   disabled={changingPassword || !newPassword || !confirmPassword}
-                  className={`btn mt-2 ${
+                  className={`mt-2 px-4 py-2 rounded-xl font-medium transition-colors ${
                     changingPassword || !newPassword || !confirmPassword 
-                      ? 'btn-secondary opacity-50 cursor-not-allowed' 
-                      : 'btn-secondary'
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   {changingPassword ? 'Changing Password...' : 'Change Password'}
@@ -274,13 +284,13 @@ const ProfilePage: React.FC = () => {
           </div>
 
           {/* Restaurant Profile Section */}
-          <div className="card p-6">
-            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--wtm-text)' }}>
+          <div className="bg-white rounded-2xl border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold mb-4 text-gray-900">
               Restaurant Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
+                <label className="block text-sm font-medium mb-2 text-gray-900">
                   Restaurant Name
                 </label>
                 <input
@@ -288,12 +298,12 @@ const ProfilePage: React.FC = () => {
                   value={profile?.restaurant_name || ''}
                   onChange={(e) => setProfile(prev => prev ? { ...prev, restaurant_name: e.target.value } : null)}
                   placeholder="Enter restaurant name"
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
+                <label className="block text-sm font-medium mb-2 text-gray-900">
                   Cuisine Type
                 </label>
                 <input
@@ -301,12 +311,12 @@ const ProfilePage: React.FC = () => {
                   value={profile?.cuisine_type || ''}
                   onChange={(e) => setProfile(prev => prev ? { ...prev, cuisine_type: e.target.value } : null)}
                   placeholder="e.g., Italian, Asian, American"
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
+                <label className="block text-sm font-medium mb-2 text-gray-900">
                   Owner Name
                 </label>
                 <input
@@ -314,25 +324,25 @@ const ProfilePage: React.FC = () => {
                   value={profile?.owner_name || ''}
                   onChange={(e) => setProfile(prev => prev ? { ...prev, owner_name: e.target.value } : null)}
                   placeholder="Restaurant owner name"
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
+                <label className="block text-sm font-medium mb-2 text-gray-900">
                   Phone
                 </label>
                 <input
                   type="tel"
                   value={profile?.phone || ''}
                   onChange={(e) => setProfile(prev => prev ? { ...prev, phone: e.target.value } : null)}
-                  placeholder="+1 (555) 123-4567"
-                  className="input-field"
+                  placeholder="+61 8 1234 5678"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 />
               </div>
               
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
+                <label className="block text-sm font-medium mb-2 text-gray-900">
                   Address
                 </label>
                 <input
@@ -340,12 +350,12 @@ const ProfilePage: React.FC = () => {
                   value={profile?.address || ''}
                   onChange={(e) => setProfile(prev => prev ? { ...prev, address: e.target.value } : null)}
                   placeholder="Street address"
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
+                <label className="block text-sm font-medium mb-2 text-gray-900">
                   City
                 </label>
                 <input
@@ -353,12 +363,12 @@ const ProfilePage: React.FC = () => {
                   value={profile?.city || ''}
                   onChange={(e) => setProfile(prev => prev ? { ...prev, city: e.target.value } : null)}
                   placeholder="City"
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
+                <label className="block text-sm font-medium mb-2 text-gray-900">
                   State/Province
                 </label>
                 <input
@@ -366,18 +376,18 @@ const ProfilePage: React.FC = () => {
                   value={profile?.state || ''}
                   onChange={(e) => setProfile(prev => prev ? { ...prev, state: e.target.value } : null)}
                   placeholder="State or Province"
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
+                <label className="block text-sm font-medium mb-2 text-gray-900">
                   Country
                 </label>
                 <select
                   value={profile?.country || ''}
                   onChange={(e) => setProfile(prev => prev ? { ...prev, country: e.target.value } : null)}
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
                 >
                   <option value="">Select a country</option>
                   <option value="Australia">Australia</option>
@@ -392,6 +402,21 @@ const ProfilePage: React.FC = () => {
                   <option value="Other">Other</option>
                 </select>
               </div>
+
+              {/* URL Slug Display (Read-only) */}
+              {profile?.url_slug && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-2 text-gray-900">
+                    Restaurant URL
+                  </label>
+                  <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-600 font-mono text-sm">
+                    whatthemenu.com/r/{profile.url_slug}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    This URL cannot be changed and is used for your QR codes
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -401,10 +426,10 @@ const ProfilePage: React.FC = () => {
           <button
             onClick={handleSave}
             disabled={saving || !profile}
-            className={`btn px-8 py-3 ${
+            className={`px-8 py-3 rounded-xl font-semibold transition-colors ${
               saving 
-                ? 'btn-secondary opacity-50 cursor-not-allowed' 
-                : 'btn-primary'
+                ? 'bg-gray-400 cursor-not-allowed text-white' 
+                : 'bg-orange-500 text-white hover:bg-orange-600'
             }`}
           >
             {saving ? (
