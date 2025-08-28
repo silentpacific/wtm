@@ -1,4 +1,4 @@
-// src/App.tsx - Fixed routing with corrected onboarding
+// src/App.tsx - Simplified for debugging routing issues
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -6,7 +6,7 @@ import Header from './components/Header';
 
 // Import pages
 import RestaurantLandingPage from './pages/RestaurantLandingPage';
-import RestaurantSignupPage from './pages/RestaurantSignupPage'; // Fixed import
+import RestaurantSignupPage from './pages/RestaurantSignupPage';
 import RestaurantLoginPage from './pages/RestaurantLoginPage';
 import ConsumersPage from './pages/ConsumersPage';
 import ContactPage from './pages/ContactPage';
@@ -27,49 +27,96 @@ import SampleMenu3 from './pages/SampleMenu3';
 import SampleMenu4 from './pages/SampleMenu4';
 import PublicMenuPage from './pages/PublicMenuPage';
 
-// Protected route wrapper
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
+// Simple loading component
+const LoadingPage: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center bg-white">
+    <div className="text-center">
+      <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+      <p className="text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, restaurant, authLoading } = useAuth();
+// Protected route wrapper - SIMPLIFIED
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, authLoading } = useAuth();
+
+  console.log('ProtectedRoute - user:', !!user, 'authLoading:', authLoading);
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (!user) {
+    console.log('No user, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
-  // If user exists but no restaurant profile, redirect to dashboard
-  // Dashboard will handle showing onboarding/setup flow
-  if (!restaurant) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
+  console.log('User authenticated, showing protected content');
   return <>{children}</>;
 };
 
-// Layout wrapper for pages that need header
-interface LayoutProps {
-  children: React.ReactNode;
-  showHeader?: boolean;
-}
-
-const Layout: React.FC<LayoutProps> = ({ children, showHeader = true }) => {
+// Layout wrapper
+const Layout: React.FC<{ children: React.ReactNode; showHeader?: boolean }> = ({ 
+  children, 
+  showHeader = true 
+}) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {showHeader && <Header />}
       <main>{children}</main>
+    </div>
+  );
+};
+
+// Simple dashboard component for testing
+const SimpleDashboard: React.FC = () => {
+  const { user, restaurant } = useAuth();
+  
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="max-w-4xl mx-auto py-12 px-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
+        
+        <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Authentication Status</h2>
+          <p className="mb-2"><strong>User ID:</strong> {user?.id || 'Not logged in'}</p>
+          <p className="mb-2"><strong>Email:</strong> {user?.email || 'N/A'}</p>
+          <p className="mb-2"><strong>Restaurant Name:</strong> {restaurant?.restaurant_name || 'No restaurant profile'}</p>
+          <p className="mb-2"><strong>Restaurant ID:</strong> {restaurant?.id || 'N/A'}</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+            <div className="space-y-3">
+              <a
+                href="/dashboard/menu-editor"
+                className="block w-full bg-orange-500 text-white text-center py-3 px-4 rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                Menu Editor
+              </a>
+              <a
+                href="/dashboard/profile"
+                className="block w-full bg-blue-500 text-white text-center py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Profile
+              </a>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <h3 className="text-lg font-semibold mb-4">Status</h3>
+            <p className="text-gray-600">
+              {restaurant 
+                ? 'Your restaurant profile is complete.' 
+                : 'Complete your restaurant profile to get started.'
+              }
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -91,32 +138,34 @@ const App: React.FC = () => {
           <Route path="/signup" element={<Layout showHeader={false}><RestaurantSignupPage /></Layout>} />
           <Route path="/login" element={<Layout showHeader={false}><RestaurantLoginPage /></Layout>} />
           
-          {/* Remove problematic onboarding route - handle this in dashboard instead */}
-
-          {/* Protected dashboard routes */}
+          {/* SIMPLIFIED Protected dashboard routes */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
-              <DashboardPage />
+              <SimpleDashboard />
             </ProtectedRoute>
           } />
+          
           <Route path="/dashboard/profile" element={
             <ProtectedRoute>
-              <ProfilePage />
+              <Layout><ProfilePage /></Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/dashboard/qr-codes" element={
             <ProtectedRoute>
-              <QRCodesPage />
+              <Layout><QRCodesPage /></Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/dashboard/menu-editor" element={
             <ProtectedRoute>
-              <MenuEditorPage />
+              <Layout><MenuEditorPage /></Layout>
             </ProtectedRoute>
           } />
+          
           <Route path="/dashboard/billing" element={
             <ProtectedRoute>
-              <BillingPage />
+              <Layout><BillingPage /></Layout>
             </ProtectedRoute>
           } />
 
