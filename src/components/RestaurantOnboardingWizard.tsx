@@ -258,32 +258,70 @@ const RestaurantOnboardingWizard: React.FC = () => {
         }
       });
 
-      if (authError) throw new Error(authError.message);
+      if (authError) {
+        if (authError.message.includes('rate limit') || authError.message.includes('429')) {
+          throw new Error('Too many signup attempts. Please wait a few minutes and try again.');
+        }
+        throw new Error(authError.message);
+      }
+      
       if (!authData.user) throw new Error('Failed to create account');
 
       setUser(authData.user);
 
-      // Create initial profile record
-      const { error: profileError } = await supabase
-        .from('user_restaurant_profiles')
-        .insert({
-          id: authData.user.id,
-          auth_user_id: authData.user.id,
-          full_name: formData.ownerName,
-          email: formData.email,
-          subscription_type: 'free'
-        });
+      // Wait for session to be established
+      let retries = 0;
+      let session = null;
+      
+      while (retries < 5 && !session) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        const { data: sessionData } = await supabase.auth.getSession();
+        session = sessionData.session;
+        retries++;
+      }
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        // Don't fail the step, just log the error - we can create it in step 2
+      if (!session) {
+        console.warn('Session not established immediately, proceeding anyway');
+      }
+
+      // Try to create initial profile record
+      try {
+        const { error: profileError } = await supabase
+          .from('user_restaurant_profiles')
+          .insert({
+            id: authData.user.id,
+            auth_user_id: authData.user.id,
+            full_name: formData.ownerName,
+            email: formData.email,
+            subscription_type: 'free'
+          });
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Don't fail - Step 2 will handle profile creation
+        }
+      } catch (profileErr) {
+        console.error('Profile creation failed, will retry in Step 2:', profileErr);
       }
 
       setCurrentStep(2);
       
     } catch (err: any) {
       console.error('Step 1 error:', err);
-      setError(err.message || 'Failed to create account');
+      
+      let errorMessage = err.message || 'Failed to create account';
+      
+      if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+        errorMessage = 'Too many signup attempts detected. Please wait 10-15 minutes before trying again, or try with a different email address.';
+      } else if (errorMessage.includes('Invalid email')) {
+        errorMessage = 'Please enter a valid email address.';
+      } else if (errorMessage.includes('Password')) {
+        errorMessage = 'Password must be at least 6 characters long.';
+      } else if (errorMessage.includes('email') && errorMessage.includes('already')) {
+        errorMessage = 'An account with this email already exists. Please use the login page instead.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -305,13 +343,20 @@ const RestaurantOnboardingWizard: React.FC = () => {
     setError('');
 
     try {
+      // Verify we have a valid session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('Session expired. Please refresh and try again.');
+      }
+
       // Check if URL slug is unique
       let finalSlug = formData.urlSlug;
       const { data: existingRestaurant } = await supabase
         .from('user_restaurant_profiles')
         .select('id')
         .eq('url_slug', finalSlug)
-        .neq('id', user.id) // Exclude current user
+        .neq('id', user.id)
         .maybeSingle();
 
       if (existingRestaurant) {
@@ -333,24 +378,61 @@ const RestaurantOnboardingWizard: React.FC = () => {
         }
       }
 
-      // Save restaurant profile progress
-      await saveProgress({
-        restaurantName: formData.restaurantName,
+      // Prepare profile data
+      const profileData = {
+        id: user.id,
+        auth_user_id: user.id,
+        full_name: formData.ownerName,
+        email: formData.email,
+        restaurant_name: formData.restaurantName,
+        cuisine_type: formData.cuisineType,
+        owner_name: formData.ownerName,
+        phone: formData.phone,
+        address: formData.address,
         city: formData.city,
         state: formData.state,
         country: formData.country,
-        phone: formData.phone,
-        address: formData.address,
-        cuisineType: formData.cuisineType,
-        urlSlug: finalSlug
-      }, 2);
+        url_slug: finalSlug,
+        subscription_type: 'free',
+        updated_at: new Date().toISOString()
+      };
+
+      // Try upsert first, then insert if needed
+      const { error: upsertError } = await supabase
+        .from('user_restaurant_profiles')
+        .upsert(profileData, {
+          onConflict: 'id'
+        });
+
+      if (upsertError) {
+        // If upsert fails, try direct insert
+        const { error: insertError } = await supabase
+          .from('user_restaurant_profiles')
+          .insert(profileData);
+          
+        if (insertError) {
+          console.error('Both upsert and insert failed:', { upsertError, insertError });
+          throw new Error(`Failed to save restaurant profile: ${insertError.message}`);
+        }
+      }
 
       setFormData(prev => ({ ...prev, urlSlug: finalSlug }));
       setCurrentStep(3);
       
     } catch (err: any) {
       console.error('Step 2 error:', err);
-      setError(err.message || 'Failed to save restaurant information');
+      
+      let errorMessage = err.message || 'Failed to save restaurant information';
+      
+      if (errorMessage.includes('Session expired') || errorMessage.includes('401')) {
+        errorMessage = 'Your session has expired. Please refresh the page and try again.';
+      } else if (errorMessage.includes('url_slug')) {
+        errorMessage = 'There was an issue generating your restaurant URL. Please try again.';
+      } else if (errorMessage.includes('row-level security')) {
+        errorMessage = 'Database permission error. Please contact support.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
