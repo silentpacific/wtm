@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - Fixed loading state issue
+// src/contexts/AuthContext.tsx - Minimal version for debugging
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
@@ -6,18 +6,13 @@ import { supabase } from '../services/supabaseClient';
 interface Restaurant {
   id: string;
   auth_user_id: string;
-  full_name: string | null;
-  email: string | null;
   restaurant_name: string | null;
-  cuisine_type: string | null;
   owner_name: string | null;
+  cuisine_type: string | null;
   phone: string | null;
   address: string | null;
   city: string | null;
-  state: string | null;
-  country: string | null;
-  url_slug: string | null;
-  subscription_type: string;
+  email: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -54,35 +49,39 @@ export const useAuth = () => {
   return context;
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   const getRestaurantProfile = async (authUserId: string): Promise<Restaurant | null> => {
+    console.log('Starting restaurant profile fetch for:', authUserId);
+    
     try {
-      console.log('Fetching restaurant profile for user:', authUserId);
-      
-      const { data, error } = await supabase
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Database query timeout')), 5000);
+      });
+
+      const queryPromise = supabase
         .from('user_restaurant_profiles')
         .select('*')
         .eq('auth_user_id', authUserId)
         .maybeSingle();
 
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+      console.log('Restaurant profile query result:', { data, error });
+
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching restaurant profile:', error);
+        console.error('Database error:', error);
         return null;
       }
 
-      console.log('Restaurant profile result:', data);
       return data || null;
     } catch (error) {
-      console.error('Error in getRestaurantProfile:', error);
+      console.error('Restaurant profile fetch failed:', error);
       return null;
     }
   };
@@ -91,36 +90,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     let isMounted = true;
 
     const initializeAuth = async () => {
+      console.log('🚀 Starting auth initialization');
+      
       try {
-        console.log('Initializing auth...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error getting session:', error);
+          console.error('❌ Session error:', error);
           if (isMounted) setAuthLoading(false);
           return;
         }
 
-        console.log('Session result:', !!session?.user);
+        console.log('📝 Session check complete. User exists:', !!session?.user);
 
         if (!isMounted) return;
 
         if (session?.user) {
-          console.log('Setting user from session');
+          console.log('👤 Setting user state');
           setUser(session.user);
           setSession(session);
           
-          // Fetch restaurant profile
+          console.log('🏢 Fetching restaurant profile...');
           const restaurantProfile = await getRestaurantProfile(session.user.id);
+          
           if (isMounted) {
+            console.log('🏢 Restaurant profile result:', !!restaurantProfile);
             setRestaurant(restaurantProfile);
           }
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('💥 Auth initialization error:', error);
       } finally {
         if (isMounted) {
-          console.log('Setting authLoading to false');
+          console.log('✅ Auth initialization complete - setting authLoading to FALSE');
           setAuthLoading(false);
         }
       }
@@ -128,35 +130,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     initializeAuth();
 
+    // Auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
 
-        console.log('Auth state changed:', event, session?.user?.id);
+        console.log('🔄 Auth state change:', event, 'User ID:', session?.user?.id);
 
-        // CRITICAL FIX: Always set loading to false after handling auth change
+        // Set loading to true when processing auth changes
+        setAuthLoading(true);
+
         try {
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            console.log('📥 Processing sign in');
             setUser(session?.user || null);
             setSession(session);
             
             if (session?.user) {
+              console.log('🏢 Fetching restaurant profile after sign in...');
               const restaurantProfile = await getRestaurantProfile(session.user.id);
               if (isMounted) {
+                console.log('🏢 Restaurant profile after sign in:', !!restaurantProfile);
                 setRestaurant(restaurantProfile);
               }
             }
           } else if (event === 'SIGNED_OUT') {
+            console.log('📤 Processing sign out');
             setUser(null);
             setRestaurant(null);
             setSession(null);
           }
         } catch (error) {
-          console.error('Error handling auth state change:', error);
+          console.error('💥 Auth state change error:', error);
         } finally {
-          // ALWAYS set loading to false after processing auth change
           if (isMounted) {
-            console.log('Auth state change processed, setting authLoading to false');
+            console.log('✅ Auth state change complete - setting authLoading to FALSE');
             setAuthLoading(false);
           }
         }
@@ -164,18 +172,65 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     return () => {
+      console.log('🧹 Cleaning up auth context');
       isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
-  const signUp = async (data: SignUpData): Promise<void> => {
+  const signIn = async (email: string, password: string): Promise<void> => {
+    console.log('🔑 Starting sign in process');
     setAuthLoading(true);
     
     try {
-      console.log('Starting signup process');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      console.log('✅ Sign in successful');
+      // Auth state change handler will manage loading state
       
-      // Step 1: Create auth user
+    } catch (error: any) {
+      console.error('❌ Sign in error:', error);
+      setAuthLoading(false);
+      throw error;
+    }
+  };
+
+  const signOut = async (): Promise<void> => {
+    console.log('🚪 Starting sign out process');
+    
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Clear state immediately 
+      setUser(null);
+      setRestaurant(null);
+      setSession(null);
+      setAuthLoading(false);
+      
+      console.log('✅ Sign out complete');
+      
+    } catch (error: any) {
+      console.error('❌ Sign out error:', error);
+      throw error;
+    }
+  };
+
+  const signUp = async (data: SignUpData): Promise<void> => {
+    console.log('📝 Starting signup process');
+    setAuthLoading(true);
+    
+    try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -194,86 +249,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error('Failed to create user account');
       }
 
-      console.log('Auth user created, creating restaurant profile');
-
-      // Step 2: Create restaurant profile if signup data provided
-      if (data.restaurantName) {
-        // Wait for auth to be established
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const { data: restaurantData, error: restaurantError } = await supabase
-          .from('user_restaurant_profiles')
-          .insert([
-            {
-              auth_user_id: authData.user.id,
-              restaurant_name: data.restaurantName,
-              owner_name: data.ownerName,
-              cuisine_type: data.cuisineType,
-              phone: data.phone,
-              address: data.address,
-              city: data.city,
-              email: data.email
-            }
-          ])
-          .select()
-          .single();
-
-        if (restaurantError) {
-          console.error('Restaurant creation error:', restaurantError);
-          // Don't throw here - user account exists, they can complete profile later
-        } else {
-          console.log('Restaurant profile created');
-        }
-      }
+      console.log('✅ User created successfully');
+      // Auth state change handler will manage the rest
       
     } catch (error: any) {
-      console.error('SignUp error:', error);
-      throw error;
-    } finally {
-      // Don't set loading to false here - let the auth state change handler do it
-    }
-  };
-
-  const signIn = async (email: string, password: string): Promise<void> => {
-    setAuthLoading(true);
-    
-    try {
-      console.log('Starting signin process');
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      console.log('Signin successful, auth state change will handle the rest');
-      // Don't set loading to false here - let the auth state change handler do it
-      
-    } catch (error: any) {
-      console.error('SignIn error:', error);
-      setAuthLoading(false); // Only set to false on error
-      throw error;
-    }
-  };
-
-  const signOut = async (): Promise<void> => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      // Clear state immediately 
-      setUser(null);
-      setRestaurant(null);
-      setSession(null);
-      
-    } catch (error: any) {
-      console.error('SignOut error:', error);
+      console.error('❌ Signup error:', error);
+      setAuthLoading(false);
       throw error;
     }
   };
@@ -300,7 +281,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     refreshAuth
   };
 
-  console.log('AuthContext render - user:', !!user, 'authLoading:', authLoading);
+  console.log('🔍 AuthContext render - user:', !!user, 'authLoading:', authLoading, 'restaurant:', !!restaurant);
 
   return (
     <AuthContext.Provider value={value}>
