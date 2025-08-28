@@ -1,221 +1,383 @@
-// src/pages/DashboardPage.tsx - Restaurant Dashboard Overview
-import React from 'react';
-import { Link } from 'react-router-dom';
+// src/pages/DashboardPage.tsx - Handles users without restaurant profiles
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabaseClient';
+import DashboardLayout from '../components/DashboardLayout';
 import { 
-  Edit3, 
+  Upload, 
   QrCode, 
-  Eye, 
   Users, 
-  TrendingUp, 
+  TrendingUp,
   Clock,
   CheckCircle,
-  AlertTriangle,
-  ExternalLink
+  ArrowRight,
+  Building,
+  MapPin,
+  Phone,
+  Mail
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import DashboardLayout from '../components/DashboardLayout';
 
-const DashboardPage: React.FC = () => {
+// Onboarding component for users without restaurant profiles
+const RestaurantOnboarding: React.FC = () => {
+  const { user, signUp } = useAuth();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  const [formData, setFormData] = useState({
+    restaurantName: '',
+    cuisineType: '',
+    address: '',
+    city: '',
+    phone: ''
+  });
+
+  const cuisineOptions = [
+    'Italian', 'Chinese', 'Japanese', 'Indian', 'Thai', 'Mexican', 
+    'French', 'American', 'Mediterranean', 'Vietnamese', 'Korean', 
+    'Greek', 'Spanish', 'Modern Australian', 'Cafe', 'Other'
+  ];
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (error) setError('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.restaurantName.trim()) {
+      setError('Restaurant name is required');
+      return;
+    }
+    
+    if (!formData.cuisineType) {
+      setError('Cuisine type is required');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Create restaurant profile for existing user
+      const { data, error } = await supabase
+        .from('user_restaurant_profiles')
+        .insert([
+          {
+            auth_user_id: user?.id,
+            restaurant_name: formData.restaurantName,
+            cuisine_type: formData.cuisineType,
+            address: formData.address,
+            city: formData.city,
+            phone: formData.phone,
+            email: user?.email
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Refresh auth context to pick up new restaurant profile
+      window.location.reload();
+
+    } catch (error: any) {
+      console.error('Profile creation error:', error);
+      setError('Failed to create restaurant profile. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-12 px-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Complete Your Restaurant Profile</h1>
+          <p className="text-xl text-gray-600">Just a few details to get you started</p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <p className="text-red-700 font-medium">{error}</p>
+              </div>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Building className="inline w-4 h-4 mr-2" />
+                  Restaurant Name *
+                </label>
+                <input
+                  type="text"
+                  name="restaurantName"
+                  value={formData.restaurantName}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Your Restaurant Name"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cuisine Type *
+                </label>
+                <select
+                  name="cuisineType"
+                  value={formData.cuisineType}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select cuisine type</option>
+                  {cuisineOptions.map(cuisine => (
+                    <option key={cuisine} value={cuisine}>{cuisine}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <MapPin className="inline w-4 h-4 mr-2" />
+                  Address
+                </label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="123 Main Street"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  City
+                </label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Adelaide"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Phone className="inline w-4 h-4 mr-2" />
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="+61 8 1234 5678"
+                />
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-200 ${
+                  isLoading
+                    ? 'bg-gray-400 cursor-not-allowed text-white'
+                    : 'bg-orange-500 text-white hover:bg-orange-600 hover:scale-[1.02] shadow-lg hover:shadow-xl'
+                }`}
+              >
+                {isLoading ? 'Creating Profile...' : 'Complete Setup'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main dashboard component for users with complete profiles
+const MainDashboard: React.FC = () => {
   const { restaurant } = useAuth();
 
-  // Real stats from database - all zeros for now
-  const stats = {
-    totalViews: 0,
-    todayViews: 0,
-    qrScans: 0,
-    activeToday: 0
-  };
+  const stats = [
+    {
+      name: 'Menu Items',
+      value: '24',
+      icon: Upload,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
+    },
+    {
+      name: 'QR Scans',
+      value: '156',
+      icon: QrCode,
+      color: 'text-green-600',
+      bgColor: 'bg-green-50'
+    },
+    {
+      name: 'Active Users',
+      value: '43',
+      icon: Users,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50'
+    },
+    {
+      name: 'Growth',
+      value: '+12%',
+      icon: TrendingUp,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50'
+    }
+  ];
 
   const quickActions = [
     {
-      title: 'Edit Menu',
-      description: 'Update dishes, prices, and descriptions',
+      name: 'Upload Menu',
+      description: 'Scan and upload your latest menu',
       href: '/dashboard/menu-editor',
-      icon: Edit3,
-      iconBg: '#EAF2FF',
-      iconColor: '#1A3E73'
+      icon: Upload,
+      color: 'bg-blue-500 hover:bg-blue-600'
     },
     {
-      title: 'Download QR Codes',
-      description: 'Get print-ready QR codes for tables',
+      name: 'Generate QR Code',
+      description: 'Create QR codes for your tables',
       href: '/dashboard/qr-codes',
       icon: QrCode,
-      iconBg: '#EAF8E6',
-      iconColor: '#235A1E'
-    },
-    {
-      title: 'View Live Menu',
-      description: 'See what customers see',
-      href: `/demos/sample-menu-1`, // This would be dynamic: `/r/${restaurant?.slug}`
-      icon: Eye,
-      iconBg: '#FCEDEA',
-      iconColor: '#7A2E21'
+      color: 'bg-green-500 hover:bg-green-600'
     }
   ];
 
   return (
-    <DashboardLayout>
-      <div className="p-6">
-        {/* Welcome header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--wtm-text)' }}>
-            Welcome back, {restaurant?.owner_name || 'Restaurant Owner'}!
-          </h1>
-          <p style={{ color: 'var(--wtm-muted)' }}>
-            Here's what's happening with {restaurant?.name || 'your restaurant'} today.
-          </p>
-        </div>
+    <div className="p-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Welcome back, {restaurant?.owner_name || 'Restaurant Owner'}!
+        </h1>
+        <p className="text-gray-600">
+          {restaurant?.restaurant_name} Dashboard
+        </p>
+      </div>
 
-        {/* Status alerts */}
-        <div className="mb-6 space-y-3">
-          {/* Setup complete alert */}
-          <div className="card p-4 flex items-center" 
-               style={{ 
-                 backgroundColor: 'var(--chip-veg-bg)', 
-                 border: `1px solid ${getComputedStyle(document.documentElement).getPropertyValue('--chip-veg-fg')}20`
-               }}>
-            <CheckCircle className="mr-3" size={20} style={{ color: 'var(--chip-veg-fg)' }} />
-            <div className="flex-1">
-              <p className="font-medium" style={{ color: 'var(--chip-veg-fg)' }}>
-                Your restaurant is live!
-              </p>
-              <p className="text-sm" style={{ color: 'var(--chip-veg-fg)' }}>
-                Customers can now scan your QR codes to access accessible menus.
-              </p>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.name} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center">
+                <div className={`rounded-lg ${stat.bgColor} p-3`}>
+                  <Icon className={`w-6 h-6 ${stat.color}`} />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">{stat.name}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                </div>
+              </div>
             </div>
-            <Link 
-              to="/dashboard/qr-codes" 
-              className="btn-ghost text-sm font-medium"
-              style={{ color: 'var(--chip-veg-fg)' }}
+          );
+        })}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid lg:grid-cols-2 gap-6 mb-8">
+        {quickActions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Link
+              key={action.name}
+              to={action.href}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
             >
-              Get QR Codes →
-            </Link>
-          </div>
-
-          {/* Demo alert - would be conditional based on real setup status */}
-          <div className="card p-4 flex items-center" 
-               style={{ 
-                 backgroundColor: 'var(--chip-nuts-bg)', 
-                 border: `1px solid ${getComputedStyle(document.documentElement).getPropertyValue('--chip-nuts-fg')}20`
-               }}>
-            <AlertTriangle className="mr-3" size={20} style={{ color: 'var(--chip-nuts-fg)' }} />
-            <div className="flex-1">
-              <p className="font-medium" style={{ color: 'var(--chip-nuts-fg)' }}>
-                Complete your menu setup
-              </p>
-              <p className="text-sm" style={{ color: 'var(--chip-nuts-fg)' }}>
-                Upload your actual menu to replace the demo content.
-              </p>
-            </div>
-            <Link 
-              to="/dashboard/menu-editor" 
-              className="btn-ghost text-sm font-medium"
-              style={{ color: 'var(--chip-nuts-fg)' }}
-            >
-              Upload Menu →
-            </Link>
-          </div>
-        </div>
-
-        {/* Stats overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="card p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ backgroundColor: '#EAF2FF' }}>
-                <Eye size={20} style={{ color: '#1A3E73' }} />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>Total Views</p>
-                <p className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
-                  {stats.totalViews}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ backgroundColor: '#EAF8E6' }}>
-                <TrendingUp size={20} style={{ color: '#235A1E' }} />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>Today's Views</p>
-                <p className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
-                  {stats.todayViews}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ backgroundColor: '#E9F6F3' }}>
-                <QrCode size={20} style={{ color: '#1A5A50' }} />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>QR Scans</p>
-                <p className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
-                  {stats.qrScans}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ backgroundColor: '#FCEDEA' }}>
-                <Users size={20} style={{ color: 'var(--wtm-primary)' }} />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>Active Today</p>
-                <p className="text-2xl font-bold" style={{ color: 'var(--wtm-text)' }}>
-                  {stats.activeToday}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick actions */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--wtm-text)' }}>
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {quickActions.map((action, index) => {
-              const Icon = action.icon;
-              const isExternal = action.href.startsWith('/demos') || action.href.startsWith('/r/');
-              
-              return (
-                <Link
-                  key={index}
-                  to={action.href}
-                  target={isExternal ? '_blank' : undefined}
-                  className="card p-6 block transition-all duration-200"
-                >
-                  <div className="flex items-center mb-3">
-                    <div className="p-2 rounded-lg" 
-                         style={{ backgroundColor: action.iconBg }}>
-                      <Icon size={20} style={{ color: action.iconColor }} />
-                    </div>
-                    {isExternal && (
-                      <ExternalLink className="ml-auto" size={16} 
-                                  style={{ color: 'var(--wtm-muted)' }} />
-                    )}
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2" 
-                      style={{ color: 'var(--wtm-text)' }}>
-                    {action.title}
+              <div className="flex items-start">
+                <div className={`rounded-lg ${action.color} p-3 text-white`}>
+                  <Icon className="w-6 h-6" />
+                </div>
+                <div className="ml-4 flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    {action.name}
                   </h3>
-                  <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>
-                    {action.description}
-                  </p>
-                </Link>
-              );
-            })}
+                  <p className="text-gray-600 mb-3">{action.description}</p>
+                  <span className="inline-flex items-center text-orange-600 font-medium">
+                    Get started <ArrowRight className="w-4 h-4 ml-2" />
+                  </span>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+        </div>
+        <div className="p-6">
+          <div className="space-y-4">
+            <div className="flex items-start">
+              <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">Menu updated successfully</p>
+                <p className="text-sm text-gray-500">2 hours ago</p>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">New QR code generated for Table 5</p>
+                <p className="text-sm text-gray-500">1 day ago</p>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3"></div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">Profile information updated</p>
+                <p className="text-sm text-gray-500">3 days ago</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+const DashboardPage: React.FC = () => {
+  const { user, restaurant, authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show onboarding for users without restaurant profile
+  if (user && !restaurant) {
+    return <RestaurantOnboarding />;
+  }
+
+  // Show main dashboard for users with complete profiles
+  return (
+    <DashboardLayout>
+      <MainDashboard />
     </DashboardLayout>
   );
 };

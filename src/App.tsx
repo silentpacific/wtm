@@ -1,4 +1,4 @@
-// src/App.tsx - Complete routing with onboarding wizard
+// src/App.tsx - Fixed routing with corrected onboarding
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -6,7 +6,7 @@ import Header from './components/Header';
 
 // Import pages
 import RestaurantLandingPage from './pages/RestaurantLandingPage';
-import RestaurantSignup from './pages/RestaurantSignupPage';
+import RestaurantSignupPage from './pages/RestaurantSignupPage'; // Fixed import
 import RestaurantLoginPage from './pages/RestaurantLoginPage';
 import ConsumersPage from './pages/ConsumersPage';
 import ContactPage from './pages/ContactPage';
@@ -50,35 +50,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // If user exists but no restaurant profile, redirect to onboarding
+  // If user exists but no restaurant profile, redirect to dashboard
+  // Dashboard will handle showing onboarding/setup flow
   if (!restaurant) {
-    return <Navigate to="/onboarding" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-// Onboarding route wrapper - only accessible if user exists but no restaurant profile
-const OnboardingRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, restaurant, authLoading } = useAuth();
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // If restaurant profile already exists, redirect to dashboard
-  if (restaurant) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -114,17 +88,10 @@ const App: React.FC = () => {
           <Route path="/demos" element={<Layout><DemosPage /></Layout>} />
 
           {/* Auth routes */}
-          <Route path="/signup" element={<Layout showHeader={false}><RestaurantSignup /></Layout>} />
+          <Route path="/signup" element={<Layout showHeader={false}><RestaurantSignupPage /></Layout>} />
           <Route path="/login" element={<Layout showHeader={false}><RestaurantLoginPage /></Layout>} />
           
-          {/* Onboarding route - only accessible if user exists but no restaurant profile */}
-          <Route path="/onboarding" element={
-            <OnboardingRoute>
-              <Layout showHeader={false}>
-                <RestaurantSignup />
-              </Layout>
-            </OnboardingRoute>
-          } />
+          {/* Remove problematic onboarding route - handle this in dashboard instead */}
 
           {/* Protected dashboard routes */}
           <Route path="/dashboard" element={
