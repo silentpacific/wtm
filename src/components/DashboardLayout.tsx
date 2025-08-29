@@ -1,4 +1,4 @@
-// src/components/DashboardLayout.tsx - Updated for new auth structure
+// src/components/DashboardLayout.tsx
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -131,11 +131,23 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1">
-        <main className="min-h-screen bg-gray-50">
-          {children}
-        </main>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Dashboard Top Bar */}
+        <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+          <h1 className="text-lg font-semibold text-gray-900">
+            {restaurant?.restaurant_name || 'Dashboard'}
+          </h1>
+          <button
+            onClick={handleSignOut}
+            className="text-sm font-medium text-red-600 hover:text-red-800"
+          >
+            Sign Out
+          </button>
+        </div>
+
+        {/* Page Content */}
+        <main className="flex-1 bg-gray-50">{children}</main>
       </div>
     </div>
   );

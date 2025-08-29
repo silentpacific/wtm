@@ -7,7 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('[supabaseClient] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,   // ✅ ensures session survives page reload
+    autoRefreshToken: true, // ✅ refreshes expired tokens automatically
+    detectSessionInUrl: true
+  }
+});
 
 // ---- Types used across the app (expanded to match current usage) ----
 export type SignupData = {
