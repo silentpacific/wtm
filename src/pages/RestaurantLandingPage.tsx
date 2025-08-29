@@ -157,7 +157,7 @@ const RestaurantLandingPage: React.FC = () => {
               Start Your Free Trial
             </Link> */}
             <Link 
-              to="/contact" 
+              to="/faq" 
               className="bg-transparent text-white border-2 border-white font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-white/10 transition-all duration-200"
             >
               Have Questions?

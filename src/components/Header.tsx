@@ -118,12 +118,12 @@ const Header: React.FC = () => {
                   >
                     Login
                   </Link>
-                  <Link
+                  {/*<Link
                     to="/signup"
                     className="bg-orange-500 text-white font-semibold px-8 py-3 rounded-2xl hover:bg-orange-600 hover:scale-[1.02] transition-all duration-200 shadow-md"
                   >
                     Start Free Trial
-                  </Link>
+			  </Link> */}
                 </>
               )}
             </div>
