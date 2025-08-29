@@ -1,10 +1,10 @@
-// src/contexts/AuthContext.tsx - Clean version using only user_restaurant_profiles
+// src/contexts/AuthContext.tsx - Clean version with only auth_user_id FK
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
 
 interface Restaurant {
-  id: string;
+  id: string; // auto PK
   auth_user_id: string;
   restaurant_name: string | null;
   owner_name: string | null;
@@ -54,46 +54,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [authLoading, setAuthLoading] = useState(true);
 
   const getRestaurantProfile = async (authUserId: string): Promise<Restaurant | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('user_restaurant_profiles')
-        .select('*')
-        .eq('auth_user_id', authUserId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Restaurant profile error:', error);
-        return null;
-      }
-      return data || null;
-    } catch (error) {
-      console.error('Restaurant profile fetch failed:', error);
+    const { data, error } = await supabase
+      .from('user_restaurant_profiles')
+      .select('*')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle();
+    if (error) {
+      console.error('Restaurant profile error:', error);
       return null;
     }
+    return data || null;
   };
 
   useEffect(() => {
     let mounted = true;
 
     const initAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Session error:', error);
-          return;
-        }
-
-        if (mounted && session?.user) {
-          setUser(session.user);
-          setSession(session);
-          const profile = await getRestaurantProfile(session.user.id);
-          if (mounted) setRestaurant(profile);
-        }
-      } catch (error) {
-        console.error('Auth init error:', error);
-      } finally {
-        if (mounted) setAuthLoading(false);
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Session error:', error);
+        return;
       }
+
+      if (mounted && session?.user) {
+        setUser(session.user);
+        setSession(session);
+        const profile = await getRestaurantProfile(session.user.id);
+        if (mounted) setRestaurant(profile);
+      }
+      if (mounted) setAuthLoading(false);
     };
 
     initAuth();
@@ -101,7 +90,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setUser(session?.user || null);
           setSession(session);
@@ -114,7 +102,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setRestaurant(null);
           setSession(null);
         }
-
         setAuthLoading(false);
       }
     );
@@ -148,7 +135,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!authData.user) throw new Error('Failed to create user account');
 
     const profile = {
-      id: authData.user.id,
       auth_user_id: authData.user.id,
       email: data.email,
       full_name: data.ownerName || null,
@@ -162,19 +148,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const { error: profileError } = await supabase
       .from("user_restaurant_profiles")
-      .upsert([profile], { onConflict: "id" });
+      .upsert([profile], { onConflict: "auth_user_id" });
 
     if (profileError) console.error("Profile creation error:", profileError);
   };
 
   const refreshAuth = async (): Promise<void> => {
     if (!user) return;
-    try {
-      const profile = await getRestaurantProfile(user.id);
-      setRestaurant(profile);
-    } catch (error) {
-      console.error("Refresh error:", error);
-    }
+    const profile = await getRestaurantProfile(user.id);
+    setRestaurant(profile);
   };
 
   return (

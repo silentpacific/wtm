@@ -1,4 +1,4 @@
-// src/services/authService.ts - Clean version using only user_restaurant_profiles
+// src/services/authService.ts - Clean version with only auth_user_id FK
 import { supabase } from './supabaseClient';
 import type { SignupData, LoginData, Restaurant } from './supabaseClient';
 
@@ -25,7 +25,6 @@ export class AuthService {
 
       // Step 2: Create restaurant profile
       const profile = {
-        id: authData.user.id,
         auth_user_id: authData.user.id,
         email: signupData.email,
         full_name: signupData.ownerName,
@@ -39,7 +38,7 @@ export class AuthService {
 
       const { data: restaurantData, error: restaurantError } = await supabase
         .from('user_restaurant_profiles')
-        .upsert([profile], { onConflict: 'id' })
+        .upsert([profile], { onConflict: 'auth_user_id' })
         .select()
         .single();
 
@@ -105,80 +104,43 @@ export class AuthService {
     }
   }
 
-  /**
-   * Sign out current user
-   */
   static async signOut() {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw new Error(error.message);
-    } catch (error) {
-      console.error('Signout error:', error);
-      throw error;
-    }
+    await supabase.auth.signOut();
   }
 
-  /**
-   * Reset password
-   */
   static async resetPassword(email: string) {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
-      });
-      if (error) throw new Error(error.message);
-      return { success: true };
-    } catch (error) {
-      console.error('Password reset error:', error);
-      throw error;
-    }
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`
+    });
+    return { success: true };
   }
 
-  /**
-   * Current session
-   */
   static async getCurrentSession() {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) throw new Error(error.message);
-      if (!session) return null;
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw new Error(error.message);
+    if (!session) return null;
 
-      const restaurant = await this.getRestaurantProfile(session.user.id);
+    const restaurant = await this.getRestaurantProfile(session.user.id);
 
-      return {
-        user: session.user,
-        restaurant,
-        session
-      };
-    } catch (error) {
-      console.error('Get session error:', error);
-      return null;
-    }
+    return {
+      user: session.user,
+      restaurant,
+      session
+    };
   }
 
-  /**
-   * Update restaurant profile
-   */
   static async updateRestaurantProfile(authUserId: string, updates: Partial<Restaurant>) {
-    try {
-      const { data, error } = await supabase
-        .from('user_restaurant_profiles')
-        .update(updates)
-        .eq('auth_user_id', authUserId)
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('user_restaurant_profiles')
+      .update(updates)
+      .eq('auth_user_id', authUserId)
+      .select()
+      .single();
 
-      if (error) throw new Error(error.message);
-      return data;
-    } catch (error) {
-      console.error('Update restaurant profile error:', error);
-      throw error;
-    }
+    if (error) throw new Error(error.message);
+    return data;
   }
 
-  /**
-   * Auth state listener
-   */
   static onAuthStateChange(callback: (event: string, session: any) => void) {
     return supabase.auth.onAuthStateChange(callback);
   }
