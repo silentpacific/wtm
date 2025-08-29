@@ -86,45 +86,47 @@ const RestaurantSignupPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!validateForm()) return;
+    if (!validateForm()) return;
 
-  setIsLoading(true);
-  setErrors({});
+    setIsLoading(true);
+    setErrors({});
 
-  try {
-    // ✅ Clean up the email before sending to Supabase
-    const cleanEmail = formData.email.trim().toLowerCase();
+    try {
+      // Debug logs go here 👇
+      console.log("Raw email:", formData.email);
+      console.log("Normalized email:", JSON.stringify(formData.email.trim().toLowerCase()));
 
-    await signUp({
-      email: cleanEmail,
-      password: formData.password,
-      restaurantName: formData.restaurantName,
-      ownerName: formData.ownerName,
-      cuisineType: formData.cuisineType,
-      phone: formData.phone,
-      address: formData.address,
-      city: formData.city,
-    });
+      const cleanEmail = formData.email.replace(/['"]+/g, '').trim().toLowerCase();
 
-    // DO NOT NAVIGATE HERE - Let the App.tsx routing handle it automatically
-  } catch (error: any) {
-    console.error('Signup error:', error);
+      await signUp({
+        email: cleanEmail,
+        password: formData.password,
+        restaurantName: formData.restaurantName,
+        ownerName: formData.ownerName,
+        cuisineType: formData.cuisineType,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+      });
 
-    if (error.message.includes('email')) {
-      setErrors({ email: 'This email is already registered' });
-    } else if (error.message.includes('password')) {
-      setErrors({ password: error.message });
-    } else {
-      setErrors({ general: error.message || 'Failed to create account. Please try again.' });
+      // DO NOT NAVIGATE HERE - Let the App.tsx routing handle it automatically
+    } catch (error: any) {
+      console.error('Signup error:', error);
+
+      if (error.message.includes('email')) {
+        setErrors({ email: 'This email is already registered' });
+      } else if (error.message.includes('password')) {
+        setErrors({ password: error.message });
+      } else {
+        setErrors({ general: error.message || 'Failed to create account. Please try again.' });
+      }
+    } finally {
+      setIsLoading(false);
     }
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  };
 
   return (
     <div className="min-h-screen bg-wtm-bg py-16 px-6">
@@ -153,7 +155,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <p className="text-red-700 font-medium">{errors.general}</p>
               </div>
             )}
-
+            
             {/* Restaurant Information */}
             <div>
               <h3 className="text-2xl font-semibold text-wtm-text mb-6 tracking-tight">
