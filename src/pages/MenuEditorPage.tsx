@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
-import DashboardLayout from '../components/DashboardLayout';
 
 interface RestaurantInfo {
   name?: string;
@@ -484,7 +483,6 @@ const MenuEditorPage: React.FC = () => {
   const dishesWithoutPrices = getDishesWithoutPrices();
 
   return (
-    <DashboardLayout>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Floating Save Button */}
         {menuData && (
@@ -952,7 +950,6 @@ const MenuEditorPage: React.FC = () => {
           </div>
         )}
       </div>
-    </DashboardLayout>
   );
 };
 

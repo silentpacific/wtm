@@ -1,7 +1,6 @@
 // src/pages/BillingPage.tsx - Updated for new design system
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle, CreditCard, Download, Calendar, BarChart3, Eye } from 'lucide-react';
-import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 
@@ -124,11 +123,9 @@ const BillingPage: React.FC = () => {
 
   if (loading) {
     return (
-      <DashboardLayout>
         <div className="text-center py-12 text-gray-500">
           Loading billing information...
         </div>
-      </DashboardLayout>
     );
   }
 
@@ -138,7 +135,6 @@ const BillingPage: React.FC = () => {
   const daysRemaining = getDaysRemaining(billingInfo?.trial_end_date);
 
   return (
-    <DashboardLayout>
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6 text-gray-900">
           Billing & Subscription
@@ -411,7 +407,6 @@ const BillingPage: React.FC = () => {
           </div>
         )}
       </div>
-    </DashboardLayout>
   );
 };
 

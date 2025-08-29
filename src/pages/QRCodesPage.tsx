@@ -8,7 +8,6 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import DashboardLayout from '../components/DashboardLayout';
 
 const QRCodesPage: React.FC = () => {
   const { restaurant } = useAuth();
@@ -94,7 +93,6 @@ const QRCodesPage: React.FC = () => {
   ];
 
   return (
-    <DashboardLayout>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="heading-secondary text-wtm-text mb-2">QR Codes</h1>
@@ -266,7 +264,6 @@ const QRCodesPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 };
 
