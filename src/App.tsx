@@ -126,18 +126,28 @@ const DashboardRedirector: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (authLoading) return; // ✅ wait until auth is finished
+    if (authLoading) return; // wait for auth to finish
 
     if (!restaurant) {
-      // Still no restaurant profile — send to profile setup
+      // ✅ User exists but no profile row (extreme edge case)
       navigate("/dashboard/profile");
-    } else if (!restaurant.restaurant_name || !restaurant.city) {
-      navigate("/dashboard/profile");
-    } else if (!restaurant.menu_uploaded) {
-      navigate("/dashboard/menu-editor");
-    } else {
-      navigate("/dashboard/qr-codes");
+      return;
     }
+
+    // Step 1: profile completion
+    if (!restaurant.restaurant_name || !restaurant.city) {
+      navigate("/dashboard/profile");
+      return;
+    }
+
+    // Step 2: menu upload
+    if (!restaurant.menu_uploaded) {
+      navigate("/dashboard/menu-editor");
+      return;
+    }
+
+    // Step 3: QR codes
+    navigate("/dashboard/qr-codes");
   }, [restaurant, authLoading, navigate]);
 
   return null;
