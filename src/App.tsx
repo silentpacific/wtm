@@ -106,9 +106,18 @@ const Dashboard: React.FC = () => {
 
 // Protected route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, authLoading } = useAuth();
-  if (authLoading) return <LoadingPage />;
-  if (!user) return <Navigate to="/login" replace />;
+  const { user, authLoading, restaurant } = useAuth();
+
+  // Still loading auth or profile → show spinner
+  if (authLoading || (user && !restaurant)) {
+    return <LoadingPage />;
+  }
+
+  // Not logged in
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   return <>{children}</>;
 };
 
