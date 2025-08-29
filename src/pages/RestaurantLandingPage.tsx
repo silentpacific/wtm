@@ -70,12 +70,12 @@ const RestaurantLandingPage: React.FC = () => {
           
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            /* <Link 
-              to="/signup" 
-              className="bg-wtm-primary text-white font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-wtm-primary-600 hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              Start Free Trial
-            </Link>*/
+            // <Link 
+            //  to="/signup" 
+            //  className="bg-wtm-primary text-white font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-wtm-primary-600 hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl"
+            //>
+            //  Start Free Trial
+            //</Link>*/
             <Link 
               to="/demos" 
               className="bg-transparent text-wtm-primary border-2 border-wtm-primary font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-wtm-primary hover:text-white transition-all duration-200"
@@ -181,12 +181,12 @@ const RestaurantLandingPage: React.FC = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            /*<Link 
-              to="/signup" 
-              className="bg-white text-wtm-secondary font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-gray-50 hover:scale-[1.02] transition-all duration-200 shadow-lg"
-            >
-              Start Your Free Trial
-            </Link>*/
+            //*<Link 
+            //  to="/signup" 
+            //  className="bg-white text-wtm-secondary font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-gray-50 hover:scale-[1.02] transition-all duration-200 shadow-lg"
+            //>
+            //  Start Your Free Trial
+            //</Link>*/
             <Link 
               to="/contact" 
               className="bg-transparent text-white border-2 border-white font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-white/10 transition-all duration-200"
