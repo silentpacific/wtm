@@ -17,7 +17,6 @@ interface UserRestaurantProfile {
   state: string | null;
   country: string | null;
   url_slug: string | null;
-  subscription_type: string;
 }
 
 const ProfilePage: React.FC = () => {
@@ -32,9 +31,7 @@ const ProfilePage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
-    if (authLoading || !user) {
-      return;
-    }
+    if (authLoading || !user) return;
 
     if (restaurant) {
       setProfile(restaurant);
@@ -55,9 +52,7 @@ const ProfilePage: React.FC = () => {
         .eq('auth_user_id', user.id)
         .maybeSingle();
 
-      if (error) {
-        throw new Error(`Failed to load profile: ${error.message}`);
-      }
+      if (error) throw new Error(`Failed to load profile: ${error.message}`);
 
       if (!profileData) {
         const defaultProfile: UserRestaurantProfile = {
@@ -74,13 +69,11 @@ const ProfilePage: React.FC = () => {
           state: null,
           country: null,
           url_slug: null,
-          subscription_type: 'free'
         };
         setProfile(defaultProfile);
       } else {
         setProfile(profileData);
       }
-      
     } catch (err: any) {
       console.error('Profile fetch error:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to load profile data' });
@@ -97,36 +90,32 @@ const ProfilePage: React.FC = () => {
     try {
       const { error } = await supabase
         .from('user_restaurant_profiles')
-        .upsert({
-          auth_user_id: user.id,
-          full_name: profile.full_name?.trim() || null,
-          email: profile.email || user.email || null,
-          restaurant_name: profile.restaurant_name?.trim() || null,
-          cuisine_type: profile.cuisine_type?.trim() || null,
-          owner_name: profile.owner_name?.trim() || null,
-          phone: profile.phone?.trim() || null,
-          address: profile.address?.trim() || null,
-          city: profile.city?.trim() || null,
-          state: profile.state?.trim() || null,
-          country: profile.country?.trim() || null,
-          url_slug: profile.url_slug,
-          subscription_type: profile.subscription_type || 'free'
-        }, {
-          onConflict: 'auth_user_id'
-        });
+        .upsert(
+          {
+            auth_user_id: user.id,
+            full_name: profile.full_name?.trim() || null,
+            email: profile.email || user.email || null,
+            restaurant_name: profile.restaurant_name?.trim() || null,
+            cuisine_type: profile.cuisine_type?.trim() || null,
+            owner_name: profile.owner_name?.trim() || null,
+            phone: profile.phone?.trim() || null,
+            address: profile.address?.trim() || null,
+            city: profile.city?.trim() || null,
+            state: profile.state?.trim() || null,
+            country: profile.country?.trim() || null,
+            url_slug: profile.url_slug,
+          },
+          { onConflict: 'auth_user_id' }
+        );
 
-      if (error) {
-        throw new Error(`Failed to save profile: ${error.message}`);
-      }
+      if (error) throw new Error(`Failed to save profile: ${error.message}`);
 
       setMessage({ type: 'success', text: 'Profile saved successfully!' });
-
       await refreshAuth();
 
       if (profile.restaurant_name && profile.city) {
         window.location.href = "/dashboard/menu-editor";
       }
-
     } catch (err: any) {
       console.error('Save error:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to save changes' });
@@ -156,18 +145,12 @@ const ProfilePage: React.FC = () => {
     setMessage(null);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw new Error(error.message);
 
       setMessage({ type: 'success', text: 'Password updated successfully!' });
       setNewPassword('');
       setConfirmPassword('');
-      
     } catch (err: any) {
       console.error('Password change error:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to change password' });
@@ -191,15 +174,13 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 text-gray-900">
-        Profile Settings
-      </h1>
+      <h1 className="text-2xl font-bold mb-6 text-gray-900">Profile Settings</h1>
 
       {message && (
         <div
           className={`mb-6 p-4 rounded-lg border ${
-            message.type === 'success' 
-              ? 'bg-green-50 text-green-700 border-green-200' 
+            message.type === 'success'
+              ? 'bg-green-50 text-green-700 border-green-200'
               : 'bg-red-50 text-red-700 border-red-200'
           }`}
         >
@@ -245,8 +226,8 @@ const ProfilePage: React.FC = () => {
                 onClick={handlePasswordChange}
                 disabled={changingPassword || !newPassword || !confirmPassword}
                 className={`mt-2 px-4 py-2 rounded-xl font-medium transition-colors ${
-                  changingPassword || !newPassword || !confirmPassword 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  changingPassword || !newPassword || !confirmPassword
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -265,83 +246,99 @@ const ProfilePage: React.FC = () => {
               <input
                 type="text"
                 value={profile?.restaurant_name || ''}
-                onChange={(e) => setProfile(prev => prev ? { ...prev, restaurant_name: e.target.value } : null)}
+                onChange={(e) =>
+                  setProfile((prev) => (prev ? { ...prev, restaurant_name: e.target.value } : null))
+                }
                 placeholder="Enter restaurant name"
                 className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-900">Cuisine Type</label>
               <input
                 type="text"
                 value={profile?.cuisine_type || ''}
-                onChange={(e) => setProfile(prev => prev ? { ...prev, cuisine_type: e.target.value } : null)}
+                onChange={(e) =>
+                  setProfile((prev) => (prev ? { ...prev, cuisine_type: e.target.value } : null))
+                }
                 placeholder="e.g., Italian, Asian, American"
                 className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-900">Owner Name</label>
               <input
                 type="text"
                 value={profile?.owner_name || ''}
-                onChange={(e) => setProfile(prev => prev ? { ...prev, owner_name: e.target.value } : null)}
+                onChange={(e) =>
+                  setProfile((prev) => (prev ? { ...prev, owner_name: e.target.value } : null))
+                }
                 placeholder="Restaurant owner name"
                 className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-900">Phone</label>
               <input
                 type="tel"
                 value={profile?.phone || ''}
-                onChange={(e) => setProfile(prev => prev ? { ...prev, phone: e.target.value } : null)}
+                onChange={(e) =>
+                  setProfile((prev) => (prev ? { ...prev, phone: e.target.value } : null))
+                }
                 placeholder="+61 8 1234 5678"
                 className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
               />
             </div>
-            
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-2 text-gray-900">Address</label>
               <input
                 type="text"
                 value={profile?.address || ''}
-                onChange={(e) => setProfile(prev => prev ? { ...prev, address: e.target.value } : null)}
+                onChange={(e) =>
+                  setProfile((prev) => (prev ? { ...prev, address: e.target.value } : null))
+                }
                 placeholder="Street address"
                 className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-900">City</label>
               <input
                 type="text"
                 value={profile?.city || ''}
-                onChange={(e) => setProfile(prev => prev ? { ...prev, city: e.target.value } : null)}
+                onChange={(e) =>
+                  setProfile((prev) => (prev ? { ...prev, city: e.target.value } : null))
+                }
                 placeholder="City"
                 className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-900">State/Province</label>
               <input
                 type="text"
                 value={profile?.state || ''}
-                onChange={(e) => setProfile(prev => prev ? { ...prev, state: e.target.value } : null)}
+                onChange={(e) =>
+                  setProfile((prev) => (prev ? { ...prev, state: e.target.value } : null))
+                }
                 placeholder="State or Province"
                 className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-900">Country</label>
               <select
                 value={profile?.country || ''}
-                onChange={(e) => setProfile(prev => prev ? { ...prev, country: e.target.value } : null)}
+                onChange={(e) =>
+                  setProfile((prev) => (prev ? { ...prev, country: e.target.value } : null))
+                }
                 className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
               >
                 <option value="">Select a country</option>
@@ -378,8 +375,8 @@ const ProfilePage: React.FC = () => {
           onClick={handleSave}
           disabled={saving || !profile}
           className={`px-8 py-3 rounded-xl font-semibold transition-colors ${
-            saving 
-              ? 'bg-gray-400 cursor-not-allowed text-white' 
+            saving
+              ? 'bg-gray-400 cursor-not-allowed text-white'
               : 'bg-orange-500 text-white hover:bg-orange-600'
           }`}
         >
@@ -391,7 +388,9 @@ const ProfilePage: React.FC = () => {
               </svg>
               Saving...
             </span>
-          ) : 'Save Changes'}
+          ) : (
+            'Save Changes'
+          )}
         </button>
       </div>
     </div>
