@@ -86,42 +86,45 @@ const RestaurantSignupPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setIsLoading(true);
-    setErrors({});
-    
-    try {
-      await signUp({
-        email: formData.email,
-        password: formData.password,
-        restaurantName: formData.restaurantName,
-        ownerName: formData.ownerName,
-        cuisineType: formData.cuisineType,
-        phone: formData.phone,
-        address: formData.address,
-        city: formData.city
-      });
-      
-      // DO NOT NAVIGATE HERE - Let the App.tsx routing handle it automatically
-      
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      
-      if (error.message.includes('email')) {
-        setErrors({ email: 'This email is already registered' });
-      } else if (error.message.includes('password')) {
-        setErrors({ password: error.message });
-      } else {
-        setErrors({ general: error.message || 'Failed to create account. Please try again.' });
-      }
-    } finally {
-      setIsLoading(false);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!validateForm()) return;
+
+  setIsLoading(true);
+  setErrors({});
+
+  try {
+    // ✅ Clean up the email before sending to Supabase
+    const cleanEmail = formData.email.trim().toLowerCase();
+
+    await signUp({
+      email: cleanEmail,
+      password: formData.password,
+      restaurantName: formData.restaurantName,
+      ownerName: formData.ownerName,
+      cuisineType: formData.cuisineType,
+      phone: formData.phone,
+      address: formData.address,
+      city: formData.city,
+    });
+
+    // DO NOT NAVIGATE HERE - Let the App.tsx routing handle it automatically
+  } catch (error: any) {
+    console.error('Signup error:', error);
+
+    if (error.message.includes('email')) {
+      setErrors({ email: 'This email is already registered' });
+    } else if (error.message.includes('password')) {
+      setErrors({ password: error.message });
+    } else {
+      setErrors({ general: error.message || 'Failed to create account. Please try again.' });
     }
-  };
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-wtm-bg py-16 px-6">
