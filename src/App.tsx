@@ -2,7 +2,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-
+import Header from "./components/Header";
 
 // Pages
 import RestaurantLandingPage from "./pages/RestaurantLandingPage";
@@ -35,6 +35,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
+	   <Header />
         <Routes>
           {/* Homepage (always visible) */}
           <Route path="/" element={<RestaurantLandingPage />} />
