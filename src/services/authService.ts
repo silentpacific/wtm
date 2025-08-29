@@ -1,9 +1,8 @@
-// src/services/authService.ts - Updated for user_restaurant_profiles table
+// src/services/authService.ts - Updated with fallback logic for profiles
 import { supabase } from './supabaseClient';
 import type { SignupData, LoginData, Restaurant } from './supabaseClient';
 
 export class AuthService {
-  
   /**
    * Sign up a new restaurant owner
    */
@@ -87,7 +86,9 @@ export class AuthService {
       // Wait a moment for session to be fully established
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Get restaurant profile
+      console.log("[AuthService] Session user:", data.user);
+
+      // Get profile (restaurant or fallback)
       const restaurant = await this.getRestaurantProfile(data.user.id);
 
       return {
@@ -153,7 +154,9 @@ export class AuthService {
         return null;
       }
 
-      // Get restaurant profile
+      console.log("[AuthService] Current session:", session);
+
+      // Get profile (restaurant or fallback)
       const restaurant = await this.getRestaurantProfile(session.user.id);
 
       return {
@@ -169,25 +172,50 @@ export class AuthService {
   }
 
   /**
-   * Get restaurant profile by auth user ID - Using user_restaurant_profiles
+   * Get profile by auth user ID — check restaurant first, then fallback to user_profiles
    */
   static async getRestaurantProfile(authUserId: string): Promise<Restaurant | null> {
     try {
-      const { data, error } = await supabase
+      console.log("[AuthService] Looking up restaurant profile for", authUserId);
+
+      // Try restaurant profile first
+      let { data: restaurant, error: restError } = await supabase
         .from('user_restaurant_profiles')
         .select('*')
         .eq('auth_user_id', authUserId)
         .maybeSingle();
 
-      if (error) {
-        console.error('Get restaurant profile error:', error);
-        return null;
+      if (restError) {
+        console.error("[AuthService] Restaurant profile error:", restError);
       }
 
-      return data;
+      if (restaurant) {
+        console.log("[AuthService] Found restaurant profile:", restaurant);
+        return restaurant;
+      }
+
+      // Fallback to user_profiles
+      console.log("[AuthService] No restaurant profile, trying user_profiles...");
+      let { data: userProfile, error: userError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', authUserId)
+        .maybeSingle();
+
+      if (userError) {
+        console.error("[AuthService] User profile error:", userError);
+      }
+
+      if (userProfile) {
+        console.log("[AuthService] Found user profile:", userProfile);
+        return userProfile as unknown as Restaurant;
+      }
+
+      console.warn("[AuthService] No profile found in either table for", authUserId);
+      return null;
 
     } catch (error) {
-      console.error('Get restaurant profile error:', error);
+      console.error("[AuthService] getProfile fatal error:", error);
       return null;
     }
   }

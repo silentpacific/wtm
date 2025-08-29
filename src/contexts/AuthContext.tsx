@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - Final minimal working version
+// src/contexts/AuthContext.tsx - Updated with fallback profile lookup and better logging
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
@@ -53,22 +53,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  const getRestaurantProfile = async (authUserId: string): Promise<Restaurant | null> => {
+  /**
+   * Try fetching restaurant profile, fallback to user_profiles
+   */
+  const getProfile = async (authUserId: string): Promise<Restaurant | null> => {
     try {
-      const { data, error } = await supabase
+      console.log("[AuthContext] Looking up restaurant profile for", authUserId);
+      let { data: restaurant, error: restError } = await supabase
         .from('user_restaurant_profiles')
         .select('*')
         .eq('auth_user_id', authUserId)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Database error:', error);
-        return null;
+      if (restError) {
+        console.error("[AuthContext] Restaurant profile error:", restError);
+      }
+      if (restaurant) {
+        console.log("[AuthContext] Found restaurant profile:", restaurant);
+        return restaurant;
       }
 
-      return data || null;
+      console.log("[AuthContext] No restaurant profile, trying user_profiles...");
+      let { data: userProfile, error: userError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', authUserId)
+        .maybeSingle();
+
+      if (userError) {
+        console.error("[AuthContext] User profile error:", userError);
+      }
+      if (userProfile) {
+        console.log("[AuthContext] Found user profile:", userProfile);
+        return userProfile as unknown as Restaurant;
+      }
+
+      console.warn("[AuthContext] No profile found for", authUserId);
+      return null;
     } catch (error) {
-      console.error('Restaurant profile fetch failed:', error);
+      console.error("[AuthContext] getProfile fatal error:", error);
       return null;
     }
   };
@@ -79,23 +102,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
-          console.error('Session error:', error);
+          console.error('[AuthContext] Session error:', error);
           return;
         }
 
         if (mounted && session?.user) {
+          console.log("[AuthContext] initAuth session:", session);
           setUser(session.user);
           setSession(session);
-          
-          const profile = await getRestaurantProfile(session.user.id);
+
+          const profile = await getProfile(session.user.id);
           if (mounted) {
             setRestaurant(profile);
           }
         }
       } catch (error) {
-        console.error('Auth init error:', error);
+        console.error('[AuthContext] Auth init error:', error);
       } finally {
         if (mounted) {
           setAuthLoading(false);
@@ -105,143 +129,110 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initAuth();
 
-	const { data: { subscription } } = supabase.auth.onAuthStateChange(
-	  async (event, session) => {
-		if (!mounted) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
 
-		if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-		  setUser(session?.user || null);
-		  setSession(session);
+        console.log("[AuthContext] Auth event:", event, session);
 
-		  if (session?.user) {
-			const profile = await getRestaurantProfile(session.user.id);
-			setRestaurant(profile);
-		  }
-		} else if (event === 'SIGNED_OUT') {
-		  setUser(null);
-		  setRestaurant(null);
-		  setSession(null);
-		}
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setUser(session?.user || null);
+          setSession(session);
 
-		setAuthLoading(false); // ✅ always clear loading
-	  }
-	);
+          if (session?.user) {
+            const profile = await getProfile(session.user.id);
+            setRestaurant(profile);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setRestaurant(null);
+          setSession(null);
+        }
 
-	  // ✅ Fallback: ensure authLoading eventually clears
-	  const timeout = setTimeout(() => {
-		if (authLoading) {
-		  console.warn("Auth still loading after 5s, forcing false.");
-		  setAuthLoading(false);
-		}
-	  }, 5000);
-	  
+        setAuthLoading(false);
+      }
+    );
+
+    const timeout = setTimeout(() => {
+      if (authLoading) {
+        console.warn("[AuthContext] Auth still loading after 5s, forcing false.");
+        setAuthLoading(false);
+      }
+    }, 5000);
+
     return () => {
       mounted = false;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (email: string, password: string): Promise<void> => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) {
-      throw new Error(error.message);
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
   };
 
   const signOut = async (): Promise<void> => {
     const { error } = await supabase.auth.signOut();
-    
-    if (error) {
-      throw new Error(error.message);
-    }
-    
+    if (error) throw new Error(error.message);
     setUser(null);
     setRestaurant(null);
     setSession(null);
   };
 
-	const signUp = async (data: SignUpData): Promise<void> => {
-	  const { data: authData, error: authError } = await supabase.auth.signUp({
-		email: data.email,
-		password: data.password,
-	  });
+  const signUp = async (data: SignUpData): Promise<void> => {
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+    });
 
-	  if (authError) {
-		throw new Error(authError.message);
-	  }
+    if (authError) throw new Error(authError.message);
+    if (!authData.user) throw new Error('Failed to create user account');
 
-	  if (!authData.user) {
-		throw new Error('Failed to create user account');
-	  }
+    let userId = authData.user?.id;
+    if (!userId) {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) throw new Error("Could not retrieve user after signup");
+      userId = user.id;
+    }
 
-	  // Fetch the user ID from session after signup (safer)
-	  let userId = authData.user?.id;
-	  if (!userId) {
-		const { data: { user }, error } = await supabase.auth.getUser();
-		if (error || !user) {
-		  throw new Error("Could not retrieve user after signup");
-		}
-		userId = user.id;
-	  }
+    if (userId) {
+      const profile = {
+        id: userId,
+        auth_user_id: userId,
+        email: data.email,
+        full_name: data.ownerName || null,
+        restaurant_name: data.restaurantName || null,
+        owner_name: data.ownerName || null,
+        cuisine_type: data.cuisineType || null,
+        phone: data.phone || null,
+        address: data.address || null,
+        city: data.city || null,
+      };
 
-	  // ✅ Use userId here instead of authData.user.id
-	  if (userId) {
-		const profile = {
-		  id: userId,                // required PK
-		  auth_user_id: userId,      // foreign key
-		  email: data.email,
-		  full_name: data.ownerName || null,
-		  restaurant_name: data.restaurantName || null,
-		  owner_name: data.ownerName || null,
-		  cuisine_type: data.cuisineType || null,
-		  phone: data.phone || null,
-		  address: data.address || null,
-		  city: data.city || null,
-		  // state and country can be added here if your form collects them
-		};
+      const cleanProfile = Object.fromEntries(Object.entries(profile).filter(([_, v]) => v !== undefined));
 
-		const cleanProfile = Object.fromEntries(
-		  Object.entries(profile).filter(([_, v]) => v !== undefined)
-		);
+      const { error: profileError } = await supabase
+        .from("user_restaurant_profiles")
+        .upsert([cleanProfile], { onConflict: "id,auth_user_id" });
 
-		const { error: profileError } = await supabase
-		  .from("user_restaurant_profiles")
-		  .upsert([cleanProfile], { onConflict: "id,auth_user_id" });
+      if (profileError) console.error("[AuthContext] Profile upsert error:", profileError);
+    }
+  };
 
-		if (profileError) {
-		  console.error("Profile creation/upsert error:", profileError);
-		}
-	  }
-	};
+  const refreshAuth = async (): Promise<void> => {
+    if (!user) return;
+    try {
+      const profile = await getProfile(user.id);
+      setRestaurant(profile);
+    } catch (error) {
+      console.error("[AuthContext] Refresh error:", error);
+    }
+  };
 
-
-	const refreshAuth = async (): Promise<void> => {
-	  if (!user) return;
-	  
-	  try {
-		const profile = await getRestaurantProfile(user.id);
-		setRestaurant(profile);
-	  } catch (error) {
-		console.error("Refresh error:", error);
-	  }
-	};
-
-	return (
-	  <AuthContext.Provider value={{
-		user,
-		restaurant,
-		session,
-		authLoading,
-		signUp,
-		signIn,
-		signOut,
-		refreshAuth
-	  }}>
-		{children}
-	  </AuthContext.Provider>
-	);
-	};
+  return (
+    <AuthContext.Provider value={{ user, restaurant, session, authLoading, signUp, signIn, signOut, refreshAuth }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
