@@ -1,6 +1,6 @@
 // src/pages/AuthCallbackPage.tsx
 import { useEffect } from "react";
-import { supabase } from "../supabaseClient"; // adjust path if needed
+import { supabase } from '../services/supabaseClient';
 import { useNavigate } from "react-router-dom";
 
 const AuthCallbackPage = () => {
