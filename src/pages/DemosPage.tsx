@@ -2,6 +2,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Globe, Shield, MessageCircle, QrCode } from 'lucide-react';
+import SampleMenu1 from "./SampleMenu1";
+import SampleMenu2 from "./SampleMenu2";
+import SampleMenu3 from "./SampleMenu3";
+import SampleMenu4 from "./SampleMenu4";
 
 const DemosPage: React.FC = () => {
   const demoRestaurants = [

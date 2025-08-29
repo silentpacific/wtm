@@ -9,6 +9,7 @@ import PublicMenuPage from "./pages/PublicMenuPage";
 import RestaurantLoginPage from "./pages/RestaurantLoginPage";
 import MenuEditorPage from "./pages/MenuEditorPage";
 import QRCodesPage from "./pages/QRCodesPage";
+import DemosPage from "./pages/DemosPage";
 
 function PrivateRoute({ children }) {
   const { user, authLoading } = useAuth();
@@ -30,6 +31,9 @@ const App: React.FC = () => {
           {/* Homepage (always visible) */}
           <Route path="/" element={<RestaurantLandingPage />} />
 
+		  {/* Public demos page */}
+		  <Route path="/demos" element={<DemosPage />} />
+  
           {/* Public menu pages */}
           <Route path="/r/:slug" element={<PublicMenuPage />} />
 
