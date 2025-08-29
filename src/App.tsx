@@ -3,6 +3,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
+
 // Pages
 import RestaurantLandingPage from "./pages/RestaurantLandingPage";
 import PublicMenuPage from "./pages/PublicMenuPage";
@@ -14,6 +15,9 @@ import SampleMenu1 from "./pages/SampleMenu1";
 import SampleMenu2 from "./pages/SampleMenu2";
 import SampleMenu3 from "./pages/SampleMenu3";
 import SampleMenu4 from "./pages/SampleMenu4";
+import FAQPage from "./pages/FAQPage";
+import ContactPage from "./pages/ContactPage";
+
 
 function PrivateRoute({ children }) {
   const { user, authLoading } = useAuth();
@@ -64,6 +68,8 @@ const App: React.FC = () => {
 
           {/* Catch-all → go home */}
           <Route path="*" element={<Navigate to="/" replace />} />
+		  <Route path="/faq" element={<FAQPage />} />
+		  <Route path="/contact" element={<ContactPage />} />
 		  <Route path="/demos/sample-menu-1" element={<SampleMenu1 />} />
 			<Route path="/demos/sample-menu-2" element={<SampleMenu2 />} />
 			<Route path="/demos/sample-menu-3" element={<SampleMenu3 />} />

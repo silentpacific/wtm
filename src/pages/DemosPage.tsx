@@ -1,10 +1,6 @@
 // src/pages/DemosPage.tsx
 import React from "react";
 import { Link } from "react-router-dom";
-import SampleMenu1 from "./SampleMenu1";
-import SampleMenu2 from "./SampleMenu2";
-import SampleMenu3 from "./SampleMenu3";
-import SampleMenu4 from "./SampleMenu4";
 
 const DemosPage: React.FC = () => {
   return (
@@ -19,7 +15,7 @@ const DemosPage: React.FC = () => {
         </p>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
+        <div className="flex flex-col sm:flex-row gap-6 justify-center mb-8">
           {/* Removed Free Trial button */}
           {/* <Link 
             to="/signup" 
@@ -34,6 +30,13 @@ const DemosPage: React.FC = () => {
           >
             Have Questions?
           </Link>
+
+          <Link
+            to="/contact"
+            className="bg-transparent text-wtm-primary border-2 border-wtm-primary font-semibold px-8 py-4 rounded-2xl text-lg hover:bg-wtm-primary hover:text-white transition-all duration-200"
+          >
+            Contact Us
+          </Link>
         </div>
 
         {/* Demo Menus */}
@@ -43,10 +46,12 @@ const DemosPage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           {/* Sample Menu 1 */}
-          <div className="border rounded-2xl shadow p-6">
-            <h3 className="text-xl font-semibold mb-4">Sample Restaurant 1</h3>
-            <SampleMenu1 />
-            <div className="mt-4 text-right">
+          <div className="border rounded-2xl shadow p-6 flex flex-col justify-between">
+            <div>
+              <h3 className="text-xl font-semibold mb-2">Sample Restaurant 1</h3>
+              <p className="text-gray-600">Bella Vista Italian</p>
+            </div>
+            <div className="mt-6 text-right">
               <Link
                 to="/demos/sample-menu-1"
                 className="text-wtm-primary hover:underline"
@@ -57,10 +62,12 @@ const DemosPage: React.FC = () => {
           </div>
 
           {/* Sample Menu 2 */}
-          <div className="border rounded-2xl shadow p-6">
-            <h3 className="text-xl font-semibold mb-4">Sample Restaurant 2</h3>
-            <SampleMenu2 />
-            <div className="mt-4 text-right">
+          <div className="border rounded-2xl shadow p-6 flex flex-col justify-between">
+            <div>
+              <h3 className="text-xl font-semibold mb-2">Sample Restaurant 2</h3>
+              <p className="text-gray-600">Tokyo Sushi Bar</p>
+            </div>
+            <div className="mt-6 text-right">
               <Link
                 to="/demos/sample-menu-2"
                 className="text-wtm-primary hover:underline"
@@ -71,10 +78,12 @@ const DemosPage: React.FC = () => {
           </div>
 
           {/* Sample Menu 3 */}
-          <div className="border rounded-2xl shadow p-6">
-            <h3 className="text-xl font-semibold mb-4">Sample Restaurant 3</h3>
-            <SampleMenu3 />
-            <div className="mt-4 text-right">
+          <div className="border rounded-2xl shadow p-6 flex flex-col justify-between">
+            <div>
+              <h3 className="text-xl font-semibold mb-2">Sample Restaurant 3</h3>
+              <p className="text-gray-600">Spice of India</p>
+            </div>
+            <div className="mt-6 text-right">
               <Link
                 to="/demos/sample-menu-3"
                 className="text-wtm-primary hover:underline"
@@ -85,10 +94,12 @@ const DemosPage: React.FC = () => {
           </div>
 
           {/* Sample Menu 4 */}
-          <div className="border rounded-2xl shadow p-6">
-            <h3 className="text-xl font-semibold mb-4">Sample Restaurant 4</h3>
-            <SampleMenu4 />
-            <div className="mt-4 text-right">
+          <div className="border rounded-2xl shadow p-6 flex flex-col justify-between">
+            <div>
+              <h3 className="text-xl font-semibold mb-2">Sample Restaurant 4</h3>
+              <p className="text-gray-600">Downtown Burger Grill</p>
+            </div>
+            <div className="mt-6 text-right">
               <Link
                 to="/demos/sample-menu-4"
                 className="text-wtm-primary hover:underline"
