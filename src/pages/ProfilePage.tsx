@@ -53,7 +53,7 @@ const ProfilePage: React.FC = () => {
       const { data: profileData, error } = await supabase
         .from('user_restaurant_profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('auth_user_id', user.id)
         .maybeSingle();
 
       if (error) {
@@ -100,7 +100,7 @@ const ProfilePage: React.FC = () => {
 		const { error } = await supabase
 		  .from('user_restaurant_profiles')
 		  .upsert({
-			id: user.id,
+			auth_user_id: user.id,
 			auth_user_id: user.id,
 			full_name: profile.full_name?.trim() || null,
 			email: profile.email || user.email || null,
@@ -115,7 +115,7 @@ const ProfilePage: React.FC = () => {
 			url_slug: profile.url_slug,
 			subscription_type: profile.subscription_type || 'free'
 		  }, {
-			onConflict: 'id'
+			onConflict: 'auth_user_id'
 		  });
 
 		if (error) {

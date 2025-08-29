@@ -74,6 +74,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
         console.error('Session error:', error);
+        if (mounted) setAuthLoading(false); // ✅ prevent infinite loading on error
         return;
       }
 
@@ -83,7 +84,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const profile = await getRestaurantProfile(session.user.id);
         if (mounted) setRestaurant(profile);
       }
-      if (mounted) setAuthLoading(false);
+
+      if (mounted) setAuthLoading(false); // ✅ ensure loading always ends
     };
 
     initAuth();
