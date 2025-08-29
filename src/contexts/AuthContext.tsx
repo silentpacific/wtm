@@ -1,10 +1,9 @@
-// src/contexts/AuthContext.tsx - Clean version with only auth_user_id FK
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
 
 interface Restaurant {
-  id: string; // auto PK
+  id: string; // PK in user_restaurant_profiles
   auth_user_id: string;
   restaurant_name: string | null;
   owner_name: string | null;
@@ -126,6 +125,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signUp = async (data: SignUpData): Promise<void> => {
+    // Only create the auth user. Profile will be auto-created by DB trigger.
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -134,23 +134,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (authError) throw new Error(authError.message);
     if (!authData.user) throw new Error('Failed to create user account');
 
-    const profile = {
-      auth_user_id: authData.user.id,
-      email: data.email,
-      full_name: data.ownerName || null,
-      restaurant_name: data.restaurantName || null,
-      owner_name: data.ownerName || null,
-      cuisine_type: data.cuisineType || null,
-      phone: data.phone || null,
-      address: data.address || null,
-      city: data.city || null,
-    };
-
-    const { error: profileError } = await supabase
-      .from("user_restaurant_profiles")
-      .upsert([profile], { onConflict: "auth_user_id" });
-
-    if (profileError) console.error("Profile creation error:", profileError);
+    // No manual upsert here anymore!
   };
 
   const refreshAuth = async (): Promise<void> => {
