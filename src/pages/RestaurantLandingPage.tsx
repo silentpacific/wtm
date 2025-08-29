@@ -8,37 +8,6 @@ const RestaurantLandingPage: React.FC = () => {
   const { user, restaurant, authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect logged-in users to dashboard
-  useEffect(() => {
-    if (user && !authLoading) {
-      if (restaurant) {
-        // User has restaurant profile, go to dashboard
-        navigate('/dashboard', { replace: true });
-      } else {
-        // User exists but no restaurant profile, go to dashboard
-        navigate('/dashboard', { replace: true });
-      }
-    }
-  }, [user, restaurant, authLoading, navigate]);
-
-  // Show loading spinner while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render landing page if user is logged in (let useEffect handle redirect)
-  if (user) {
-    return null;
-  }
-
-  // Show marketing landing page for non-logged in users
   return (
     <div className="min-h-screen font-sans bg-white">
       {/* Hero Section */}
