@@ -122,18 +122,23 @@ const Layout: React.FC<{ children: React.ReactNode; showHeader?: boolean }> = ({
 
 // Redirector
 const DashboardRedirector: React.FC = () => {
-  const { restaurant } = useAuth();
+  const { restaurant, authLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!restaurant?.restaurant_name || !restaurant?.city) {
+    if (authLoading) return; // ✅ wait until auth is finished
+
+    if (!restaurant) {
+      // Still no restaurant profile — send to profile setup
       navigate("/dashboard/profile");
-    } else if (!restaurant?.menu_uploaded) {
+    } else if (!restaurant.restaurant_name || !restaurant.city) {
+      navigate("/dashboard/profile");
+    } else if (!restaurant.menu_uploaded) {
       navigate("/dashboard/menu-editor");
     } else {
       navigate("/dashboard/qr-codes");
     }
-  }, [restaurant, navigate]);
+  }, [restaurant, authLoading, navigate]);
 
   return null;
 };
