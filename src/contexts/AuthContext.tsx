@@ -1,9 +1,10 @@
+// src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
 
 interface Restaurant {
-  id: string; // PK in user_restaurant_profiles
+  id: string; 
   auth_user_id: string;
   restaurant_name: string | null;
   owner_name: string | null;
@@ -12,7 +13,7 @@ interface Restaurant {
   address: string | null;
   city: string | null;
   email: string | null;
-  menu_uploaded?: boolean; // NEW optional field
+  menu_uploaded?: boolean;
 }
 
 interface AuthContextType {
@@ -24,7 +25,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshAuth: () => Promise<void>;
-  menu_uploaded: boolean; // NEW
+  menu_uploaded: boolean;
 }
 
 interface SignUpData {
@@ -71,21 +72,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let mounted = true;
 
     const initAuth = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Session error:', error);
-        if (mounted) setAuthLoading(false); // ✅ prevent infinite loading on error
-        return;
-      }
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Session error:', error);
+          if (mounted) setAuthLoading(false);
+          return;
+        }
 
-      if (mounted && session?.user) {
-        setUser(session.user);
-        setSession(session);
-        const profile = await getRestaurantProfile(session.user.id);
-        if (mounted) setRestaurant(profile);
-      }
+        if (mounted) {
+          setSession(session ?? null);
+          setUser(session?.user ?? null);
 
-      if (mounted) setAuthLoading(false); // ✅ ensure loading always ends
+          if (session?.user) {
+            const profile = await getRestaurantProfile(session.user.id);
+            if (mounted) setRestaurant(profile);
+          } else {
+            setRestaurant(null);
+          }
+
+          setAuthLoading(false);
+        }
+      } catch (err) {
+        console.error("initAuth error:", err);
+        if (mounted) setAuthLoading(false);
+      }
     };
 
     initAuth();
@@ -93,9 +104,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
+
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setUser(session?.user || null);
-          setSession(session);
+          setSession(session || null);
           if (session?.user) {
             const profile = await getRestaurantProfile(session.user.id);
             setRestaurant(profile);
@@ -129,7 +141,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signUp = async (data: SignUpData): Promise<void> => {
-    // Only create the auth user. Profile will be auto-created by DB trigger.
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -140,8 +151,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (authError) throw new Error(authError.message);
     if (!authData.user) throw new Error("Failed to create user account");
-
-    // No manual upsert here anymore!
   };
 
   const refreshAuth = async (): Promise<void> => {
@@ -150,7 +159,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setRestaurant(profile);
   };
 
-  // Derived flag: treat menu_uploaded as true if DB says so
   const menu_uploaded = !!restaurant?.menu_uploaded;
 
   return (
