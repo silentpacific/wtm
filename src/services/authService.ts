@@ -1,4 +1,4 @@
-// src/services/authService.ts - Updated with fallback logic for profiles
+// src/services/authService.ts - Clean version using only user_restaurant_profiles
 import { supabase } from './supabaseClient';
 import type { SignupData, LoginData, Restaurant } from './supabaseClient';
 
@@ -20,45 +20,36 @@ export class AuthService {
         }
       });
 
-      if (authError) {
-        throw new Error(authError.message);
-      }
+      if (authError) throw new Error(authError.message);
+      if (!authData.user) throw new Error('Failed to create user account');
 
-      if (!authData.user) {
-        throw new Error('Failed to create user account');
-      }
+      // Step 2: Create restaurant profile
+      const profile = {
+        id: authData.user.id,
+        auth_user_id: authData.user.id,
+        email: signupData.email,
+        full_name: signupData.ownerName,
+        restaurant_name: signupData.restaurantName,
+        owner_name: signupData.ownerName,
+        cuisine_type: signupData.cuisineType,
+        phone: signupData.phone,
+        address: signupData.address,
+        city: signupData.city
+      };
 
-      // Wait for auth to be fully established
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Step 2: Create restaurant profile using user_restaurant_profiles table
       const { data: restaurantData, error: restaurantError } = await supabase
         .from('user_restaurant_profiles')
-        .insert([
-          {
-            auth_user_id: authData.user.id,
-            name: signupData.restaurantName,
-            owner_name: signupData.ownerName,
-            cuisine_type: signupData.cuisineType,
-            phone: signupData.phone,
-            address: signupData.address,
-            city: signupData.city
-          }
-        ])
+        .upsert([profile], { onConflict: 'id' })
         .select()
         .single();
 
-      if (restaurantError) {
-        console.error('Restaurant creation error:', restaurantError);
-        throw new Error('Failed to create restaurant profile');
-      }
+      if (restaurantError) throw new Error('Failed to create restaurant profile');
 
       return {
         user: authData.user,
         restaurant: restaurantData,
         session: authData.session
       };
-
     } catch (error) {
       console.error('Signup error:', error);
       throw error;
@@ -75,20 +66,10 @@ export class AuthService {
         password: loginData.password
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
+      if (!data.user) throw new Error('Login failed');
 
-      if (!data.user) {
-        throw new Error('Login failed');
-      }
-
-      // Wait a moment for session to be fully established
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      console.log("[AuthService] Session user:", data.user);
-
-      // Get profile (restaurant or fallback)
+      // Get restaurant profile
       const restaurant = await this.getRestaurantProfile(data.user.id);
 
       return {
@@ -96,10 +77,31 @@ export class AuthService {
         restaurant,
         session: data.session
       };
-
     } catch (error) {
       console.error('Login error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get restaurant profile
+   */
+  static async getRestaurantProfile(authUserId: string): Promise<Restaurant | null> {
+    try {
+      const { data, error } = await supabase
+        .from('user_restaurant_profiles')
+        .select('*')
+        .eq('auth_user_id', authUserId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Get restaurant profile error:', error);
+        return null;
+      }
+      return data;
+    } catch (error) {
+      console.error('Get restaurant profile fatal error:', error);
+      return null;
     }
   }
 
@@ -109,9 +111,7 @@ export class AuthService {
   static async signOut() {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
     } catch (error) {
       console.error('Signout error:', error);
       throw error;
@@ -119,20 +119,15 @@ export class AuthService {
   }
 
   /**
-   * Send password reset email
+   * Reset password
    */
   static async resetPassword(email: string) {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`
       });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
+      if (error) throw new Error(error.message);
       return { success: true };
-
     } catch (error) {
       console.error('Password reset error:', error);
       throw error;
@@ -140,23 +135,14 @@ export class AuthService {
   }
 
   /**
-   * Get current session
+   * Current session
    */
   static async getCurrentSession() {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
+      if (!session) return null;
 
-      if (!session) {
-        return null;
-      }
-
-      console.log("[AuthService] Current session:", session);
-
-      // Get profile (restaurant or fallback)
       const restaurant = await this.getRestaurantProfile(session.user.id);
 
       return {
@@ -164,58 +150,8 @@ export class AuthService {
         restaurant,
         session
       };
-
     } catch (error) {
       console.error('Get session error:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Get profile by auth user ID — check restaurant first, then fallback to user_profiles
-   */
-  static async getRestaurantProfile(authUserId: string): Promise<Restaurant | null> {
-    try {
-      console.log("[AuthService] Looking up restaurant profile for", authUserId);
-
-      // Try restaurant profile first
-      let { data: restaurant, error: restError } = await supabase
-        .from('user_restaurant_profiles')
-        .select('*')
-        .eq('auth_user_id', authUserId)
-        .maybeSingle();
-
-      if (restError) {
-        console.error("[AuthService] Restaurant profile error:", restError);
-      }
-
-      if (restaurant) {
-        console.log("[AuthService] Found restaurant profile:", restaurant);
-        return restaurant;
-      }
-
-      // Fallback to user_profiles
-      console.log("[AuthService] No restaurant profile, trying user_profiles...");
-      let { data: userProfile, error: userError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', authUserId)
-        .maybeSingle();
-
-      if (userError) {
-        console.error("[AuthService] User profile error:", userError);
-      }
-
-      if (userProfile) {
-        console.log("[AuthService] Found user profile:", userProfile);
-        return userProfile as unknown as Restaurant;
-      }
-
-      console.warn("[AuthService] No profile found in either table for", authUserId);
-      return null;
-
-    } catch (error) {
-      console.error("[AuthService] getProfile fatal error:", error);
       return null;
     }
   }
@@ -232,12 +168,8 @@ export class AuthService {
         .select()
         .single();
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
+      if (error) throw new Error(error.message);
       return data;
-
     } catch (error) {
       console.error('Update restaurant profile error:', error);
       throw error;
@@ -245,7 +177,7 @@ export class AuthService {
   }
 
   /**
-   * Listen to auth state changes
+   * Auth state listener
    */
   static onAuthStateChange(callback: (event: string, session: any) => void) {
     return supabase.auth.onAuthStateChange(callback);

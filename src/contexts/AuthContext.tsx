@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx - Updated with fallback profile lookup and better logging
+// src/contexts/AuthContext.tsx - Clean version using only user_restaurant_profiles
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
@@ -53,45 +53,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  /**
-   * Try fetching restaurant profile, fallback to user_profiles
-   */
-  const getProfile = async (authUserId: string): Promise<Restaurant | null> => {
+  const getRestaurantProfile = async (authUserId: string): Promise<Restaurant | null> => {
     try {
-      console.log("[AuthContext] Looking up restaurant profile for", authUserId);
-      let { data: restaurant, error: restError } = await supabase
+      const { data, error } = await supabase
         .from('user_restaurant_profiles')
         .select('*')
         .eq('auth_user_id', authUserId)
         .maybeSingle();
 
-      if (restError) {
-        console.error("[AuthContext] Restaurant profile error:", restError);
+      if (error) {
+        console.error('Restaurant profile error:', error);
+        return null;
       }
-      if (restaurant) {
-        console.log("[AuthContext] Found restaurant profile:", restaurant);
-        return restaurant;
-      }
-
-      console.log("[AuthContext] No restaurant profile, trying user_profiles...");
-      let { data: userProfile, error: userError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', authUserId)
-        .maybeSingle();
-
-      if (userError) {
-        console.error("[AuthContext] User profile error:", userError);
-      }
-      if (userProfile) {
-        console.log("[AuthContext] Found user profile:", userProfile);
-        return userProfile as unknown as Restaurant;
-      }
-
-      console.warn("[AuthContext] No profile found for", authUserId);
-      return null;
+      return data || null;
     } catch (error) {
-      console.error("[AuthContext] getProfile fatal error:", error);
+      console.error('Restaurant profile fetch failed:', error);
       return null;
     }
   };
@@ -102,28 +78,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-
         if (error) {
-          console.error('[AuthContext] Session error:', error);
+          console.error('Session error:', error);
           return;
         }
 
         if (mounted && session?.user) {
-          console.log("[AuthContext] initAuth session:", session);
           setUser(session.user);
           setSession(session);
-
-          const profile = await getProfile(session.user.id);
-          if (mounted) {
-            setRestaurant(profile);
-          }
+          const profile = await getRestaurantProfile(session.user.id);
+          if (mounted) setRestaurant(profile);
         }
       } catch (error) {
-        console.error('[AuthContext] Auth init error:', error);
+        console.error('Auth init error:', error);
       } finally {
-        if (mounted) {
-          setAuthLoading(false);
-        }
+        if (mounted) setAuthLoading(false);
       }
     };
 
@@ -133,14 +102,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       async (event, session) => {
         if (!mounted) return;
 
-        console.log("[AuthContext] Auth event:", event, session);
-
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setUser(session?.user || null);
           setSession(session);
-
           if (session?.user) {
-            const profile = await getProfile(session.user.id);
+            const profile = await getRestaurantProfile(session.user.id);
             setRestaurant(profile);
           }
         } else if (event === 'SIGNED_OUT') {
@@ -153,16 +119,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     );
 
-    const timeout = setTimeout(() => {
-      if (authLoading) {
-        console.warn("[AuthContext] Auth still loading after 5s, forcing false.");
-        setAuthLoading(false);
-      }
-    }, 5000);
-
     return () => {
       mounted = false;
-      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -189,44 +147,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (authError) throw new Error(authError.message);
     if (!authData.user) throw new Error('Failed to create user account');
 
-    let userId = authData.user?.id;
-    if (!userId) {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) throw new Error("Could not retrieve user after signup");
-      userId = user.id;
-    }
+    const profile = {
+      id: authData.user.id,
+      auth_user_id: authData.user.id,
+      email: data.email,
+      full_name: data.ownerName || null,
+      restaurant_name: data.restaurantName || null,
+      owner_name: data.ownerName || null,
+      cuisine_type: data.cuisineType || null,
+      phone: data.phone || null,
+      address: data.address || null,
+      city: data.city || null,
+    };
 
-    if (userId) {
-      const profile = {
-        id: userId,
-        auth_user_id: userId,
-        email: data.email,
-        full_name: data.ownerName || null,
-        restaurant_name: data.restaurantName || null,
-        owner_name: data.ownerName || null,
-        cuisine_type: data.cuisineType || null,
-        phone: data.phone || null,
-        address: data.address || null,
-        city: data.city || null,
-      };
+    const { error: profileError } = await supabase
+      .from("user_restaurant_profiles")
+      .upsert([profile], { onConflict: "id" });
 
-      const cleanProfile = Object.fromEntries(Object.entries(profile).filter(([_, v]) => v !== undefined));
-
-      const { error: profileError } = await supabase
-        .from("user_restaurant_profiles")
-        .upsert([cleanProfile], { onConflict: "id,auth_user_id" });
-
-      if (profileError) console.error("[AuthContext] Profile upsert error:", profileError);
-    }
+    if (profileError) console.error("Profile creation error:", profileError);
   };
 
   const refreshAuth = async (): Promise<void> => {
     if (!user) return;
     try {
-      const profile = await getProfile(user.id);
+      const profile = await getRestaurantProfile(user.id);
       setRestaurant(profile);
     } catch (error) {
-      console.error("[AuthContext] Refresh error:", error);
+      console.error("Refresh error:", error);
     }
   };
 
