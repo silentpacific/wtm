@@ -1,32 +1,28 @@
-// src/pages/RestaurantLoginPage.tsx - Removed manual navigation
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+// src/pages/RestaurantLoginPage.tsx
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, Loader } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const RestaurantLoginPage: React.FC = () => {
   const { signIn, user, authLoading } = useAuth();
-  
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Don't render if user is already logged in - let App.tsx routing handle it
-  if (user && !authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  // ✅ Redirect to dashboard after successful login
+  useEffect(() => {
+    if (user && !authLoading) {
+      navigate("/dashboard");
+    }
+  }, [user, authLoading, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -34,7 +30,7 @@ const RestaurantLoginPage: React.FC = () => {
       ...prev,
       [name]: value
     }));
-    
+
     if (error) {
       setError('');
     }
@@ -42,27 +38,26 @@ const RestaurantLoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.email.trim()) {
       setError('Email is required');
       return;
     }
-    
+
     if (!formData.password) {
       setError('Password is required');
       return;
     }
-    
+
     setIsLoading(true);
     setError('');
-    
+
     try {
       await signIn(formData.email, formData.password);
-      // DO NOT NAVIGATE HERE - Let the App.tsx routing handle it automatically
-      
+      // ✅ Navigation now handled by useEffect after login
     } catch (error: any) {
       console.error('Login error:', error);
-      
+
       if (error.message.includes('Invalid login credentials')) {
         setError('Invalid email or password');
       } else if (error.message.includes('Email not confirmed')) {
