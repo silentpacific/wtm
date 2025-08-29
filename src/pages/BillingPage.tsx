@@ -16,6 +16,8 @@ interface BillingInfo {
 
 const BillingPage: React.FC = () => {
   const { user, restaurant } = useAuth();
+  const profileIncomplete = !restaurant?.restaurant_name || !restaurant?.city;
+  const menuIncomplete = !restaurant?.menu_uploaded; // adjust if different
   const [loading, setLoading] = useState(true);
   const [billingInfo, setBillingInfo] = useState<BillingInfo | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -24,8 +26,9 @@ const BillingPage: React.FC = () => {
 
   useEffect(() => {
     if (!user) return;
+	refreshAuth();
     fetchBillingInfo();
-  }, [user]);
+  }, [user, refreshAuth]);
 
   const fetchBillingInfo = async () => {
     if (!user) return;
@@ -140,6 +143,13 @@ const BillingPage: React.FC = () => {
         <h1 className="text-2xl font-bold mb-6 text-gray-900">
           Billing & Subscription
         </h1>
+		{(profileIncomplete || menuIncomplete) && (
+		  <div className="mb-6 p-4 rounded-lg border border-amber-200 bg-amber-50 text-amber-800">
+			<p className="font-medium">
+			  Complete your profile and upload your menu before publishing your QR codes.
+			</p>
+		  </div>
+		)}
 
         {message && (
           <div

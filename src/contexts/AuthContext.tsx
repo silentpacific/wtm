@@ -12,6 +12,7 @@ interface Restaurant {
   address: string | null;
   city: string | null;
   email: string | null;
+  menu_uploaded?: boolean; // NEW optional field
 }
 
 interface AuthContextType {
@@ -23,6 +24,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshAuth: () => Promise<void>;
+  menu_uploaded: boolean; // NEW
 }
 
 interface SignUpData {
@@ -129,10 +131,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
 
     if (authError) throw new Error(authError.message);
-    if (!authData.user) throw new Error('Failed to create user account');
+    if (!authData.user) throw new Error("Failed to create user account");
 
     // No manual upsert here anymore!
   };
@@ -143,8 +148,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setRestaurant(profile);
   };
 
+  // Derived flag: treat menu_uploaded as true if DB says so
+  const menu_uploaded = !!restaurant?.menu_uploaded;
+
   return (
-    <AuthContext.Provider value={{ user, restaurant, session, authLoading, signUp, signIn, signOut, refreshAuth }}>
+    <AuthContext.Provider value={{
+      user,
+      restaurant,
+      session,
+      authLoading,
+      signUp,
+      signIn,
+      signOut,
+      refreshAuth,
+      menu_uploaded
+    }}>
       {children}
     </AuthContext.Provider>
   );

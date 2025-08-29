@@ -1,18 +1,12 @@
-// src/pages/RestaurantSignupPage.tsx - With Success Message Flow
+// src/pages/RestaurantSignupPage.tsx - Simplified Signup (Email + Password only)
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Phone, MapPin, User, Building, Lock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const RestaurantSignupPage: React.FC = () => {
   const { signUp, user, authLoading } = useAuth();
   const [formData, setFormData] = useState({
-    restaurantName: '',
-    cuisineType: '',
-    address: '',
-    city: '',
-    phone: '',
-    ownerName: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -22,9 +16,9 @@ const RestaurantSignupPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null); // ✅ success state
+  const [success, setSuccess] = useState<string | null>(null);
 
-  // Don't render if user is already logged in - let App.tsx routing handle it
+  // Redirect state after signup confirmation
   if (user && !authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -36,13 +30,7 @@ const RestaurantSignupPage: React.FC = () => {
     );
   }
 
-  const cuisineOptions = [
-    'Italian', 'Chinese', 'Japanese', 'Indian', 'Thai', 'Mexican', 
-    'French', 'American', 'Mediterranean', 'Vietnamese', 'Korean', 
-    'Greek', 'Spanish', 'Modern Australian', 'Cafe', 'Other'
-  ];
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -60,13 +48,6 @@ const RestaurantSignupPage: React.FC = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.restaurantName.trim()) newErrors.restaurantName = 'Restaurant name is required';
-    if (!formData.cuisineType) newErrors.cuisineType = 'Cuisine type is required';
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-    if (!formData.ownerName.trim()) newErrors.ownerName = 'Owner name is required';
-    
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -94,7 +75,7 @@ const RestaurantSignupPage: React.FC = () => {
 
     setIsLoading(true);
     setErrors({});
-    setSuccess(null); // reset success message
+    setSuccess(null);
 
     try {
       console.log("Raw email:", formData.email);
@@ -105,23 +86,10 @@ const RestaurantSignupPage: React.FC = () => {
       await signUp({
         email: cleanEmail,
         password: formData.password,
-        restaurantName: formData.restaurantName,
-        ownerName: formData.ownerName,
-        cuisineType: formData.cuisineType,
-        phone: formData.phone,
-        address: formData.address,
-        city: formData.city,
       });
 
-      // ✅ show success message
       setSuccess("Account created! Please check your email to confirm before logging in.");
       setFormData({
-        restaurantName: '',
-        cuisineType: '',
-        address: '',
-        city: '',
-        phone: '',
-        ownerName: '',
         email: '',
         password: '',
         confirmPassword: ''
@@ -162,7 +130,7 @@ const RestaurantSignupPage: React.FC = () => {
         {/* Signup Form */}
         <div className="bg-white rounded-3xl border border-gray-100 p-10 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* ✅ Success Message */}
+            {/* Success Message */}
             {success && (
               <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
                 <p className="text-green-700 font-medium">{success}</p>
@@ -175,218 +143,87 @@ const RestaurantSignupPage: React.FC = () => {
                 <p className="text-red-700 font-medium">{errors.general}</p>
               </div>
             )}
-            
-            {/* Restaurant Information */}
-            <div>
-              <h3 className="text-2xl font-semibold text-wtm-text mb-6 tracking-tight">
-                Restaurant Information
-              </h3>
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-lg font-medium text-wtm-text mb-3">
-                    <Building className="inline mr-2" size={20} />
-                    Restaurant Name
-                  </label>
-                  <input
-                    type="text"
-                    name="restaurantName"
-                    value={formData.restaurantName}
-                    onChange={handleInputChange}
-                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
-                      errors.restaurantName ? 'border-red-300' : 'border-gray-200'
-                    }`}
-                    placeholder="Your Restaurant Name"
-                    disabled={isLoading}
-                  />
-                  {errors.restaurantName && <p className="text-red-600 text-sm mt-2">{errors.restaurantName}</p>}
-                </div>
 
-                <div>
-                  <label className="block text-lg font-medium text-wtm-text mb-3">
-                    Cuisine Type
-                  </label>
-                  <select
-                    name="cuisineType"
-                    value={formData.cuisineType}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
-                      errors.cuisineType ? 'border-red-300' : 'border-gray-200'
-                    }`}
-                  >
-                    <option value="">Select cuisine type</option>
-                    {cuisineOptions.map(cuisine => (
-                      <option key={cuisine} value={cuisine}>{cuisine}</option>
-                    ))}
-                  </select>
-                  {errors.cuisineType && <p className="text-red-600 text-sm mt-2">{errors.cuisineType}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-lg font-medium text-wtm-text mb-3">
-                    <MapPin className="inline mr-2" size={20} />
-                    Address
-                  </label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
-                      errors.address ? 'border-red-300' : 'border-gray-200'
-                    }`}
-                    placeholder="123 Main Street"
-                    disabled={isLoading}
-                  />
-                  {errors.address && <p className="text-red-600 text-sm mt-2">{errors.address}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-lg font-medium text-wtm-text mb-3">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
-                      errors.city ? 'border-red-300' : 'border-gray-200'
-                    }`}
-                    placeholder="Adelaide"
-                    disabled={isLoading}
-                  />
-                  {errors.city && <p className="text-red-600 text-sm mt-2">{errors.city}</p>}
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-lg font-medium text-wtm-text mb-3">
-                    <Phone className="inline mr-2" size={20} />
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
-                      errors.phone ? 'border-red-300' : 'border-gray-200'
-                    }`}
-                    placeholder="+61 8 1234 5678"
-                    disabled={isLoading}
-                  />
-                  {errors.phone && <p className="text-red-600 text-sm mt-2">{errors.phone}</p>}
-                </div>
-              </div>
+            {/* Email */}
+            <div className="md:col-span-2">
+              <label className="block text-lg font-medium text-wtm-text mb-3">
+                <Mail className="inline mr-2" size={20} />
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                  errors.email ? 'border-red-300' : 'border-gray-200'
+                }`}
+                placeholder="your.email@restaurant.com"
+                disabled={isLoading}
+                autoComplete="email"
+              />
+              {errors.email && <p className="text-red-600 text-sm mt-2">{errors.email}</p>}
             </div>
 
-            {/* Owner Information */}
+            {/* Password */}
             <div>
-              <h3 className="text-2xl font-semibold text-wtm-text mb-6 tracking-tight">
-                Owner Information
-              </h3>
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className="block text-lg font-medium text-wtm-text mb-3">
-                    <User className="inline mr-2" size={20} />
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    name="ownerName"
-                    value={formData.ownerName}
-                    onChange={handleInputChange}
-                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
-                      errors.ownerName ? 'border-red-300' : 'border-gray-200'
-                    }`}
-                    placeholder="Your Full Name"
-                    disabled={isLoading}
-                    autoComplete="name"
-                  />
-                  {errors.ownerName && <p className="text-red-600 text-sm mt-2">{errors.ownerName}</p>}
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-lg font-medium text-wtm-text mb-3">
-                    <Mail className="inline mr-2" size={20} />
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className={`w-full px-5 py-4 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
-                      errors.email ? 'border-red-300' : 'border-gray-200'
-                    }`}
-                    placeholder="your.email@restaurant.com"
-                    disabled={isLoading}
-                    autoComplete="email"
-                  />
-                  {errors.email && <p className="text-red-600 text-sm mt-2">{errors.email}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-lg font-medium text-wtm-text mb-3">
-                    <Lock className="inline mr-2" size={20} />
-                    Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className={`w-full px-5 py-4 pr-14 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
-                        errors.password ? 'border-red-300' : 'border-gray-200'
-                      }`}
-                      placeholder="••••••••"
-                      disabled={isLoading}
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-wtm-muted hover:text-wtm-text transition-colors"
-                      disabled={isLoading}
-                    >
-                      {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
-                    </button>
-                  </div>
-                  {errors.password && <p className="text-red-600 text-sm mt-2">{errors.password}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-lg font-medium text-wtm-text mb-3">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      className={`w-full px-5 py-4 pr-14 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
-                        errors.confirmPassword ? 'border-red-300' : 'border-gray-200'
-                      }`}
-                      placeholder="••••••••"
-                      disabled={isLoading}
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-wtm-muted hover:text-wtm-text transition-colors"
-                      disabled={isLoading}
-                    >
-                      {showConfirmPassword ? <EyeOff size={24} /> : <Eye size={24} />}
-                    </button>
-                  </div>
-                  {errors.confirmPassword && <p className="text-red-600 text-sm mt-2">{errors.confirmPassword}</p>}
-                </div>
+              <label className="block text-lg font-medium text-wtm-text mb-3">
+                <Lock className="inline mr-2" size={20} />
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className={`w-full px-5 py-4 pr-14 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                    errors.password ? 'border-red-300' : 'border-gray-200'
+                  }`}
+                  placeholder="••••••••"
+                  disabled={isLoading}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-wtm-muted hover:text-wtm-text transition-colors"
+                  disabled={isLoading}
+                >
+                  {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
+                </button>
               </div>
+              {errors.password && <p className="text-red-600 text-sm mt-2">{errors.password}</p>}
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-lg font-medium text-wtm-text mb-3">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className={`w-full px-5 py-4 pr-14 border rounded-2xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 text-lg ${
+                    errors.confirmPassword ? 'border-red-300' : 'border-gray-200'
+                  }`}
+                  placeholder="••••••••"
+                  disabled={isLoading}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-wtm-muted hover:text-wtm-text transition-colors"
+                  disabled={isLoading}
+                >
+                  {showConfirmPassword ? <EyeOff size={24} /> : <Eye size={24} />}
+                </button>
+              </div>
+              {errors.confirmPassword && <p className="text-red-600 text-sm mt-2">{errors.confirmPassword}</p>}
             </div>
 
             {/* Submit Button */}
@@ -400,7 +237,7 @@ const RestaurantSignupPage: React.FC = () => {
                     : 'bg-wtm-primary text-white hover:bg-wtm-primary-600 hover:scale-[1.02] shadow-lg hover:shadow-xl'
                 }`}
               >
-                {isLoading ? 'Creating Account...' : 'Start Free Trial'}
+                {isLoading ? 'Creating Account...' : 'Sign Up'}
               </button>
             </div>
           </form>

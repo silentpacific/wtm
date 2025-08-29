@@ -280,46 +280,61 @@ const MenuEditorPage: React.FC = () => {
     }
   };
 
-  const runDietaryAnalysis = async () => {
-    if (!currentMenuId) return;
-    
-    setIsDietaryAnalyzing(true);
-    try {
-      const response = await fetch('/.netlify/functions/dietary-analyzer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          menuId: currentMenuId 
-        })
-      });
+	const runDietaryAnalysis = async () => {
+	  if (!currentMenuId) return;
+	  
+	  setIsDietaryAnalyzing(true);
+	  try {
+		const response = await fetch('/.netlify/functions/dietary-analyzer', {
+		  method: 'POST',
+		  headers: {
+			'Content-Type': 'application/json',
+		  },
+		  body: JSON.stringify({ 
+			menuId: currentMenuId 
+		  })
+		});
 
-      if (!response.ok) {
-        throw new Error(`Function not available (${response.status}). Make sure Netlify functions are deployed.`);
-      }
+		if (!response.ok) {
+		  throw new Error(`Function not available (${response.status}). Make sure Netlify functions are deployed.`);
+		}
 
-      let result;
-      try {
-        result = await response.json();
-      } catch (parseError) {
-        throw new Error('Invalid response from dietary analyzer function');
-      }
-      
-      if (result.success) {
-        setIsDietaryAnalysisComplete(true);
-        await loadExistingMenu();
-        console.log('Dietary analysis completed:', result);
-      } else {
-        throw new Error(result.error || 'Dietary analysis failed');
-      }
-    } catch (error) {
-      console.error('Dietary analysis error:', error);
-      setScanError(error instanceof Error ? error.message : 'Failed to analyze dietary information. Please try again.');
-    } finally {
-      setIsDietaryAnalyzing(false);
-    }
-  };
+		let result;
+		try {
+		  result = await response.json();
+		} catch (parseError) {
+		  throw new Error('Invalid response from dietary analyzer function');
+		}
+		
+		if (result.success) {
+		  setIsDietaryAnalysisComplete(true);
+		  await loadExistingMenu();
+		  console.log('Dietary analysis completed:', result);
+
+		  // ✅ Mark menu_uploaded = true in DB
+		  if (user) {
+			const { error } = await supabase
+			  .from('user_restaurant_profiles')
+			  .update({ menu_uploaded: true })
+			  .eq('auth_user_id', user.id);
+
+			if (error) {
+			  console.error("Failed to update menu_uploaded flag:", error);
+			} else {
+			  console.log("menu_uploaded set to true for user:", user.id);
+			}
+		  }
+		} else {
+		  throw new Error(result.error || 'Dietary analysis failed');
+		}
+	  } catch (error) {
+		console.error('Dietary analysis error:', error);
+		setScanError(error instanceof Error ? error.message : 'Failed to analyze dietary information. Please try again.');
+	  } finally {
+		setIsDietaryAnalyzing(false);
+	  }
+	};
+
 
   const saveMenu = async () => {
     if (!menuData || !user) return;
@@ -352,8 +367,13 @@ const MenuEditorPage: React.FC = () => {
         throw new Error(result.error || 'Failed to save menu');
       }
 
-      setSaveMessage('Menu saved successfully!');
-      setTimeout(() => setSaveMessage(null), 3000);
+		setSaveMessage('Menu saved successfully!');
+		setTimeout(() => setSaveMessage(null), 3000);
+
+		// If menu is analyzed & complete, redirect to QR Codes
+		if (isDietaryAnalysisComplete) {
+		  window.location.href = "/dashboard/qr-codes";
+		}
 
     } catch (error) {
       console.error('Save menu error:', error);

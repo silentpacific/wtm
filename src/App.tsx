@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Header';
+import AuthCallbackPage from "./pages/AuthCallbackPage";
 
 // Import pages - CORRECTED to use the right files
 import RestaurantLandingPage from './pages/RestaurantLandingPage';
@@ -146,25 +147,53 @@ const Layout: React.FC<{ children: React.ReactNode; showHeader?: boolean }> = ({
   );
 };
 
+const DashboardRedirector: React.FC = () => {
+  const { restaurant } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!restaurant?.restaurant_name || !restaurant?.city) {
+      navigate("/dashboard/profile");
+    } else if (!restaurant?.menu_uploaded) {
+      navigate("/dashboard/menu-editor");
+    } else {
+      navigate("/dashboard/qr-codes");
+    }
+  }, [restaurant, navigate]);
+
+  return null;
+};
+
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<Layout><RestaurantLandingPage /></Layout>} />
-          <Route path="/restaurants" element={<Layout><RestaurantLandingPage /></Layout>} />
+			<Route
+			  path="/"
+			  element={
+				user ? (
+				  <Navigate to="/dashboard" replace />
+				) : (
+				  <Layout><RestaurantLandingPage /></Layout>
+				)
+			  }
+			/>          <Route path="/restaurants" element={<Layout><RestaurantLandingPage /></Layout>} />
           <Route path="/consumers" element={<Layout><ConsumersPage /></Layout>} />
           <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
           <Route path="/faq" element={<Layout><FAQPage /></Layout>} />
           <Route path="/demos" element={<Layout><DemosPage /></Layout>} />
+		  
 
           {/* Auth routes */}
           <Route path="/signup" element={<Layout showHeader={false}><RestaurantSignupPage /></Layout>} />
           <Route path="/login" element={<Layout showHeader={false}><RestaurantLoginPage /></Layout>} />
-          
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
           {/* Dashboard routes */}
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirector /></ProtectedRoute>} />
           <Route path="/dashboard/profile" element={<ProtectedRoute><DashboardLayout><ProfilePage /></DashboardLayout></ProtectedRoute>} />
           <Route path="/dashboard/qr-codes" element={<ProtectedRoute><DashboardLayout><QRCodesPage /></DashboardLayout></ProtectedRoute>} />
           <Route path="/dashboard/menu-editor" element={<ProtectedRoute><DashboardLayout><MenuEditorPage /></DashboardLayout></ProtectedRoute>} />

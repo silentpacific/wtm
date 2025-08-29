@@ -91,50 +91,56 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleSave = async () => {
-    if (!user || !profile) return;
-    setSaving(true);
-    setMessage(null);
+	const handleSave = async () => {
+	  if (!user || !profile) return;
+	  setSaving(true);
+	  setMessage(null);
 
-    try {
-      const { error } = await supabase
-        .from('user_restaurant_profiles')
-        .upsert({
-          id: user.id,
-          auth_user_id: user.id,
-          full_name: profile.full_name?.trim() || null,
-          email: profile.email || user.email || null,
-          restaurant_name: profile.restaurant_name?.trim() || null,
-          cuisine_type: profile.cuisine_type?.trim() || null,
-          owner_name: profile.owner_name?.trim() || null,
-          phone: profile.phone?.trim() || null,
-          address: profile.address?.trim() || null,
-          city: profile.city?.trim() || null,
-          state: profile.state?.trim() || null,
-          country: profile.country?.trim() || null,
-          url_slug: profile.url_slug,
-          subscription_type: profile.subscription_type || 'free'
-        }, {
-          onConflict: 'id'
-        });
+	  try {
+		const { error } = await supabase
+		  .from('user_restaurant_profiles')
+		  .upsert({
+			id: user.id,
+			auth_user_id: user.id,
+			full_name: profile.full_name?.trim() || null,
+			email: profile.email || user.email || null,
+			restaurant_name: profile.restaurant_name?.trim() || null,
+			cuisine_type: profile.cuisine_type?.trim() || null,
+			owner_name: profile.owner_name?.trim() || null,
+			phone: profile.phone?.trim() || null,
+			address: profile.address?.trim() || null,
+			city: profile.city?.trim() || null,
+			state: profile.state?.trim() || null,
+			country: profile.country?.trim() || null,
+			url_slug: profile.url_slug,
+			subscription_type: profile.subscription_type || 'free'
+		  }, {
+			onConflict: 'id'
+		  });
 
-      if (error) {
-        throw new Error(`Failed to save profile: ${error.message}`);
-      }
+		if (error) {
+		  throw new Error(`Failed to save profile: ${error.message}`);
+		}
 
-      setMessage({ type: 'success', text: 'Profile saved successfully!' });
-      
-      // Refresh auth context to update restaurant data
-      await refreshAuth();
-      
-    } catch (err: any) {
-      console.error('Save error:', err);
-      setMessage({ type: 'error', text: err.message || 'Failed to save changes' });
-    } finally {
-      setSaving(false);
-      setTimeout(() => setMessage(null), 5000);
-    }
-  };
+		setMessage({ type: 'success', text: 'Profile saved successfully!' });
+
+		// 🔄 Refresh auth context so changes apply immediately
+		await refreshAuth();
+
+		// 🚀 Redirect only if required fields are complete
+		if (profile.restaurant_name && profile.city) {
+		  window.location.href = "/dashboard/menu-editor";
+		}
+
+	  } catch (err: any) {
+		console.error('Save error:', err);
+		setMessage({ type: 'error', text: err.message || 'Failed to save changes' });
+	  } finally {
+		setSaving(false);
+		setTimeout(() => setMessage(null), 5000);
+	  }
+	};
+
 
   const handlePasswordChange = async () => {
     if (!newPassword || !confirmPassword) {

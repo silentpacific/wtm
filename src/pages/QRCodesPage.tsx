@@ -1,5 +1,6 @@
 // src/pages/QRCodesPage.tsx - Updated with new design system
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Download, 
   Copy,
@@ -11,6 +12,13 @@ import DashboardLayout from '../components/DashboardLayout';
 
 const QRCodesPage: React.FC = () => {
   const { restaurant } = useAuth();
+	  useEffect(() => {
+	  if (!restaurant?.restaurant_name || !restaurant?.city) {
+		navigate("/dashboard/profile");
+	  } else if (!restaurant?.menu_uploaded) { // adjust this if your flag/column differs
+		navigate("/dashboard/menu-editor");
+	  }
+	}, [restaurant, navigate]);
   const [copied, setCopied] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState('png');
   const [qrColor, setQrColor] = useState('#E75A2F'); // Default to wtm-primary
