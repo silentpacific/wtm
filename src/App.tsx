@@ -1,13 +1,13 @@
 // src/App.tsx - Complete working solution
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Header';
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 
 // Import pages - CORRECTED to use the right files
 import RestaurantLandingPage from './pages/RestaurantLandingPage';
-import RestaurantSignupPage from './pages/RestaurantSignupPage';  // From pages folder
+import RestaurantSignupPage from './pages/RestaurantSignupPage';
 import RestaurantLoginPage from './pages/RestaurantLoginPage';
 import ConsumersPage from './pages/ConsumersPage';
 import ContactPage from './pages/ContactPage';
@@ -50,7 +50,6 @@ const Dashboard: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // If no restaurant profile, show simple setup message
   if (!restaurant) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -82,7 +81,6 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Show main dashboard for complete profiles
   return (
     <DashboardLayout>
       <div className="p-8">
@@ -92,26 +90,18 @@ const Dashboard: React.FC = () => {
         <p className="text-gray-600 mb-8">
           {restaurant.restaurant_name} Dashboard
         </p>
-
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
             <div className="space-y-3">
-              <a
-                href="/dashboard/menu-editor"
-                className="block w-full bg-orange-500 text-white text-center py-3 px-4 rounded-lg hover:bg-orange-600 transition-colors"
-              >
+              <a href="/dashboard/menu-editor" className="block w-full bg-orange-500 text-white text-center py-3 px-4 rounded-lg hover:bg-orange-600 transition-colors">
                 Menu Editor
               </a>
-              <a
-                href="/dashboard/qr-codes"
-                className="block w-full bg-blue-500 text-white text-center py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors"
-              >
+              <a href="/dashboard/qr-codes" className="block w-full bg-blue-500 text-white text-center py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors">
                 QR Codes
               </a>
             </div>
           </div>
-
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h3 className="text-lg font-semibold mb-4">Restaurant Info</h3>
             <p><strong>Name:</strong> {restaurant.restaurant_name}</p>
@@ -124,29 +114,23 @@ const Dashboard: React.FC = () => {
   );
 };
 
-// Protected route wrapper - SIMPLIFIED
+// Protected route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, authLoading } = useAuth();
-
   if (authLoading) return <LoadingPage />;
   if (!user) return <Navigate to="/login" replace />;
-  
   return <>{children}</>;
 };
 
 // Layout wrapper
-const Layout: React.FC<{ children: React.ReactNode; showHeader?: boolean }> = ({ 
-  children, 
-  showHeader = true 
-}) => {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {showHeader && <Header />}
-      <main>{children}</main>
-    </div>
-  );
-};
+const Layout: React.FC<{ children: React.ReactNode; showHeader?: boolean }> = ({ children, showHeader = true }) => (
+  <div className="min-h-screen bg-gray-50">
+    {showHeader && <Header />}
+    <main>{children}</main>
+  </div>
+);
 
+// Redirector
 const DashboardRedirector: React.FC = () => {
   const { restaurant } = useAuth();
   const navigate = useNavigate();
@@ -164,28 +148,29 @@ const DashboardRedirector: React.FC = () => {
   return null;
 };
 
-
 const App: React.FC = () => {
+  const { user } = useAuth(); // ✅ now defined here
+
   return (
     <AuthProvider>
       <Router>
         <Routes>
           {/* Public routes */}
-			<Route
-			  path="/"
-			  element={
-				user ? (
-				  <Navigate to="/dashboard" replace />
-				) : (
-				  <Layout><RestaurantLandingPage /></Layout>
-				)
-			  }
-			/>          <Route path="/restaurants" element={<Layout><RestaurantLandingPage /></Layout>} />
+          <Route
+            path="/"
+            element={
+              user ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <Layout><RestaurantLandingPage /></Layout>
+              )
+            }
+          />
+          <Route path="/restaurants" element={<Layout><RestaurantLandingPage /></Layout>} />
           <Route path="/consumers" element={<Layout><ConsumersPage /></Layout>} />
           <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
           <Route path="/faq" element={<Layout><FAQPage /></Layout>} />
           <Route path="/demos" element={<Layout><DemosPage /></Layout>} />
-		  
 
           {/* Auth routes */}
           <Route path="/signup" element={<Layout showHeader={false}><RestaurantSignupPage /></Layout>} />
