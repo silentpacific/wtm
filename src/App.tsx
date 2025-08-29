@@ -1,11 +1,11 @@
-// src/App.tsx - Complete working solution
+// src/App.tsx - Final fixed version
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Header';
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 
-// Import pages - CORRECTED to use the right files
+// Import pages
 import RestaurantLandingPage from './pages/RestaurantLandingPage';
 import RestaurantSignupPage from './pages/RestaurantSignupPage';
 import RestaurantLoginPage from './pages/RestaurantLoginPage';
@@ -40,15 +40,12 @@ const LoadingPage: React.FC = () => (
   </div>
 );
 
-// Dashboard component that handles both complete and incomplete profiles
+// Dashboard component
 const Dashboard: React.FC = () => {
   const { user, restaurant, authLoading } = useAuth();
 
   if (authLoading) return <LoadingPage />;
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
   if (!restaurant) {
     return (
@@ -62,16 +59,10 @@ const Dashboard: React.FC = () => {
               Please sign up again to complete your profile, or contact support if you need help.
             </p>
             <div className="space-y-3">
-              <a
-                href="/signup"
-                className="block w-full bg-orange-500 text-white py-3 px-6 rounded-xl hover:bg-orange-600 transition-colors"
-              >
+              <a href="/signup" className="block w-full bg-orange-500 text-white py-3 px-6 rounded-xl hover:bg-orange-600 transition-colors">
                 Complete Profile Setup
               </a>
-              <a
-                href="/contact"
-                className="block w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-xl hover:bg-gray-200 transition-colors"
-              >
+              <a href="/contact" className="block w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-xl hover:bg-gray-200 transition-colors">
                 Contact Support
               </a>
             </div>
@@ -87,9 +78,8 @@ const Dashboard: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Welcome back, {restaurant.owner_name || 'Restaurant Owner'}!
         </h1>
-        <p className="text-gray-600 mb-8">
-          {restaurant.restaurant_name} Dashboard
-        </p>
+        <p className="text-gray-600 mb-8">{restaurant.restaurant_name} Dashboard</p>
+
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
@@ -148,55 +138,59 @@ const DashboardRedirector: React.FC = () => {
   return null;
 };
 
-const App: React.FC = () => {
-  const { user } = useAuth(); // ✅ now defined here
+// App routes — now runs *inside* AuthProvider
+const AppRoutes: React.FC = () => {
+  const { user, authLoading } = useAuth();
+
+  if (authLoading) return <LoadingPage />;
 
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route
-            path="/"
-            element={
-              user ? (
-                <Navigate to="/dashboard" replace />
-              ) : (
-                <Layout><RestaurantLandingPage /></Layout>
-              )
-            }
-          />
-          <Route path="/restaurants" element={<Layout><RestaurantLandingPage /></Layout>} />
-          <Route path="/consumers" element={<Layout><ConsumersPage /></Layout>} />
-          <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
-          <Route path="/faq" element={<Layout><FAQPage /></Layout>} />
-          <Route path="/demos" element={<Layout><DemosPage /></Layout>} />
+    <Routes>
+      {/* Public routes */}
+      <Route
+        path="/"
+        element={
+          user ? <Navigate to="/dashboard" replace /> : <Layout><RestaurantLandingPage /></Layout>
+        }
+      />
+      <Route path="/restaurants" element={<Layout><RestaurantLandingPage /></Layout>} />
+      <Route path="/consumers" element={<Layout><ConsumersPage /></Layout>} />
+      <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
+      <Route path="/faq" element={<Layout><FAQPage /></Layout>} />
+      <Route path="/demos" element={<Layout><DemosPage /></Layout>} />
 
-          {/* Auth routes */}
-          <Route path="/signup" element={<Layout showHeader={false}><RestaurantSignupPage /></Layout>} />
-          <Route path="/login" element={<Layout showHeader={false}><RestaurantLoginPage /></Layout>} />
-          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      {/* Auth routes */}
+      <Route path="/signup" element={<Layout showHeader={false}><RestaurantSignupPage /></Layout>} />
+      <Route path="/login" element={<Layout showHeader={false}><RestaurantLoginPage /></Layout>} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-          {/* Dashboard routes */}
-          <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirector /></ProtectedRoute>} />
-          <Route path="/dashboard/profile" element={<ProtectedRoute><DashboardLayout><ProfilePage /></DashboardLayout></ProtectedRoute>} />
-          <Route path="/dashboard/qr-codes" element={<ProtectedRoute><DashboardLayout><QRCodesPage /></DashboardLayout></ProtectedRoute>} />
-          <Route path="/dashboard/menu-editor" element={<ProtectedRoute><DashboardLayout><MenuEditorPage /></DashboardLayout></ProtectedRoute>} />
-          <Route path="/dashboard/billing" element={<ProtectedRoute><DashboardLayout><BillingPage /></DashboardLayout></ProtectedRoute>} />
+      {/* Dashboard routes */}
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirector /></ProtectedRoute>} />
+      <Route path="/dashboard/profile" element={<ProtectedRoute><DashboardLayout><ProfilePage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/dashboard/qr-codes" element={<ProtectedRoute><DashboardLayout><QRCodesPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/dashboard/menu-editor" element={<ProtectedRoute><DashboardLayout><MenuEditorPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/dashboard/billing" element={<ProtectedRoute><DashboardLayout><BillingPage /></DashboardLayout></ProtectedRoute>} />
 
-          {/* Public menu routes */}
-          <Route path="/demos/sample-menu-1" element={<Layout><SampleMenu1 /></Layout>} />
-          <Route path="/demos/sample-menu-2" element={<Layout><SampleMenu2 /></Layout>} />
-          <Route path="/demos/sample-menu-3" element={<Layout><SampleMenu3 /></Layout>} />
-          <Route path="/demos/sample-menu-4" element={<Layout><SampleMenu4 /></Layout>} />
-          <Route path="/r/:slug" element={<Layout><PublicMenuPage /></Layout>} />
+      {/* Public menu routes */}
+      <Route path="/demos/sample-menu-1" element={<Layout><SampleMenu1 /></Layout>} />
+      <Route path="/demos/sample-menu-2" element={<Layout><SampleMenu2 /></Layout>} />
+      <Route path="/demos/sample-menu-3" element={<Layout><SampleMenu3 /></Layout>} />
+      <Route path="/demos/sample-menu-4" element={<Layout><SampleMenu4 /></Layout>} />
+      <Route path="/r/:slug" element={<Layout><PublicMenuPage /></Layout>} />
 
-          {/* Catch-all redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+      {/* Catch-all redirect */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 };
+
+const App: React.FC = () => (
+  <AuthProvider>
+    <Router>
+      {/* ✅ Now AppRoutes is rendered inside AuthProvider */}
+      <AppRoutes />
+    </Router>
+  </AuthProvider>
+);
 
 export default App;
