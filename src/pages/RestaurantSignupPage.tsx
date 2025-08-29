@@ -1,4 +1,4 @@
-// src/pages/RestaurantSignupPage.tsx - Removed manual navigation
+// src/pages/RestaurantSignupPage.tsx - With Success Message Flow
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Phone, MapPin, User, Building, Lock } from 'lucide-react';
@@ -22,6 +22,7 @@ const RestaurantSignupPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null); // ✅ success state
 
   // Don't render if user is already logged in - let App.tsx routing handle it
   if (user && !authLoading) {
@@ -93,11 +94,11 @@ const RestaurantSignupPage: React.FC = () => {
 
     setIsLoading(true);
     setErrors({});
+    setSuccess(null); // reset success message
 
     try {
-      // Debug logs go here 👇
       console.log("Raw email:", formData.email);
-      console.log("Normalized email:", JSON.stringify(formData.email.trim().toLowerCase()));
+      console.log("Normalized email:", formData.email.trim().toLowerCase());
 
       const cleanEmail = formData.email.replace(/['"]+/g, '').trim().toLowerCase();
 
@@ -112,7 +113,19 @@ const RestaurantSignupPage: React.FC = () => {
         city: formData.city,
       });
 
-      // DO NOT NAVIGATE HERE - Let the App.tsx routing handle it automatically
+      // ✅ show success message
+      setSuccess("Account created! Please check your email to confirm before logging in.");
+      setFormData({
+        restaurantName: '',
+        cuisineType: '',
+        address: '',
+        city: '',
+        phone: '',
+        ownerName: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+      });
     } catch (error: any) {
       console.error('Signup error:', error);
 
@@ -149,6 +162,13 @@ const RestaurantSignupPage: React.FC = () => {
         {/* Signup Form */}
         <div className="bg-white rounded-3xl border border-gray-100 p-10 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-8">
+            {/* ✅ Success Message */}
+            {success && (
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
+                <p className="text-green-700 font-medium">{success}</p>
+              </div>
+            )}
+
             {/* General Error */}
             {errors.general && (
               <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
