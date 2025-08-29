@@ -59,28 +59,26 @@ const MenuEditorPage: React.FC = () => {
 
   // Load existing menu data on component mount
   useEffect(() => {
-    loadExistingMenu();
-    loadRestaurantInfo();
+    if (user) {
+      loadRestaurantInfo();
+      loadExistingMenu();
+    }
   }, [user]);
 
   const loadRestaurantInfo = async () => {
-    if (!user) return;
-    
-    try {
-      const { data: profile } = await supabase
-        .from('user_restaurant_profiles')
-        .select('restaurant_name')
-        .eq('id', user.id)
-        .single();
-      
-      if (profile?.restaurant_name) {
-        const slug = profile.restaurant_name.toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/(^-|-$)/g, '');
-        setRestaurantSlug(slug);
-      }
-    } catch (error) {
+    const { data: profile, error } = await supabase
+      .from('user_restaurant_profiles')
+      .select('restaurant_name, url_slug')
+      .eq('auth_user_id', user.id) // ✅ fix query
+      .maybeSingle();
+
+    if (error) {
       console.error('Error loading restaurant info:', error);
+      return;
+    }
+
+    if (profile?.url_slug) {
+      setRestaurantSlug(profile.url_slug);
     }
   };
 
@@ -149,9 +147,18 @@ const MenuEditorPage: React.FC = () => {
           processingTime: 0
         });
       }
+	  
+	  else {
+  // ✅ ensure empty state renders when no menu exists
+  setMenuData(null);
+}
+
+
     } catch (error) {
       console.error('Error loading existing menu:', error);
-    }
+    } finally {
+	setIsLoading(false);   // ✅ ensures loading always ends
+	}
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {

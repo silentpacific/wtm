@@ -108,14 +108,14 @@ const ProfilePage: React.FC = () => {
           { onConflict: 'auth_user_id' }
         );
 
-      if (error) throw new Error(`Failed to save profile: ${error.message}`);
+      setMessage({ type: 'success', text: 'Profile saved successfully! Redirecting...' });
+		await refreshAuth();
 
-      setMessage({ type: 'success', text: 'Profile saved successfully!' });
-      await refreshAuth();
-
-      if (profile.restaurant_name && profile.city) {
-        window.location.href = "/dashboard/menu-editor";
-      }
+		if (profile.restaurant_name && profile.city) {
+		  setTimeout(() => {
+			window.location.href = "/dashboard/menu-editor";
+		  }, 3000); // wait 3 seconds
+		}
     } catch (err: any) {
       console.error('Save error:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to save changes' });
