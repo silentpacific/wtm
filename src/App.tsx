@@ -12,6 +12,8 @@ import FAQPage from "./pages/FAQPage";
 // Admin-only internal tools
 import MenuEditorPage from "./pages/MenuEditorPage";
 import QRCodesPage from "./pages/QRCodesPage";
+import RestaurantLoginPage from "./pages/RestaurantLoginPage";
+
 
 function AdminRoutes() {
   const { user } = useAuth();
@@ -34,22 +36,24 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-        <Routes>
-          {/* Public marketing routes */}
-          <Route path="/" element={<RestaurantLandingPage />} />
-          <Route path="/demos" element={<DemosPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/faq" element={<FAQPage />} />
+		<Routes>
+		  {/* Public marketing routes */}
+		  <Route path="/" element={<RestaurantLandingPage />} />
+		  <Route path="/demos" element={<DemosPage />} />
+		  <Route path="/contact" element={<ContactPage />} />
+		  <Route path="/faq" element={<FAQPage />} />
 
-          {/* Public menu page */}
-          <Route path="/r/:slug" element={<PublicMenuPage />} />
+		  {/* Public menu page */}
+		  <Route path="/r/:slug" element={<PublicMenuPage />} />
 
-          {/* Admin-only routes */}
-          <Route element={<AdminRoutes />} />
+		  {/* Admin login (still available, just no button on homepage) */}
+		  <Route path="/login" element={<RestaurantLoginPage />} />
 
-          {/* Catch-all redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+		  {/* Admin-only tools */}
+		  <Route element={<AdminRoutes />} />
+
+		  <Route path="*" element={<Navigate to="/" replace />} />
+		</Routes>
       </Router>
     </AuthProvider>
   );
