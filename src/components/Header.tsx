@@ -29,10 +29,10 @@ const Header: React.FC = () => {
           {/* Only when logged in */}
           {user && (
             <>
-              <Link to="/menu-editor" className="text-gray-700 hover:text-orange-600">
+              <Link to="/dashboard/menu-editor" className="text-gray-700 hover:text-orange-600">
                 Menu Scanner
               </Link>
-              <Link to="/qrcodes" className="text-gray-700 hover:text-orange-600">
+              <Link to="//dashboard/qr-codes" className="text-gray-700 hover:text-orange-600">
                 QR Codes
               </Link>
               <button
