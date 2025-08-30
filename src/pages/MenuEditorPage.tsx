@@ -184,7 +184,7 @@ const MenuEditorPage: React.FC = () => {
             <option value="">-- Choose a restaurant --</option>
             {restaurants.map(r => (
               <option key={r.id} value={r.auth_user_id}>
-                {r.restaurant_name}
+                {r.restaurant_name ? r.restaurant_name : r.email}
               </option>
             ))}
           </select>
