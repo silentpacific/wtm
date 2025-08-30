@@ -36,22 +36,10 @@ export interface MenuData {
 
 // --- Fetch all menus for a restaurant (with profile info) ---
 export async function getMenusByRestaurant(restaurantId: string) {
-  const { data, error } = await supabase
-    .from("menus")
-    .select(`
-      id,
-      name,
-      url_slug,
-      created_at,
-      user_restaurant_profiles (
-        restaurant_name,
-        city,
-        state,
-        country
-      )
-    `)
-    .eq("restaurant_id", restaurantId)
-    .order("created_at", { ascending: false });
+const { data, error } = await supabase
+  .from("menus_with_profiles")
+  .select("*")
+  .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching menus:", error);
