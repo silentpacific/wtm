@@ -1,19 +1,22 @@
-// netlify/functions/menu-scanner.ts - Updated with restaurantId param
+// netlify/functions/menu-scanner.ts
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { GoogleGenAI, Type } from "@google/genai";
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
-// Simple slug generator (avoids external dependency)
-function makeSlug(text: string): string {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')   // replace non-alphanumeric with -
-    .replace(/^-+|-+$/g, '');      // trim leading/trailing dashes
-}
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+);
 
-// Schema for menu extraction
+const geminiApiKey = process.env.GEMINI_API_KEY;
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+// --- Schema for Gemini ---
 const menuExtractionSchema = {
   type: Type.OBJECT,
   properties: {
@@ -23,8 +26,8 @@ const menuExtractionSchema = {
         name: { type: Type.STRING },
         address: { type: Type.STRING },
         phone: { type: Type.STRING },
-        website: { type: Type.STRING }
-      }
+        website: { type: Type.STRING },
+      },
     },
     sections: {
       type: Type.ARRAY,
@@ -39,202 +42,205 @@ const menuExtractionSchema = {
               properties: {
                 name: { type: Type.STRING },
                 description: { type: Type.STRING },
-                price: { type: Type.NUMBER }
+                price: { type: Type.NUMBER },
               },
-              required: ["name"]
-            }
-          }
+              required: ["name"],
+            },
+          },
         },
-        required: ["name", "dishes"]
-      }
-    }
+        required: ["name", "dishes"],
+      },
+    },
   },
-  required: ["sections"]
+  required: ["sections"],
 };
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const geminiApiKey = process.env.GEMINI_API_KEY;
-
-const supabaseAdmin = createClient(supabaseUrl || '', supabaseServiceKey || '');
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-// Generate unique menu ID
-function generateMenuId(): string {
-  return 'menu_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+// --- Helpers ---
+function makeSlug(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-// --- Save menu & dishes ---
-async function saveMenuToDatabase(menuId: string, restaurantId: string, menuData: any) {
-  try {
-    console.log(`Saving menu ${menuId} for restaurant ${restaurantId}`);
+function generateMenuId(): string {
+  return `menu_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
 
-    // Update restaurant info if AI extracted some
-    if (menuData.restaurant?.name) {
-      await supabaseAdmin
-        .from('user_restaurant_profiles')
-        .update({
-          restaurant_name: menuData.restaurant.name,
-          address: menuData.restaurant.address || null,
-          phone: menuData.restaurant.phone || null
-        })
-        .eq('auth_user_id', restaurantId);
-    }
+// --- Save parsed menu into Supabase ---
+async function saveMenuToDatabase(
+  menuId: string,
+  restaurantId: string,
+  menuData: any
+) {
+  const safeName = makeSlug(menuData.restaurant?.name || "menu");
+  const urlSlug = `${safeName}-${menuId.substring(5, 13)}`;
 
-    // Insert menu
-    const slug = makeSlug(menuData.restaurant?.name || "menu") + "-" + Date.now();
-    const { data: menu, error: menuError } = await supabaseAdmin
-      .from('menus')
+  const { data: menu, error: menuError } = await supabaseAdmin
+    .from("menus")
+    .insert({
+      id: menuId,
+      restaurant_id: restaurantId,
+      name: menuData.restaurant?.name || "Uploaded Menu",
+      url_slug: urlSlug,
+      status: "active",
+    })
+    .select()
+    .single();
+
+  if (menuError) throw menuError;
+
+  for (const [idx, section] of (menuData.sections || []).entries()) {
+    const { data: sec, error: secErr } = await supabaseAdmin
+      .from("menu_sections")
       .insert({
-        id: menuId,
-        restaurant_id: restaurantId,
-        name: menuData.restaurant?.name || 'Uploaded Menu',
-        url_slug: slug,
-        status: 'processing'
+        menu_id: menuId,
+        name: section.name,
+        display_order: idx,
       })
       .select()
       .single();
 
-    if (menuError) throw menuError;
-
-    // Insert sections + dishes
-    for (const [sectionIndex, section] of menuData.sections.entries()) {
-      const { data: sectionData, error: sectionError } = await supabaseAdmin
-        .from('menu_sections')
-        .insert({
-          menu_id: menuId,
-          name: section.name,
-          display_order: sectionIndex
-        })
-        .select()
-        .single();
-
-      if (sectionError) {
-        console.error('Section insert error:', sectionError);
-        continue;
-      }
-
-      if (section.dishes && section.dishes.length > 0) {
-        const dishInserts = section.dishes.map((dish: any, index: number) => ({
-          menu_id: menuId,
-          section_id: sectionData.id,
-          name: dish.name,
-          description: dish.description || null,
-          price: dish.price || null,
-          allergens: [],
-          dietary_tags: [],
-          explanation: null,
-          translations: {}
-        }));
-
-        const { error: dishError } = await supabaseAdmin
-          .from('menu_items')
-          .insert(dishInserts);
-
-        if (dishError) {
-          console.error('Dish insert error:', dishError);
-        } else {
-          console.log(`Inserted ${dishInserts.length} dishes into ${sectionData.name}`);
-        }
-      }
+    if (secErr) {
+      console.error("Section insert error:", secErr);
+      continue;
     }
 
-    return menu;
-  } catch (error) {
-    console.error('saveMenuToDatabase error:', error);
-    throw error;
+    if (section.dishes?.length) {
+      const inserts = section.dishes.map((d: any) => ({
+        menu_id: menuId,
+        section_id: sec.id,
+        name: d.name,
+        description: d.description || null,
+        price: d.price || null,
+        allergens: [],
+        dietary_tags: [],
+        explanation: null,
+        translations: {},
+      }));
+      const { error: dishErr } = await supabaseAdmin
+        .from("menu_items")
+        .insert(inserts);
+      if (dishErr) console.error("Dish insert error:", dishErr);
+    }
   }
+
+  return menu;
 }
 
+// --- Handler ---
 export const handler: Handler = async (event: HandlerEvent) => {
   const startTime = Date.now();
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: corsHeaders, body: '' };
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers: corsHeaders, body: "" };
   }
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: 'POST only' }) };
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "POST only" }),
+    };
   }
 
-  // Parse request
-  let requestBody;
+  let body;
   try {
-    requestBody = JSON.parse(event.body || '{}');
+    body = JSON.parse(event.body || "{}");
   } catch {
-    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid JSON' }) };
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Invalid JSON" }),
+    };
   }
 
-  const { fileData, fileName, mimeType, restaurantId } = requestBody;
+  const { fileData, fileName, mimeType, restaurantId } = body;
   if (!fileData || !fileName || !mimeType || !restaurantId) {
     return {
       statusCode: 400,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'fileData, fileName, mimeType, and restaurantId are required' })
+      body: JSON.stringify({
+        error: "fileData, fileName, mimeType, and restaurantId are required",
+      }),
+    };
+  }
+  if (!geminiApiKey) {
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Server misconfigured" }),
     };
   }
 
-  if (!geminiApiKey) {
-    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Server config missing' }) };
-  }
-
   try {
-    console.log(`Scanning menu for restaurant ${restaurantId}: ${fileName}`);
-
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
     const menuId = generateMenuId();
 
-    // Prompt
-    const extractionPrompt = `Extract the full menu structure... (same as before)`;
+    const extractionPrompt = `
+You are an AI that extracts restaurant menus from images. 
+Output ONLY valid JSON following the schema. 
+Rules:
+- Always output parsable JSON (no extra text).
+- Omit fields if not visible.
+- Include all menu sections in order.
+- Convert prices to numbers without currency symbols.
+    `.trim();
 
-    const menuParts = [
+    const parts = [
       { text: extractionPrompt },
       {
         inlineData: {
-          data: fileData.replace(/^data:[^;]+;base64,/, ''),
-          mimeType
-        }
-      }
+          data: fileData.replace(/^data:[^;]+;base64,/, ""),
+          mimeType,
+        },
+      },
     ];
 
-    const extractionResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: { parts: menuParts },
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: { parts },
       config: {
         responseMimeType: "application/json",
         responseSchema: menuExtractionSchema,
         temperature: 0.1,
-        maxOutputTokens: 8192
+        maxOutputTokens: 8192,
       },
     });
 
-    const menuData = JSON.parse(extractionResponse.text.trim());
+    const menuData = JSON.parse(response.text.trim());
 
-    // Validation
-    if (!menuData.sections?.length) throw new Error('No menu sections found');
-    const totalDishes = menuData.sections.reduce((n: number, s: any) => n + (s.dishes?.length || 0), 0);
-    if (totalDishes === 0) throw new Error('No dishes found');
+    if (!menuData.sections?.length)
+      throw new Error("No menu sections found");
+    const totalDishes = menuData.sections.reduce(
+      (sum, s) => sum + (s.dishes?.length || 0),
+      0
+    );
+    if (totalDishes === 0) throw new Error("No dishes found");
 
-    // Save
-    await saveMenuToDatabase(menuId, restaurantId, menuData);
+    const menu = await saveMenuToDatabase(menuId, restaurantId, menuData);
 
     const processingTime = Date.now() - startTime;
     return {
       statusCode: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       body: JSON.stringify({
         success: true,
         menuId,
-        data: { restaurant: menuData.restaurant || {}, sections: menuData.sections },
-        stats: { sections: menuData.sections.length, totalDishes, processingTime }
-      })
+        urlSlug: menu.url_slug,
+        data: { restaurant: menuData.restaurant, sections: menuData.sections },
+        stats: { sections: menuData.sections.length, totalDishes, processingTime },
+      }),
     };
-  } catch (error) {
-    console.error('menu-scanner error:', error);
-    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Menu processing failed' }) };
+  } catch (err: any) {
+    console.error("menu-scanner error:", err);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: err.message || "Menu processing failed",
+      }),
+    };
   }
 };
