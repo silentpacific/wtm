@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../services/supabaseClient";
+import { useAuth } from "../contexts/AuthContext";
 import {
   getMenusByRestaurant,
   getMenuWithSectionsAndItems,
   saveMenuDiff,
   Section,
+  MenuData,
 } from "../services/menuService";
 
 // --- Tag Chip Component ---
@@ -65,16 +67,17 @@ function TagChips({
 }
 
 export default function MenuEditorPage() {
+  const { user } = useAuth();
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
-  const [menus, setMenus] = useState<any[]>([]);
+  const [menus, setMenus] = useState<MenuData[]>([]);
   const [selectedMenu, setSelectedMenu] = useState<string>("");
   const [sections, setSections] = useState<Section[]>([]);
   const [originalSections, setOriginalSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchingTags, setFetchingTags] = useState(false);
 
-  // Fetch restaurants
+  // Fetch restaurants (profiles, just for display)
   useEffect(() => {
     const fetchRestaurants = async () => {
       const { data, error } = await supabase
@@ -85,15 +88,15 @@ export default function MenuEditorPage() {
     fetchRestaurants();
   }, []);
 
-  // Fetch menus when restaurant changes
+  // Fetch menus when restaurant changes (always tied to Auth user)
   useEffect(() => {
-    if (!selectedRestaurant) return;
+    if (!user?.id) return;
     (async () => {
-      const data = await getMenusByRestaurant(selectedRestaurant);
+      const data = await getMenusByRestaurant(user.id);
       setMenus(data);
       if (data.length) setSelectedMenu(data[0].id);
     })();
-  }, [selectedRestaurant]);
+  }, [user?.id, selectedRestaurant]);
 
   // Fetch sections/items when menu changes
   useEffect(() => {
@@ -111,6 +114,10 @@ export default function MenuEditorPage() {
       alert("Please select a restaurant first.");
       return;
     }
+    if (!user?.id) {
+      alert("No logged-in user found.");
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -125,12 +132,12 @@ export default function MenuEditorPage() {
             fileData: reader.result,
             fileName: file.name,
             mimeType: file.type,
-            restaurantId: selectedRestaurant,
+            restaurantId: user.id, // ✅ FIXED: use Supabase Auth user.id
           }),
         });
         const json = await res.json();
         if (json.success) {
-          const newMenus = await getMenusByRestaurant(selectedRestaurant);
+          const newMenus = await getMenusByRestaurant(user.id);
           setMenus(newMenus);
           setSelectedMenu(json.menuId);
           const data = await getMenuWithSectionsAndItems(json.menuId);
@@ -204,7 +211,7 @@ export default function MenuEditorPage() {
     <div className="max-w-3xl mx-auto px-6 py-8">
       <h1 className="text-2xl font-bold mb-6">Menu Editor</h1>
 
-      {/* Restaurant Selector */}
+      {/* Restaurant Selector (for display only) */}
       <div className="mb-6">
         <label className="block mb-2 font-semibold">Select Restaurant</label>
         <select
@@ -239,7 +246,8 @@ export default function MenuEditorPage() {
           >
             {menus.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.name} ({new Date(m.created_at).toLocaleDateString()})
+                {m.name} — {m.user_restaurant_profiles?.restaurant_name ?? "Unknown"} (
+                {new Date(m.created_at!).toLocaleDateString()})
               </option>
             ))}
           </select>
@@ -306,7 +314,8 @@ export default function MenuEditorPage() {
                   value={dish.description || ""}
                   onChange={(e) => {
                     const updated = [...sections];
-                    updated[sectionIdx].dishes[dishIdx].description = e.target.value;
+                    updated[sectionIdx].dishes[dishIdx].description =
+                      e.target.value;
                     setSections(updated);
                   }}
                 />
@@ -316,7 +325,9 @@ export default function MenuEditorPage() {
                   value={dish.price ? `$${dish.price.toFixed(2)}` : ""}
                   onChange={(e) => {
                     const updated = [...sections];
-                    const num = parseFloat(e.target.value.replace(/[^0-9.]/g, ""));
+                    const num = parseFloat(
+                      e.target.value.replace(/[^0-9.]/g, "")
+                    );
                     updated[sectionIdx].dishes[dishIdx].price = isNaN(num)
                       ? null
                       : num;

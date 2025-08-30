@@ -7,6 +7,8 @@ export interface Dish {
   name: string;
   description?: string | null;
   price?: number | null;
+  allergens?: string[];
+  dietary_tags?: string[];
 }
 
 export interface Section {
@@ -19,17 +21,35 @@ export interface Section {
 
 export interface MenuData {
   id: string; // UUID from DB
-  restaurant_id: string; // UUID from auth.users
+  restaurant_id: string; // Supabase Auth user.id
   name: string;
   url_slug: string;
-  sections: Section[];
+  created_at?: string;
+  user_restaurant_profiles?: {
+    restaurant_name: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+  } | null;
+  sections?: Section[];
 }
 
-// --- Fetch all menus for a restaurant ---
+// --- Fetch all menus for a restaurant (with profile info) ---
 export async function getMenusByRestaurant(restaurantId: string) {
   const { data, error } = await supabase
     .from("menus")
-    .select("id, name, url_slug, created_at")
+    .select(`
+      id,
+      name,
+      url_slug,
+      created_at,
+      user_restaurant_profiles (
+        restaurant_name,
+        city,
+        state,
+        country
+      )
+    `)
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false });
 
@@ -37,7 +57,7 @@ export async function getMenusByRestaurant(restaurantId: string) {
     console.error("Error fetching menus:", error);
     throw error;
   }
-  return data;
+  return data as MenuData[];
 }
 
 // --- Fetch menu with sections & dishes ---
@@ -55,7 +75,7 @@ export async function getMenuWithSectionsAndItems(menuId: string) {
 
   const { data: items, error: itemError } = await supabase
     .from("menu_items")
-    .select("id, section_id, name, description, price")
+    .select("id, section_id, name, description, price, allergens, dietary_tags")
     .eq("menu_id", menuId);
 
   if (itemError) {
