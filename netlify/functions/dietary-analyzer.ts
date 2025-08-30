@@ -34,14 +34,16 @@ async function analyzeBatch(ai: any, dishes: any[]) {
 You are an AI that extracts allergens and dietary tags from dish names and descriptions. 
 Return ONLY valid JSON for each dish in this format:
 
-{
-  "dish": "Dish name",
-  "allergens": ["list of allergens"],
-  "dietary_tags": ["list of dietary/diet tags"]
-}
+[
+  {
+    "dish": "Dish name",
+    "allergens": ["list of allergens"],
+    "dietary_tags": ["list of dietary/diet tags"]
+  }
+]
 
 Rules:
-- "dish" must match the provided dish name.
+- "dish" must match the provided dish name exactly.
 - If no allergens or dietary tags are clear, return empty arrays.
 - Use lowercase terms for tags.
 - No free text outside JSON.
@@ -76,9 +78,9 @@ Rules:
     });
 
     const text = response.text.trim();
-
-    // Gemini may return array of dish objects
     const parsed = JSON.parse(text);
+
+    // Always return array of dish objects
     return Array.isArray(parsed) ? parsed : [parsed];
   } catch (err) {
     console.error("analyzeBatch error:", err);
@@ -98,7 +100,17 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  const body = JSON.parse(event.body || "{}");
+  let body: any;
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Invalid JSON" }),
+    };
+  }
+
   const { menuId } = body;
   if (!menuId) {
     return {
@@ -116,7 +128,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    // Fetch dishes
+    // Fetch dishes for this menu
     const { data: items, error } = await supabaseAdmin
       .from("menu_items")
       .select("id, name, description")
@@ -130,9 +142,10 @@ export const handler: Handler = async (event) => {
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
     const updatedItems: any[] = [];
 
-    // Process in batches
+    // Process dishes in batches
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
       const batch = items.slice(i, i + BATCH_SIZE);
+
       try {
         const results = await analyzeBatch(ai, batch);
 
@@ -159,12 +172,14 @@ export const handler: Handler = async (event) => {
           }
         }
       } catch (batchErr) {
-        console.error("Batch failed, retrying:", batchErr);
+        console.error("Batch failed, retrying once:", batchErr);
+
         try {
-          const results = await analyzeBatch(ai, batch); // retry once
+          const results = await analyzeBatch(ai, batch);
           for (const result of results) {
             const item = items.find((d) => d.name === result.dish);
             if (!item) continue;
+
             const { error: updateError } = await supabaseAdmin
               .from("menu_items")
               .update({
@@ -172,6 +187,7 @@ export const handler: Handler = async (event) => {
                 dietary_tags: result.dietary_tags || [],
               })
               .eq("id", item.id);
+
             if (!updateError) {
               updatedItems.push({
                 id: item.id,

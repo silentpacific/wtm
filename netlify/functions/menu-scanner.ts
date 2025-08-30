@@ -2,6 +2,7 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
+import { v4 as uuidv4 } from "uuid";  // ✅ NEW import
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || "",
@@ -65,10 +66,6 @@ function makeSlug(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-function generateMenuId(): string {
-  return `menu_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
-
 // --- Save parsed menu into Supabase ---
 async function saveMenuToDatabase(
   menuId: string,
@@ -76,7 +73,7 @@ async function saveMenuToDatabase(
   menuData: any
 ) {
   const safeName = makeSlug(menuData.restaurant?.name || "menu");
-  const urlSlug = `${safeName}-${menuId.substring(5, 13)}`;
+  const urlSlug = `${safeName}-${menuId.substring(0, 8)}`; // ✅ updated substring since UUID is different
 
   const { data: menu, error: menuError } = await supabaseAdmin
     .from("menus")
@@ -176,7 +173,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
   try {
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-    const menuId = generateMenuId();
+    const menuId = uuidv4(); // ✅ Generate proper UUID
 
     const extractionPrompt = `
 You are an AI that extracts restaurant menus from images. 
