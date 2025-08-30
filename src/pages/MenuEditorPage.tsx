@@ -67,9 +67,8 @@ const MenuEditorPage: React.FC = () => {
 
   const loadRestaurants = async () => {
     const { data, error } = await supabase
-      .from('user_restaurant_profiles')
-      .select('id, auth_user_id, restaurant_name')
-      .order('restaurant_name');
+	  .from("user_restaurant_profiles")
+	  .select("id, restaurant_name");
 
     if (error) {
       console.error('Error loading restaurants:', error);
