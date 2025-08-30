@@ -2,6 +2,7 @@
 import type { Handler, HandlerEvent } from "@netlify/functions";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from '@supabase/supabase-js';
+import slugify from "slugify";
 
 // Schema for menu extraction - optimized for speed
 const menuExtractionSchema = {
@@ -12,8 +13,7 @@ const menuExtractionSchema = {
       properties: {
         name: { type: Type.STRING, description: "Restaurant name if visible" },
         address: { type: Type.STRING, description: "Restaurant address if visible" },
-        phone: { type: Type.STRING, description: "Restaurant phone if visible" },
-        website: { type: Type.STRING, description: "Restaurant website if visible" }
+        phone: { type: Type.STRING, description: "Restaurant phone if visible" }
       }
     },
     sections: {
@@ -86,25 +86,30 @@ async function saveMenuToDatabase(menuId: string, userId: string, menuData: any)
       const { error: restaurantError } = await supabaseAdmin
         .from('user_restaurant_profiles')
         .update({
-          name: menuData.restaurant.name,
+          restaurant_name: menuData.restaurant.name,
           address: menuData.restaurant.address || null,
-          phone: menuData.restaurant.phone || null,
-          website: menuData.restaurant.website || null
+          phone: menuData.restaurant.phone || null
         })
         .eq('auth_user_id', userId);
-      
+
       if (restaurantError) {
         console.warn('Failed to update restaurant info:', restaurantError);
       }
     }
 
-    // 2. Save menu
+    // 2. Save menu with slug
+    const slug = slugify(
+      (menuData.restaurant?.name || "menu") + "-" + Date.now(),
+      { lower: true, strict: true }
+    );
+
     const { data: menu, error: menuError } = await supabaseAdmin
       .from('menus')
       .insert({
         id: menuId,
         restaurant_id: userId,
         name: menuData.restaurant?.name || 'Uploaded Menu',
+        url_slug: slug,
         status: 'processing'
       })
       .select()
@@ -136,18 +141,17 @@ async function saveMenuToDatabase(menuId: string, userId: string, menuData: any)
 
       console.log(`Section saved: ${sectionData.name} (${section.dishes?.length || 0} dishes)`);
 
-      // Save dishes for this section
       if (section.dishes && section.dishes.length > 0) {
-        const dishInserts = section.dishes.map((dish: any, index: number) => ({
+        const dishInserts = section.dishes.map((dish: any) => ({
           menu_id: menuId,
           section_id: sectionData.id,
           name: dish.name,
           description: dish.description || null,
           price: dish.price || null,
-          display_order: index,
           allergens: [],
           dietary_tags: [],
-          needs_dietary_analysis: true
+          explanation: null,
+          translations: {}
         }));
 
         const { error: dishError } = await supabaseAdmin
@@ -162,7 +166,7 @@ async function saveMenuToDatabase(menuId: string, userId: string, menuData: any)
       }
     }
 
-    return menu;
+    return menu; // ⬅️ moved here, after loop
   } catch (error) {
     console.error('Database save error:', error);
     throw error;
