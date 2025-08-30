@@ -1,267 +1,380 @@
-// src/pages/MenuEditorPage.tsx - Enhanced with restaurant dropdown
-import React, { useState, useEffect } from 'react';
-import { 
-  Upload, FileImage, FileText, Loader, AlertCircle, CheckCircle 
-} from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../services/supabaseClient';
+import { useEffect, useState } from "react";
+import { supabase } from "../services/supabaseClient";
+import {
+  getMenusByRestaurant,
+  getMenuWithSectionsAndItems,
+  saveMenuDiff,
+  Section,
+} from "../services/menuService";
 
-interface RestaurantProfile {
-  id: string;
-  auth_user_id: string;
-  restaurant_name: string;
-}
+// --- Tag Chip Component ---
+function TagChips({
+  tags,
+  onChange,
+  color,
+  placeholder,
+}: {
+  tags: string[];
+  onChange: (newTags: string[]) => void;
+  color: string;
+  placeholder: string;
+}) {
+  const [input, setInput] = useState("");
 
-interface RestaurantInfo {
-  name?: string;
-  address?: string;
-  phone?: string;
-  website?: string;
-}
-
-interface Dish {
-  id?: string;
-  name: string;
-  description: string;
-  price: number | null;
-  allergens: string[];
-  dietary_tags: string[];
-}
-
-interface MenuSection {
-  name: string;
-  dishes: Dish[];
-}
-
-interface MenuData {
-  menuId?: string;
-  restaurant: RestaurantInfo;
-  sections: MenuSection[];
-}
-
-interface ScanStats {
-  sections: number;
-  totalDishes: number;
-  processingTime: number;
-}
-
-const MenuEditorPage: React.FC = () => {
-  const { user } = useAuth();
-
-  // NEW: restaurant state
-  const [restaurants, setRestaurants] = useState<RestaurantProfile[]>([]);
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string>("");
-
-  const [file, setFile] = useState<File | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [menuData, setMenuData] = useState<MenuData | null>(null);
-  const [scanStats, setScanStats] = useState<ScanStats | null>(null);
-  const [currentMenuId, setCurrentMenuId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      loadRestaurants();
-    }
-  }, [user]);
-
-  const loadRestaurants = async () => {
-    const { data, error } = await supabase
-	  .from("user_restaurant_profiles")
-	  .select("id, restaurant_name");
-
-    if (error) {
-      console.error('Error loading restaurants:', error);
-      return;
-    }
-    setRestaurants(data || []);
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) {
-      const supportedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-      if (!supportedTypes.includes(selectedFile.type)) {
-        setScanError('Please upload a JPG, PNG, or PDF file.');
-        return;
-      }
-      if (selectedFile.size > 10 * 1024 * 1024) {
-        setScanError('File size must be less than 10MB.');
-        return;
-      }
-      setFile(selectedFile);
-      setScanError(null);
+  const addTag = () => {
+    if (input.trim() && !tags.includes(input.trim().toLowerCase())) {
+      onChange([...tags, input.trim().toLowerCase()]);
+      setInput("");
     }
   };
 
-  const convertFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const scanMenu = async () => {
-    if (!file) return;
-    if (!selectedRestaurantId) {
-      setScanError("Please select a restaurant first.");
-      return;
-    }
-
-    setIsScanning(true);
-    setScanError(null);
-
-    try {
-      const base64Data = await convertFileToBase64(file);
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.access_token) {
-        throw new Error('Authentication required');
-      }
-
-      const response = await fetch('/.netlify/functions/menu-scanner', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          restaurantId: selectedRestaurantId,   // ✅ send restaurant choice
-          fileData: base64Data,
-          fileName: file.name,
-          mimeType: file.type,
-          existingMenuId: currentMenuId
-        })
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || `HTTP ${response.status}`);
-      }
-
-      setMenuData({
-        menuId: result.menuId,
-        restaurant: result.data.restaurant || {},
-        sections: result.data.sections.map((section: any) => ({
-          ...section,
-          dishes: section.dishes.map((dish: any) => ({
-            ...dish,
-            allergens: dish.allergens || [],
-            dietary_tags: dish.dietary_tags || []
-          }))
-        }))
-      });
-      setCurrentMenuId(result.menuId);
-      setScanStats(result.stats);
-
-    } catch (error) {
-      console.error('Menu scan error:', error);
-      setScanError(error instanceof Error ? error.message : 'Failed to scan menu');
-    } finally {
-      setIsScanning(false);
-    }
+  const removeTag = (idx: number) => {
+    const newTags = [...tags];
+    newTags.splice(idx, 1);
+    onChange(newTags);
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="card p-6 mb-8">
-        <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--wtm-text)' }}>
-          Menu Scanner & Editor
-        </h1>
-
-        {/* Restaurant Dropdown */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
-            Select Restaurant
-          </label>
-          <select
-            value={selectedRestaurantId}
-            onChange={(e) => setSelectedRestaurantId(e.target.value)}
-            className="input-field w-full"
+    <div className="mb-2">
+      <div className="flex flex-wrap gap-2 mb-2">
+        {tags.map((tag, idx) => (
+          <span
+            key={idx}
+            className={`inline-flex items-center px-2 py-1 rounded-full text-sm ${color}`}
           >
-            <option value="">-- Choose a restaurant --</option>
-            {restaurants.map(r => (
-              <option key={r.id} value={r.auth_user_id}>
-                {r.restaurant_name ? r.restaurant_name : r.email}
+            {tag}
+            <button
+              type="button"
+              className="ml-2 text-xs font-bold"
+              onClick={() => removeTag(idx)}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+      <input
+        className="border rounded-lg p-2 w-full"
+        placeholder={placeholder}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
+      />
+    </div>
+  );
+}
+
+export default function MenuEditorPage() {
+  const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
+  const [menus, setMenus] = useState<any[]>([]);
+  const [selectedMenu, setSelectedMenu] = useState<string>("");
+  const [sections, setSections] = useState<Section[]>([]);
+  const [originalSections, setOriginalSections] = useState<Section[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [fetchingTags, setFetchingTags] = useState(false);
+
+  // Fetch restaurants
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      const { data, error } = await supabase
+        .from("user_restaurant_profiles")
+        .select("id, restaurant_name");
+      if (!error) setRestaurants(data || []);
+    };
+    fetchRestaurants();
+  }, []);
+
+  // Fetch menus when restaurant changes
+  useEffect(() => {
+    if (!selectedRestaurant) return;
+    (async () => {
+      const data = await getMenusByRestaurant(selectedRestaurant);
+      setMenus(data);
+      if (data.length) setSelectedMenu(data[0].id);
+    })();
+  }, [selectedRestaurant]);
+
+  // Fetch sections/items when menu changes
+  useEffect(() => {
+    if (!selectedMenu) return;
+    (async () => {
+      const data = await getMenuWithSectionsAndItems(selectedMenu);
+      setSections(data);
+      setOriginalSections(JSON.parse(JSON.stringify(data)));
+    })();
+  }, [selectedMenu]);
+
+  // Upload new menu
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedRestaurant) {
+      alert("Please select a restaurant first.");
+      return;
+    }
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const res = await fetch("/.netlify/functions/menu-scanner", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileData: reader.result,
+            fileName: file.name,
+            mimeType: file.type,
+            restaurantId: selectedRestaurant,
+          }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          const newMenus = await getMenusByRestaurant(selectedRestaurant);
+          setMenus(newMenus);
+          setSelectedMenu(json.menuId);
+          const data = await getMenuWithSectionsAndItems(json.menuId);
+          setSections(data);
+          setOriginalSections(JSON.parse(JSON.stringify(data)));
+        } else alert("Menu scan failed: " + json.error);
+      } catch (err) {
+        console.error(err);
+        alert("Upload failed");
+      } finally {
+        setLoading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // --- Fetch Tags from Gemini ---
+  const handleFetchTags = async () => {
+    if (!selectedMenu) return;
+    setFetchingTags(true);
+    try {
+      const res = await fetch("/.netlify/functions/dietary-analyzer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ menuId: selectedMenu }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        const updatedData = await getMenuWithSectionsAndItems(selectedMenu);
+        setSections(updatedData);
+        setOriginalSections(JSON.parse(JSON.stringify(updatedData)));
+      } else {
+        alert("Failed: " + json.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error fetching tags");
+    } finally {
+      setFetchingTags(false);
+    }
+  };
+
+  // Save changes
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      await saveMenuDiff(selectedMenu, sections, originalSections);
+      setOriginalSections(JSON.parse(JSON.stringify(sections)));
+      alert("Menu saved!");
+    } catch (err) {
+      console.error(err);
+      alert("Error saving");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helpers for editing tags in local state
+  const updateTags = (
+    sectionIdx: number,
+    dishIdx: number,
+    field: "allergens" | "dietary_tags",
+    newTags: string[]
+  ) => {
+    const updated = [...sections];
+    (updated[sectionIdx].dishes[dishIdx] as any)[field] = newTags;
+    setSections(updated);
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto px-6 py-8">
+      <h1 className="text-2xl font-bold mb-6">Menu Editor</h1>
+
+      {/* Restaurant Selector */}
+      <div className="mb-6">
+        <label className="block mb-2 font-semibold">Select Restaurant</label>
+        <select
+          value={selectedRestaurant}
+          onChange={(e) => setSelectedRestaurant(e.target.value)}
+          className="w-full border rounded-lg p-2"
+        >
+          <option value="">-- Choose a restaurant --</option>
+          {restaurants.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.restaurant_name || r.id}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Upload */}
+      <div className="mb-8">
+        <label className="block mb-2 font-semibold">Upload New Menu</label>
+        <input type="file" onChange={handleFileUpload} />
+        {loading && <p className="text-sm text-gray-500 mt-2">Processing...</p>}
+      </div>
+
+      {/* Menu Selector */}
+      {menus.length > 0 && (
+        <div className="mb-6">
+          <label className="block mb-2 font-semibold">Select Menu</label>
+          <select
+            value={selectedMenu}
+            onChange={(e) => setSelectedMenu(e.target.value)}
+            className="w-full border rounded-lg p-2"
+          >
+            {menus.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name} ({new Date(m.created_at).toLocaleDateString()})
               </option>
             ))}
           </select>
         </div>
+      )}
 
-        {/* File Upload */}
-        <div className="border-2 border-dashed rounded-lg p-8 text-center" 
-             style={{ borderColor: 'var(--wtm-muted)' }}>
-          <input
-            type="file"
-            id="menu-file"
-            accept="image/*,application/pdf"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          <label htmlFor="menu-file" className="cursor-pointer">
-            <div className="flex flex-col items-center">
-              <Upload className="w-12 h-12 mb-4" style={{ color: 'var(--wtm-muted)' }} />
-              <p className="text-lg font-medium mb-2" style={{ color: 'var(--wtm-text)' }}>
-                Upload Menu Image or PDF
-              </p>
-              <p className="text-sm" style={{ color: 'var(--wtm-muted)' }}>
-                Supports JPG, PNG, and PDF files up to 10MB
-              </p>
-            </div>
-          </label>
+      {/* Save + Fetch Tags + Live links (top) */}
+      {selectedMenu && (
+        <div className="flex flex-wrap gap-4 mb-6">
+          <button
+            onClick={handleSave}
+            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
+          >
+            Save Menu
+          </button>
+          <button
+            onClick={handleFetchTags}
+            disabled={fetchingTags}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {fetchingTags ? "Fetching Tags..." : "Fetch Tags"}
+          </button>
+          <a
+            href={`/r/${menus.find((m) => m.id === selectedMenu)?.url_slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
+          >
+            Visit Live Page
+          </a>
         </div>
+      )}
 
-        {file && (
-          <div className="mt-4 p-4 rounded-lg flex items-center justify-between" 
-               style={{ backgroundColor: 'var(--chip-shell-bg)' }}>
-            <div className="flex items-center">
-              {file.type === 'application/pdf' ? (
-                <FileText className="w-8 h-8 mr-3" style={{ color: 'var(--chip-shell-fg)' }} />
-              ) : (
-                <FileImage className="w-8 h-8 mr-3" style={{ color: 'var(--chip-shell-fg)' }} />
-              )}
-              <div>
-                <p className="font-medium" style={{ color: 'var(--chip-shell-fg)' }}>{file.name}</p>
-                <p className="text-sm" style={{ color: 'var(--chip-shell-fg)' }}>
-                  {(file.size / 1024 / 1024).toFixed(1)} MB
-                </p>
+      {/* Editable Sections */}
+      {sections.map((section, sectionIdx) => (
+        <div key={section.id || sectionIdx} className="mb-8 border rounded-lg p-4">
+          <input
+            className="text-xl font-semibold w-full border-b p-2 mb-4"
+            value={section.name}
+            onChange={(e) => {
+              const updated = [...sections];
+              updated[sectionIdx].name = e.target.value;
+              setSections(updated);
+            }}
+          />
+
+          {/* Dishes */}
+          <div className="ml-4">
+            {section.dishes.map((dish: any, dishIdx: number) => (
+              <div key={dish.id || dishIdx} className="mb-6 border-b pb-4">
+                <input
+                  className="border rounded-lg p-2 mb-2 w-full"
+                  placeholder="Dish name"
+                  value={dish.name}
+                  onChange={(e) => {
+                    const updated = [...sections];
+                    updated[sectionIdx].dishes[dishIdx].name = e.target.value;
+                    setSections(updated);
+                  }}
+                />
+                <textarea
+                  className="border rounded-lg p-2 mb-2 w-full"
+                  placeholder="Description"
+                  value={dish.description || ""}
+                  onChange={(e) => {
+                    const updated = [...sections];
+                    updated[sectionIdx].dishes[dishIdx].description = e.target.value;
+                    setSections(updated);
+                  }}
+                />
+                <input
+                  className="border rounded-lg p-2 mb-2 w-full"
+                  placeholder="$12.50"
+                  value={dish.price ? `$${dish.price.toFixed(2)}` : ""}
+                  onChange={(e) => {
+                    const updated = [...sections];
+                    const num = parseFloat(e.target.value.replace(/[^0-9.]/g, ""));
+                    updated[sectionIdx].dishes[dishIdx].price = isNaN(num)
+                      ? null
+                      : num;
+                    setSections(updated);
+                  }}
+                />
+
+                {/* Allergen tags */}
+                <TagChips
+                  tags={dish.allergens || []}
+                  onChange={(newTags) =>
+                    updateTags(sectionIdx, dishIdx, "allergens", newTags)
+                  }
+                  color="bg-red-100 text-red-700"
+                  placeholder="Add allergen and press Enter"
+                />
+
+                {/* Dietary tags */}
+                <TagChips
+                  tags={dish.dietary_tags || []}
+                  onChange={(newTags) =>
+                    updateTags(sectionIdx, dishIdx, "dietary_tags", newTags)
+                  }
+                  color="bg-green-100 text-green-700"
+                  placeholder="Add dietary tag and press Enter"
+                />
               </div>
-            </div>
-            <button
-              onClick={scanMenu}
-              disabled={isScanning}
-              className={`btn flex items-center ${
-                isScanning ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-primary'
-              }`}
-            >
-              {isScanning ? (
-                <>
-                  <Loader className="w-4 h-4 mr-2 animate-spin" />
-                  Scanning...
-                </>
-              ) : (
-                menuData ? 'Add to Menu' : 'Scan Menu'
-              )}
-            </button>
+            ))}
           </div>
-        )}
+        </div>
+      ))}
 
-        {scanError && (
-          <div className="mt-4 p-4 rounded-lg flex items-start bg-red-50 border border-red-200">
-            <AlertCircle className="w-5 h-5 mr-3 mt-0.5 text-red-600" />
-            <div>
-              <p className="font-medium text-red-800">Scan Error</p>
-              <p className="text-sm text-red-700">{scanError}</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Rest of your editor UI (dietary analysis, dish editing, save) stays unchanged */}
+      {/* Save + Fetch Tags + Live links (bottom) */}
+      {selectedMenu && (
+        <div className="flex flex-wrap gap-4 mt-6">
+          <button
+            onClick={handleSave}
+            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
+          >
+            Save Menu
+          </button>
+          <button
+            onClick={handleFetchTags}
+            disabled={fetchingTags}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {fetchingTags ? "Fetching Tags..." : "Fetch Tags"}
+          </button>
+          <a
+            href={`/r/${menus.find((m) => m.id === selectedMenu)?.url_slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
+          >
+            Visit Live Page
+          </a>
+        </div>
+      )}
     </div>
   );
-};
-
-export default MenuEditorPage;
+}

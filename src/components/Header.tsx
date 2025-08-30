@@ -10,9 +10,11 @@ const Header: React.FC = () => {
     <header className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         {/* Logo */}
-        <Link to="/" className="text-xl font-bold text-orange-600">
-          WhatTheMenu
-        </Link>
+          <Link to="/" className="inline-block mb-8">
+            <span className="text-3xl font-bold text-wtm-text tracking-tight">
+              WhatThe<span className="text-wtm-primary">Menu</span>
+            </span>
+          </Link>
 
         <nav className="flex items-center space-x-6">
           {/* Always visible */}

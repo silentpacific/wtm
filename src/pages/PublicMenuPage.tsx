@@ -1,228 +1,137 @@
-// src/pages/PublicMenuPage.tsx - Public menu display using restaurant slug
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '../services/supabaseClient';
-import RestaurantMenuPage from '../components/RestaurantMenuPage';
-import { Loader, AlertCircle } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { supabase } from "../services/supabaseClient";
 
-interface MenuItem {
-  id: string;
-  section: string;
-  name: Record<string, string>;
-  description: Record<string, string>;
-  price: number;
-  allergens: string[];
-  dietaryTags: string[];
-  explanation: Record<string, string>;
-}
-
-interface MenuData {
-  restaurantName: Record<string, string>;
-  menuItems: MenuItem[];
-  sections: Record<string, string[]>;
-}
-
-const PublicMenuPage: React.FC = () => {
-  const { restaurantSlug } = useParams<{ restaurantSlug: string }>();
-  const [menuData, setMenuData] = useState<MenuData | null>(null);
+export default function PublicMenuPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const [menu, setMenu] = useState<any>(null);
+  const [sections, setSections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (restaurantSlug) {
-      loadMenuData();
-    }
-  }, [restaurantSlug]);
+    const fetchMenu = async () => {
+      setLoading(true);
+      // Get menu by slug
+      const { data: menuData, error: menuError } = await supabase
+        .from("menus")
+        .select("id, name, url_slug")
+        .eq("url_slug", slug)
+        .single();
 
-  const loadMenuData = async () => {
-    if (!restaurantSlug) return;
+      if (menuError || !menuData) {
+        console.error(menuError);
+        setLoading(false);
+        return;
+      }
+      setMenu(menuData);
 
-    setLoading(true);
-    setError(null);
+      // Get sections
+      const { data: sectionData, error: sectionError } = await supabase
+        .from("menu_sections")
+        .select("id, name, display_order")
+        .eq("menu_id", menuData.id)
+        .order("display_order");
 
-    try {
-      // Step 1: Find all restaurants and create slugs to match
-      const { data: allRestaurants, error: restaurantError } = await supabase
-        .from('user_restaurant_profiles')
-        .select('id, restaurant_name')
-        .not('restaurant_name', 'is', null);
-
-      if (restaurantError) throw restaurantError;
-
-      if (!allRestaurants || allRestaurants.length === 0) {
-        throw new Error('No restaurants found');
+      if (sectionError) {
+        console.error(sectionError);
+        setLoading(false);
+        return;
       }
 
-      // Step 2: Find matching restaurant by creating slug from each name
-      let matchingRestaurant = null;
-      
-      for (const restaurant of allRestaurants) {
-        if (restaurant.restaurant_name) {
-          const generatedSlug = restaurant.restaurant_name.toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)/g, '');
-          
-          if (generatedSlug === restaurantSlug) {
-            matchingRestaurant = restaurant;
-            break;
-          }
-        }
+      // Get items
+      const { data: itemData, error: itemError } = await supabase
+        .from("menu_items")
+        .select("id, section_id, name, description, price, allergens, dietary_tags")
+        .eq("menu_id", menuData.id);
+
+      if (itemError) {
+        console.error(itemError);
+        setLoading(false);
+        return;
       }
 
-      if (!matchingRestaurant) {
-        throw new Error(`Restaurant with URL "${restaurantSlug}" not found`);
-      }
+      const structuredSections = (sectionData || []).map((s) => ({
+        ...s,
+        dishes: (itemData || []).filter((i) => i.section_id === s.id),
+      }));
 
-      // Step 3: Get the active menu for this restaurant
-      const { data: menus, error: menuError } = await supabase
-        .from('menus')
-        .select(`
-          id,
-          name,
-          status,
-          menu_sections (
-            id,
-            name,
-            display_order,
-            menu_items (
-              id,
-              name,
-              description,
-              price,
-              allergens,
-              dietary_tags,
-              display_order
-            )
-          )
-        `)
-        .eq('restaurant_id', matchingRestaurant.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (menuError) throw menuError;
-
-      if (!menus || menus.length === 0) {
-        throw new Error(`No published menu found for ${matchingRestaurant.restaurant_name}. The restaurant may still be setting up their menu.`);
-      }
-
-      const menu = menus[0];
-
-      // Step 4: Transform the data to match RestaurantMenuPage format
-      const sections = (menu.menu_sections || [])
-        .sort((a: any, b: any) => a.display_order - b.display_order)
-        .map((section: any) => ({
-          name: section.name,
-          items: (section.menu_items || [])
-            .sort((a: any, b: any) => a.display_order - b.display_order)
-            .map((item: any) => ({
-              id: item.id,
-              section: section.name,
-              name: {
-                en: item.name,
-                zh: item.name,
-                es: item.name,
-                fr: item.name
-              },
-              description: {
-                en: item.description || '',
-                zh: item.description || '',
-                es: item.description || '',
-                fr: item.description || ''
-              },
-              price: parseFloat(item.price) || 0,
-              allergens: item.allergens || [],
-              dietaryTags: item.dietary_tags || [],
-              explanation: {
-                en: item.description || '',
-                zh: item.description || '',
-                es: item.description || '',
-                fr: item.description || ''
-              }
-            }))
-        }));
-
-      // Step 5: Flatten items for RestaurantMenuPage format
-      const menuItems = sections.flatMap(section => section.items);
-
-      const formattedMenuData: MenuData = {
-        restaurantName: {
-          en: matchingRestaurant.restaurant_name,
-          zh: matchingRestaurant.restaurant_name,
-          es: matchingRestaurant.restaurant_name,
-          fr: matchingRestaurant.restaurant_name
-        },
-        menuItems,
-        sections: {
-          en: sections.map(s => s.name),
-          zh: sections.map(s => s.name),
-          es: sections.map(s => s.name),
-          fr: sections.map(s => s.name)
-        }
-      };
-
-      setMenuData(formattedMenuData);
-
-    } catch (err) {
-      console.error('Error loading menu:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load menu');
-    } finally {
+      setSections(structuredSections);
       setLoading(false);
-    }
-  };
+    };
+
+    fetchMenu();
+  }, [slug]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-wtm-bg flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-wtm-primary" />
-          <p className="text-wtm-muted">Loading menu...</p>
-        </div>
+      <div className="max-w-3xl mx-auto px-6 py-8">
+        <p>Loading menu...</p>
       </div>
     );
   }
 
-  if (error) {
+  if (!menu) {
     return (
-      <div className="min-h-screen bg-wtm-bg flex items-center justify-center px-6">
-        <div className="max-w-md w-full text-center">
-          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
-          <h1 className="text-2xl font-bold text-wtm-text mb-4">Menu Not Found</h1>
-          <p className="text-wtm-muted mb-6">{error}</p>
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <h2 className="font-semibold text-wtm-text mb-2">Restaurant Owner?</h2>
-            <p className="text-sm text-wtm-muted mb-4">
-              If this is your restaurant, make sure your menu is published and active.
-            </p>
-            <a 
-              href="/dashboard/menu-editor" 
-              className="btn btn-primary inline-flex items-center"
-            >
-              Go to Dashboard
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!menuData) {
-    return (
-      <div className="min-h-screen bg-wtm-bg flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-wtm-muted">No menu data available</p>
-        </div>
+      <div className="max-w-3xl mx-auto px-6 py-8">
+        <p>Menu not found.</p>
       </div>
     );
   }
 
   return (
-    <RestaurantMenuPage 
-      menuData={menuData} 
-      menuId={restaurantSlug || 'unknown'} 
-      isDemo={false}
-    />
-  );
-};
+    <div className="max-w-3xl mx-auto px-6 py-8">
+      <h1 className="text-3xl font-bold mb-8">{menu.name}</h1>
 
-export default PublicMenuPage;
+      {sections.map((section) => (
+        <div key={section.id} className="mb-10">
+          <h2 className="text-xl font-semibold mb-4">{section.name}</h2>
+          <div className="space-y-6">
+            {section.dishes.map((dish: any) => (
+              <div key={dish.id} className="border-b pb-4">
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="text-lg font-medium">{dish.name}</h3>
+                  {dish.price && (
+                    <span className="text-gray-700 font-semibold">
+                      ${dish.price.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+                {dish.description && (
+                  <p className="text-gray-600 mb-2">{dish.description}</p>
+                )}
+
+                {/* Allergen tags */}
+                {dish.allergens && dish.allergens.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {dish.allergens.map((tag: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Dietary tags */}
+                {dish.dietary_tags && dish.dietary_tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {dish.dietary_tags.map((tag: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
