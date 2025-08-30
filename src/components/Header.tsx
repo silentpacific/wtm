@@ -34,34 +34,34 @@ const Header: React.FC = () => {
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-12">
-            <Link
-              to="/demos"
-              className={`font-medium text-lg transition-colors hover:text-orange-500 ${
-                isActive('/demos') ? 'text-orange-500' : 'text-gray-600'
-              }`}
-            >
-              Demo Menus
-            </Link>
-            
-            <Link
-              to="/contact"
-              className={`font-medium text-lg transition-colors hover:text-orange-500 ${
-                isActive('/contact') ? 'text-orange-500' : 'text-gray-600'
-              }`}
-            >
-              Contact
-            </Link>
-            
-            <Link
-              to="/faq"
-              className={`font-medium text-lg transition-colors hover:text-orange-500 ${
-                isActive('/faq') ? 'text-orange-500' : 'text-gray-600'
-              }`}
-            >
-              FAQ
-            </Link>
+        <nav className="flex items-center space-x-6">
+          {/* Always visible links */}
+          <Link to="/demos" className="text-gray-700 hover:text-orange-600">
+            Demos
+          </Link>
+          <Link to="/faq" className="text-gray-700 hover:text-orange-600">
+            FAQ
+          </Link>
+          <Link to="/contact" className="text-gray-700 hover:text-orange-600">
+            Contact
+          </Link>
+
+          {/* Only when logged in */}
+          {user && (
+            <>
+              <Link to="/menu-editor" className="text-gray-700 hover:text-orange-600">
+                Menu Scanner
+              </Link>
+              <Link to="/qrcodes" className="text-gray-700 hover:text-orange-600">
+                QR Codes
+              </Link>
+              <button
+                onClick={signOut}
+                className="text-gray-700 hover:text-orange-600"
+              >
+                Sign Out
+              </button>
+            </>
             
             {/* Auth buttons or Profile */}
             <div className="flex items-center space-x-6">
