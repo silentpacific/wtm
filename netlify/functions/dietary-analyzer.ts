@@ -77,6 +77,26 @@ Rules:
   return Array.isArray(parsed) ? parsed : [parsed];
 }
 
+// ✅ wrapper with retry & exponential backoff
+async function safeAnalyzeBatch(ai: any, batch: any[], retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await analyzeBatch(ai, batch);
+    } catch (err: any) {
+      const msg = err?.message || JSON.stringify(err);
+      if (msg.includes("overloaded") || msg.includes("UNAVAILABLE")) {
+        console.warn(
+          `⚠️ Gemini overloaded (attempt ${attempt}/${retries}). Retrying...`
+        );
+        await new Promise((r) => setTimeout(r, attempt * 3000)); // 3s, 6s, 9s
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw new Error("Gemini overloaded. Please try again later.");
+}
+
 export const handler: Handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers: corsHeaders, body: "" };
@@ -108,7 +128,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    // Fetch all items once
+    // Fetch all items
     const { data: items, error } = await supabaseAdmin
       .from("menu_items")
       .select("id, name, description")
@@ -131,7 +151,7 @@ export const handler: Handler = async (event) => {
     }
 
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-    const results = await analyzeBatch(ai, batch);
+    const results = await safeAnalyzeBatch(ai, batch);
 
     const updatedItems: any[] = [];
     for (const result of results) {
@@ -162,7 +182,7 @@ export const handler: Handler = async (event) => {
         success: true,
         updated: updatedItems.length,
         items: updatedItems,
-        nextIndex: startIndex + batchSize, // ✅ tells frontend where to continue
+        nextIndex: startIndex + batchSize, // ✅ for frontend loop
         totalItems: items.length,
       }),
     };

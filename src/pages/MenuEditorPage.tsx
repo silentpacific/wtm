@@ -177,6 +177,8 @@ const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
   // --- Fetch Tags from Gemini ---
 const [progressText, setProgressText] = useState<string>(""); // 👈 new state at top
 
+const [progressText, setProgressText] = useState<string>("");
+
 const handleFetchTags = async () => {
   if (!selectedMenu) return;
   setFetchingTags(true);
@@ -184,46 +186,57 @@ const handleFetchTags = async () => {
 
   try {
     let startIndex = 0;
-    const batchSize = 5; // ✅ keep in sync with dietary-analyzer.ts
+    const batchSize = 5; // keep in sync with dietary-analyzer.ts
     let totalItems = 0;
 
     while (true) {
       setProgressText(`Processing dishes ${startIndex + 1} → ${startIndex + batchSize}`);
 
-      const res = await fetch("/.netlify/functions/dietary-analyzer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ menuId: selectedMenu, startIndex, batchSize }),
-      });
+      let success = false;
+      let json: any = null;
 
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("Dietary analyzer failed:", text);
-        alert("Fetching tags failed: " + text);
-        break;
+      // ✅ Retry up to 3 times for this batch
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const res = await fetch("/.netlify/functions/dietary-analyzer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ menuId: selectedMenu, startIndex, batchSize }),
+          });
+
+          if (!res.ok) {
+            const text = await res.text();
+            console.warn(`Batch ${startIndex} failed (attempt ${attempt}):`, text);
+            throw new Error(text);
+          }
+
+          json = await res.json();
+
+          if (!json.success) {
+            throw new Error(json.error || "Unknown error");
+          }
+
+          // ✅ Batch succeeded
+          success = true;
+          break;
+        } catch (err) {
+          console.warn(`Retrying batch ${startIndex} (attempt ${attempt})...`, err);
+          await new Promise((r) => setTimeout(r, attempt * 3000)); // backoff 3s, 6s, 9s
+        }
       }
 
-      let json: any;
-      try {
-        json = await res.json();
-      } catch (parseErr) {
-        console.error("Failed to parse JSON:", parseErr);
-        alert("Tag analyzer returned invalid response.");
-        break;
+      if (!success) {
+        setProgressText(`⚠️ Skipping batch ${startIndex + 1} → ${startIndex + batchSize} after 3 failed attempts`);
+        startIndex += batchSize;
+        if (totalItems && startIndex >= totalItems) break;
+        continue;
       }
 
-      if (!json.success) {
-        console.error("Dietary analyzer error response:", json);
-        alert("Failed: " + (json.error || "Unknown error"));
-        break;
-      }
-
+      // ✅ Update counters
       totalItems = json.totalItems;
       startIndex = json.nextIndex;
 
-      setProgressText(
-        `✅ Processed ${startIndex} of ${totalItems} dishes...`
-      );
+      setProgressText(`✅ Processed ${startIndex} of ${totalItems} dishes...`);
 
       if (startIndex >= totalItems) {
         setProgressText("🎉 All dishes processed successfully!");
@@ -234,17 +247,18 @@ const handleFetchTags = async () => {
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
-    // Refresh UI with updated items
+    // Refresh UI
     const updatedData = await getMenuWithSectionsAndItems(selectedMenu);
     setSections(updatedData);
     setOriginalSections(JSON.parse(JSON.stringify(updatedData)));
   } catch (err) {
-    console.error("Dietary analyzer exception:", err);
-    alert("Error fetching tags. Please try again.");
+    console.error("Dietary analyzer loop error:", err);
+    setProgressText("❌ Tag analysis failed unexpectedly. Please try again.");
   } finally {
     setFetchingTags(false);
   }
 };
+
 
 
 
