@@ -109,70 +109,128 @@ export default function MenuEditorPage() {
   }, [selectedMenu]);
 
   // Upload new menu
-const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (!selectedRestaurant) {
-    alert("Please select a restaurant first.");
-    return;
-  }
-  if (!user?.id) {
-    alert("No logged-in user found.");
-    return;
-  }
-  const file = e.target.files?.[0];
-  if (!file) return;
+const [progressText, setProgressText] = useState<string>("");
 
+const handleFileUpload = async (file: File) => {
   setLoading(true);
+  setProgressText("Starting menu upload...");
   const reader = new FileReader();
+
   reader.onload = async () => {
     try {
-      const res = await fetch("/.netlify/functions/menu-scanner", {
+      // 1️⃣ Scan menu (Gemini)
+      setProgressText("Scanning menu with AI...");
+      const scanRes = await fetch("/.netlify/functions/menu-scanner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fileData: reader.result,
           fileName: file.name,
           mimeType: file.type,
-          restaurantId: user.id, // ✅ Supabase Auth user.id
+          restaurantId: user.id,
         }),
       });
 
-      if (!res.ok) {
-        const text = await res.text();
+      if (!scanRes.ok) {
+        const text = await scanRes.text();
         console.error("Menu scanner failed:", text);
+        setProgressText("❌ Menu scan failed");
         alert("Menu scan failed: " + text);
         return;
       }
 
-      let json: any;
-      try {
-        json = await res.json();
-      } catch (parseErr) {
-        console.error("Failed to parse JSON:", parseErr);
-        alert("Menu scan returned invalid response.");
+      const scanJson = await scanRes.json();
+      if (!scanJson.success) {
+        setProgressText("❌ Menu scan failed");
+        alert("Menu scan failed: " + (scanJson.error || "Unknown error"));
+        return;
+      }
+      const menuId = scanJson.menuId;
+      console.log("✅ Menu scanned. ID:", menuId);
+      setProgressText("✅ Menu scanned. Preparing sections...");
+
+      // 2️⃣ Save sections
+      const secRes = await fetch("/.netlify/functions/menu-save-sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ menuId }),
+      });
+
+      if (!secRes.ok) {
+        const text = await secRes.text();
+        console.error("Save sections failed:", text);
+        setProgressText("❌ Saving sections failed");
+        alert("Saving sections failed: " + text);
         return;
       }
 
-      if (json.success) {
-        const newMenus = await getMenusByRestaurant(user.id);
-        setMenus(newMenus);
-        setSelectedMenu(json.menuId);
-        const data = await getMenuWithSectionsAndItems(json.menuId);
-        setSections(data);
-        setOriginalSections(JSON.parse(JSON.stringify(data)));
-      } else {
-        console.error("Menu scan error response:", json);
-        alert("Menu scan failed: " + (json.error || "Unknown error"));
+      const secJson = await secRes.json();
+      console.log("✅ Sections inserted:", secJson.sectionsInserted);
+      setProgressText(`✅ ${secJson.sectionsInserted} sections saved. Adding dishes...`);
+
+      // 3️⃣ Save dishes in batches
+      let startIndex = 0;
+      const batchSize = 5;
+      let total = 0;
+
+      while (true) {
+        setProgressText(`Saving dishes ${startIndex + 1} → ${startIndex + batchSize}...`);
+
+        const dishRes = await fetch("/.netlify/functions/menu-save-dishes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ menuId, startIndex, batchSize }),
+        });
+
+        if (!dishRes.ok) {
+          const text = await dishRes.text();
+          console.error("Save dishes failed:", text);
+          setProgressText("❌ Saving dishes failed");
+          alert("Saving dishes failed: " + text);
+          return;
+        }
+
+        const dishJson = await dishRes.json();
+        total = dishJson.total;
+        console.log(
+          `✅ Inserted ${dishJson.inserted}, nextIndex=${dishJson.nextIndex}/${total}`
+        );
+
+        setProgressText(
+          `✅ Inserted ${dishJson.nextIndex} of ${total} dishes...`
+        );
+
+        if (dishJson.nextIndex >= total) {
+          break;
+        }
+        startIndex = dishJson.nextIndex;
+
+        // small delay to avoid hammering
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
+
+      // 4️⃣ Refresh menus
+      setProgressText("Refreshing menu...");
+      const newMenus = await getMenusByRestaurant(user.id);
+      setMenus(newMenus);
+      setSelectedMenu(menuId);
+
+      const data = await getMenuWithSectionsAndItems(menuId);
+      setSections(data);
+      setOriginalSections(JSON.parse(JSON.stringify(data)));
+
+      setProgressText("🎉 Menu uploaded and saved successfully!");
     } catch (err) {
-      console.error("Upload exception:", err);
-      alert("Upload failed due to network or server error.");
+      console.error("Upload failed:", err);
+      setProgressText("❌ Upload failed. Please try again.");
+      alert("Upload failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
   reader.readAsDataURL(file);
 };
-
 
   // --- Fetch Tags from Gemini ---
 const [progressText, setProgressText] = useState<string>(""); // 👈 new state at top
