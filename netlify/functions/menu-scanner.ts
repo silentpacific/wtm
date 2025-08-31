@@ -85,17 +85,16 @@ async function saveMenuToDatabase(
   const safeName = makeSlug(restProfile?.restaurant_name || "menu");
   const urlSlug = `${safeName}-${Date.now().toString(36)}`;
 
-  const { data: menu, error: menuError } = await supabaseAdmin
-    .from("menus")
-    .insert({
-      id: menuId,
-      restaurant_id: restaurantId,
-      name: restProfile?.restaurant_name || "Uploaded Menu", // 👈 always use dropdown selection
-      url_slug: urlSlug, // 👈 FIX: ensures Live Site points correctly
-      status: "active",
-    })
-    .select()
-    .single();
+	const { data: menu, error: menuError } = await supabaseAdmin
+	  .from("menus")
+	  .insert({
+		restaurant_id: restaurantId,
+		name: restProfile?.restaurant_name || "Uploaded Menu",
+		url_slug: urlSlug,
+		status: "active",
+	  })
+	  .select()
+	  .single();
 
   if (menuError) throw menuError;
 
@@ -229,17 +228,17 @@ Rules:
     const menu = await saveMenuToDatabase(menuId, restaurantId, menuData);
 
     const processingTime = Date.now() - startTime;
-    return {
-      statusCode: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        success: true,
-        menuId,
-        urlSlug: menu.url_slug,
-        data: { restaurant: menuData.restaurant, sections: menuData.sections },
-        stats: { sections: menuData.sections.length, totalDishes, processingTime },
-      }),
-    };
+	return {
+	  statusCode: 200,
+	  headers: { ...corsHeaders, "Content-Type": "application/json" },
+	  body: JSON.stringify({
+		success: true,
+		menuId: menu.id,        // ✅ use DB-generated id
+		urlSlug: menu.url_slug,
+		data: { restaurant: menuData.restaurant, sections: menuData.sections },
+		stats: { sections: menuData.sections.length, totalDishes, processingTime },
+	  }),
+	};
   } catch (err: any) {
     console.error("menu-scanner error:", err);
     return {
