@@ -79,8 +79,8 @@ async function saveMenuToDatabase(
   const { data: restProfile } = await supabaseAdmin
     .from("user_restaurant_profiles")
     .select("restaurant_name")
-    .eq("id", restaurantId) // 👈 use the restaurant profile ID
-    .single();
+    .eq("id", restaurantId); // 👈 use the restaurant profile ID
+
 
   const safeName = makeSlug(restProfile?.restaurant_name || "menu");
   const urlSlug = `${safeName}-${Date.now().toString(36)}`;
@@ -93,8 +93,7 @@ async function saveMenuToDatabase(
 		url_slug: urlSlug,
 		status: "active",
 	  })
-	  .select()
-	  .single();
+	  .select();
 
   if (menuError) throw menuError;
 
@@ -107,7 +106,6 @@ async function saveMenuToDatabase(
         display_order: idx,
       })
       .select()
-      .single();
 
     if (secErr) {
       console.error("Section insert error:", secErr);
