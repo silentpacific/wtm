@@ -2,8 +2,8 @@
 import { supabase } from "./supabaseClient";
 
 export interface Dish {
-  id?: string; // UUID from DB
-  section_id?: string; // UUID from DB
+  id?: string;
+  section_id?: string;
   name: string;
   description?: string | null;
   price?: number | null;
@@ -12,40 +12,34 @@ export interface Dish {
 }
 
 export interface Section {
-  id?: string; // UUID from DB
-  menu_id?: string; // UUID from DB
+  id?: string;
+  menu_id?: string;
   name: string;
   display_order?: number;
   dishes: Dish[];
 }
 
 export interface MenuData {
-  id: string; // UUID from DB
-  restaurant_id: string; // Supabase Auth user.id
+  id: string;
+  restaurant_id: string;
   name: string;
-  url_slug: string;
-  created_at?: string;
-  user_restaurant_profiles?: {
-    restaurant_name: string | null;
-    city: string | null;
-    state: string | null;
-    country: string | null;
-  } | null;
-  sections?: Section[];
+  url_slug: string; // ✅ ensure url_slug is always present
+  sections: Section[];
 }
 
-// --- Fetch all menus for a restaurant (with profile info) ---
+// --- Fetch all menus for a restaurant ---
 export async function getMenusByRestaurant(restaurantId: string) {
-const { data, error } = await supabase
-  .from("menus_with_profiles")
-  .select("*")
-  .order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("menus")
+    .select("id, name, url_slug, created_at") // ✅ include url_slug
+    .eq("restaurant_id", restaurantId)
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching menus:", error);
     throw error;
   }
-  return data as MenuData[];
+  return data;
 }
 
 // --- Fetch menu with sections & dishes ---
@@ -56,20 +50,16 @@ export async function getMenuWithSectionsAndItems(menuId: string) {
     .eq("menu_id", menuId)
     .order("display_order");
 
-  if (sectionError) {
-    console.error("Error fetching sections:", sectionError);
-    throw sectionError;
-  }
+  if (sectionError) throw sectionError;
 
   const { data: items, error: itemError } = await supabase
     .from("menu_items")
-    .select("id, section_id, name, description, price, allergens, dietary_tags")
+    .select(
+      "id, section_id, name, description, price, allergens, dietary_tags" // ✅ includes tags
+    )
     .eq("menu_id", menuId);
 
-  if (itemError) {
-    console.error("Error fetching menu items:", itemError);
-    throw itemError;
-  }
+  if (itemError) throw itemError;
 
   const structuredSections: Section[] = (sections || []).map((s) => ({
     ...s,
@@ -102,10 +92,7 @@ export async function saveMenuDiff(
         })
         .select()
         .single();
-      if (error) {
-        console.error("Error inserting new section:", error);
-        throw error;
-      }
+      if (error) throw error;
 
       // Insert its dishes
       for (const dish of section.dishes) {
@@ -114,12 +101,11 @@ export async function saveMenuDiff(
           section_id: newSec.id,
           name: dish.name,
           description: dish.description || null,
-          price: dish.price ?? null,
+          price: dish.price || null,
+          allergens: dish.allergens || [],
+          dietary_tags: dish.dietary_tags || [],
         });
-        if (dishErr) {
-          console.error("Error inserting dish:", dishErr);
-          throw dishErr;
-        }
+        if (dishErr) throw dishErr;
       }
       continue;
     }
@@ -130,10 +116,7 @@ export async function saveMenuDiff(
         .from("menu_sections")
         .update({ name: section.name })
         .eq("id", section.id);
-      if (error) {
-        console.error("Error updating section:", error);
-        throw error;
-      }
+      if (error) throw error;
     }
   }
 
@@ -144,10 +127,7 @@ export async function saveMenuDiff(
         .from("menu_sections")
         .delete()
         .eq("id", section.id);
-      if (error) {
-        console.error("Error deleting section:", error);
-        throw error;
-      }
+      if (error) throw error;
     }
   }
 
@@ -168,12 +148,11 @@ export async function saveMenuDiff(
           section_id: section.id,
           name: dish.name,
           description: dish.description || null,
-          price: dish.price ?? null,
+          price: dish.price || null,
+          allergens: dish.allergens || [],
+          dietary_tags: dish.dietary_tags || [],
         });
-        if (error) {
-          console.error("Error inserting new dish:", error);
-          throw error;
-        }
+        if (error) throw error;
         continue;
       }
 
@@ -182,20 +161,23 @@ export async function saveMenuDiff(
         original &&
         (dish.name !== original.name ||
           dish.description !== original.description ||
-          dish.price !== original.price)
+          dish.price !== original.price ||
+          JSON.stringify(dish.allergens || []) !==
+            JSON.stringify(original.allergens || []) ||
+          JSON.stringify(dish.dietary_tags || []) !==
+            JSON.stringify(original.dietary_tags || []))
       ) {
         const { error } = await supabase
           .from("menu_items")
           .update({
             name: dish.name,
             description: dish.description || null,
-            price: dish.price ?? null,
+            price: dish.price || null,
+            allergens: dish.allergens || [],
+            dietary_tags: dish.dietary_tags || [],
           })
           .eq("id", dish.id);
-        if (error) {
-          console.error("Error updating dish:", error);
-          throw error;
-        }
+        if (error) throw error;
       }
     }
   }
@@ -207,10 +189,7 @@ export async function saveMenuDiff(
         .from("menu_items")
         .delete()
         .eq("id", dish.id);
-      if (error) {
-        console.error("Error deleting dish:", error);
-        throw error;
-      }
+      if (error) throw error;
     }
   }
 

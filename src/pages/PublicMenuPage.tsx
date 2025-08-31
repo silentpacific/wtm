@@ -1,156 +1,148 @@
-import { useEffect, useState } from "react";
+// src/pages/PublicMenuPage.tsx
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../services/supabaseClient";
 
-export default function PublicMenuPage() {
+interface Dish {
+  id: string;
+  name: string;
+  description?: string | null;
+  price?: number | null;
+  allergens?: string[];
+  dietary_tags?: string[];
+}
+
+interface Section {
+  id: string;
+  name: string;
+  dishes: Dish[];
+}
+
+interface Menu {
+  id: string;
+  name: string; // ✅ restaurant name from menus table
+  url_slug: string;
+  sections: Section[];
+}
+
+const PublicMenuPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const [menu, setMenu] = useState<any>(null);
-  const [sections, setSections] = useState<any[]>([]);
+  const [menu, setMenu] = useState<Menu | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMenu = async () => {
-      setLoading(true);
-      // Get menu by slug, including restaurant profile info
-      const { data: menuData, error: menuError } = await supabase
-        .from("menus_with_profiles") // ✅ use the view we created
-        .select("id, name, url_slug, restaurant_name")
+      if (!slug) return;
+
+      const { data: menus, error } = await supabase
+        .from("menus")
+        .select(
+          `
+          id,
+          name,
+          url_slug,
+          menu_sections (
+            id,
+            name,
+            menu_items (
+              id,
+              name,
+              description,
+              price,
+              allergens,
+              dietary_tags
+            )
+          )
+        `
+        )
         .eq("url_slug", slug)
         .single();
 
-      if (menuError || !menuData) {
-        console.error(menuError);
-        setLoading(false);
-        return;
-      }
-      setMenu(menuData);
+      if (error) {
+        console.error("Error fetching menu:", error);
+      } else if (menus) {
+        const structuredSections: Section[] =
+          (menus.menu_sections || []).map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            dishes: s.menu_items || [],
+          }));
 
-      // Get sections
-      const { data: sectionData, error: sectionError } = await supabase
-        .from("menu_sections")
-        .select("id, name, display_order")
-        .eq("menu_id", menuData.id)
-        .order("display_order");
-
-      if (sectionError) {
-        console.error(sectionError);
-        setLoading(false);
-        return;
+        setMenu({
+          id: menus.id,
+          name: menus.name, // ✅ restaurant’s name
+          url_slug: menus.url_slug,
+          sections: structuredSections,
+        });
       }
 
-      // Get items
-      const { data: itemData, error: itemError } = await supabase
-        .from("menu_items")
-        .select(
-          "id, section_id, name, description, price, allergens, dietary_tags"
-        )
-        .eq("menu_id", menuData.id);
-
-      if (itemError) {
-        console.error(itemError);
-        setLoading(false);
-        return;
-      }
-
-      const structuredSections = (sectionData || []).map((s) => ({
-        ...s,
-        dishes: (itemData || []).filter((i) => i.section_id === s.id),
-      }));
-
-      setSections(structuredSections);
       setLoading(false);
     };
 
     fetchMenu();
   }, [slug]);
 
-  if (loading) {
-    return (
-      <div className="max-w-3xl mx-auto px-6 py-8">
-        <p>Loading menu...</p>
-      </div>
-    );
-  }
-
-  if (!menu) {
-    return (
-      <div className="max-w-3xl mx-auto px-6 py-8">
-        <p>Menu not found.</p>
-      </div>
-    );
-  }
+  if (loading) return <p className="p-6">Loading menu...</p>;
+  if (!menu) return <p className="p-6">Menu not found</p>;
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8">
-      {/* ✅ Restaurant name at the top */}
-      <h1 className="text-3xl font-bold text-center mb-8">
-        {menu.restaurant_name || menu.name}
-      </h1>
+    <div className="max-w-3xl mx-auto p-6">
+      {/* ✅ Restaurant name as the header */}
+      <h1 className="text-3xl font-bold mb-6 text-center">{menu.name}</h1>
 
-      {sections.map((section) => (
-        <div key={section.id} className="mb-10">
-          <h2 className="text-xl font-semibold mb-4">{section.name}</h2>
-          <div className="space-y-6">
-            {section.dishes.map((dish: any) => (
-              <div key={dish.id} className="border-b pb-4">
-                <div className="flex justify-between items-start mb-1">
-                  <h3 className="text-lg font-medium">{dish.name}</h3>
-                  {dish.price && (
-                    <span className="text-gray-700 font-semibold">
-                      ${dish.price.toFixed(2)}
-                    </span>
+      {/* Menu Sections */}
+      {menu.sections.map((section) => (
+        <div key={section.id} className="mb-6">
+          <h2 className="text-xl font-semibold mb-2">{section.name}</h2>
+          <ul>
+            {section.dishes.map((dish) => (
+              <li key={dish.id} className="mb-3">
+                <div className="flex justify-between">
+                  <span className="font-medium">{dish.name}</span>
+                  {dish.price !== null && dish.price !== undefined && (
+                    <span>${dish.price.toFixed(2)}</span>
                   )}
                 </div>
                 {dish.description && (
-                  <p className="text-gray-600 mb-2">{dish.description}</p>
+                  <p className="text-sm text-gray-600">{dish.description}</p>
                 )}
 
-                {/* Allergen tags */}
-                {dish.allergens && dish.allergens.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {dish.allergens.map((tag: string, idx: number) => (
-                      <span
-                        key={idx}
-                        className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Dietary tags */}
-                {dish.dietary_tags && dish.dietary_tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {dish.dietary_tags.map((tag: string, idx: number) => (
-                      <span
-                        key={idx}
-                        className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+                {/* ✅ Show allergens & dietary tags */}
+                <div className="mt-1 text-xs">
+                  <p className="text-red-500">
+                    Allergens:{" "}
+                    {dish.allergens?.length
+                      ? dish.allergens.join(", ")
+                      : "None"}
+                  </p>
+                  <p className="text-green-600">
+                    Dietary tags:{" "}
+                    {dish.dietary_tags?.length
+                      ? dish.dietary_tags.join(", ")
+                      : "None"}
+                  </p>
+                </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       ))}
 
-      {/* ✅ Footer */}
-      <p className="text-sm text-gray-500 text-center mt-12">
+      {/* ✅ Powered by footer */}
+      <footer className="mt-10 border-t pt-4 text-center text-sm text-gray-500">
         Powered by{" "}
         <a
           href="https://whatthemenu.com"
           target="_blank"
-          rel="noreferrer"
-          className="underline"
+          rel="noopener noreferrer"
+          className="font-semibold text-orange-600"
         >
-          Whatthemenu.com
-        </a>
-        . Contact us to super-charge your menu.
-      </p>
+          WhatTheMenu.com
+        </a>{" "}
+        — Contact us to super-charge your menu
+      </footer>
     </div>
   );
-}
+};
+
+export default PublicMenuPage;

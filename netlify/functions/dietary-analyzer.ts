@@ -16,6 +16,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const BATCH_SIZE = 5;
+
 // Schema for tag extraction
 const tagSchema = {
   type: Type.OBJECT,
@@ -39,9 +41,10 @@ Return ONLY valid JSON for each dish in this format:
 }
 
 Rules:
-- "dish" must match the provided dish name exactly.
+- "dish" must exactly match the provided dish name.
 - If no allergens or dietary tags are clear, return empty arrays.
 - Use lowercase terms for tags.
+- Do not skip any dish. Every input dish must appear in output.
 - No free text outside JSON.
 `;
 
@@ -61,40 +64,27 @@ Rules:
     },
   ];
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: tagSchema,
-      temperature: 0.1,
-      maxOutputTokens: 2048,
-    },
-  });
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: tagSchema,
+        temperature: 0.1,
+        maxOutputTokens: 2048,
+      },
+    });
 
-  const text = response.text.trim();
-  const parsed = JSON.parse(text);
-  return Array.isArray(parsed) ? parsed : [parsed];
-}
+    const text = response.text.trim();
 
-// ✅ wrapper with retry & exponential backoff
-async function safeAnalyzeBatch(ai: any, batch: any[], retries = 3) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      return await analyzeBatch(ai, batch);
-    } catch (err: any) {
-      const msg = err?.message || JSON.stringify(err);
-      if (msg.includes("overloaded") || msg.includes("UNAVAILABLE")) {
-        console.warn(
-          `⚠️ Gemini overloaded (attempt ${attempt}/${retries}). Retrying...`
-        );
-        await new Promise((r) => setTimeout(r, attempt * 3000)); // 3s, 6s, 9s
-      } else {
-        throw err;
-      }
-    }
+    // Gemini may return array of dish objects
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch (err) {
+    console.error("analyzeBatch error:", err);
+    throw err;
   }
-  throw new Error("Gemini overloaded. Please try again later.");
 }
 
 export const handler: Handler = async (event) => {
@@ -110,8 +100,7 @@ export const handler: Handler = async (event) => {
   }
 
   const body = JSON.parse(event.body || "{}");
-  const { menuId, startIndex = 0, batchSize = 5 } = body;
-
+  const { menuId } = body;
   if (!menuId) {
     return {
       statusCode: 400,
@@ -128,50 +117,45 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    // Fetch all items
+    // Fetch dishes
     const { data: items, error } = await supabaseAdmin
       .from("menu_items")
       .select("id, name, description")
-      .eq("menu_id", menuId)
-      .order("created_at");
+      .eq("menu_id", menuId);
 
     if (error) throw error;
     if (!items || items.length === 0) {
       throw new Error("No dishes found for menu");
     }
 
-    // Pick slice
-    const batch = items.slice(startIndex, startIndex + batchSize);
-    if (batch.length === 0) {
-      return {
-        statusCode: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        body: JSON.stringify({ success: true, updated: 0, items: [] }),
-      };
-    }
-
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-    const results = await safeAnalyzeBatch(ai, batch);
-
     const updatedItems: any[] = [];
-    for (const result of results) {
-      const item = batch.find((d) => d.name === result.dish);
-      if (!item) continue;
 
-      const { error: updateError } = await supabaseAdmin
-        .from("menu_items")
-        .update({
-          allergens: result.allergens || [],
-          dietary_tags: result.dietary_tags || [],
-        })
-        .eq("id", item.id);
+    // Process in batches
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
+      try {
+        const results = await analyzeBatch(ai, batch);
 
-      if (!updateError) {
-        updatedItems.push({
-          id: item.id,
-          allergens: result.allergens || [],
-          dietary_tags: result.dietary_tags || [],
-        });
+        // ✅ Guarantee every dish in the batch gets tags
+        for (const item of batch) {
+          const match = results.find((r: any) => r.dish === item.name);
+          const allergens = match?.allergens || [];
+          const dietary_tags = match?.dietary_tags || [];
+
+          const { error: updateError } = await supabaseAdmin
+            .from("menu_items")
+            .update({ allergens, dietary_tags })
+            .eq("id", item.id);
+
+          if (updateError) {
+            console.error("DB update error:", updateError);
+          } else {
+            updatedItems.push({ id: item.id, allergens, dietary_tags });
+          }
+        }
+      } catch (batchErr) {
+        console.error("Batch failed:", batchErr);
       }
     }
 
@@ -182,8 +166,6 @@ export const handler: Handler = async (event) => {
         success: true,
         updated: updatedItems.length,
         items: updatedItems,
-        nextIndex: startIndex + batchSize, // ✅ for frontend loop
-        totalItems: items.length,
       }),
     };
   } catch (err: any) {

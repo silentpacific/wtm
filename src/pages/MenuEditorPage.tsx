@@ -485,24 +485,24 @@ const handleFetchTags = async () => {
                 />
 
                 {/* Allergen tags */}
-                <TagChips
-                  tags={dish.allergens || []}
-                  onChange={(newTags) =>
-                    updateTags(sectionIdx, dishIdx, "allergens", newTags)
-                  }
-                  color="bg-red-100 text-red-700"
-                  placeholder="Add allergen and press Enter"
-                />
+					<TagChips
+					  tags={dish.allergens || []}
+					  onChange={(newTags) =>
+						updateTags(sectionIdx, dishIdx, "allergens", newTags)
+					  }
+					  color="bg-red-100 text-red-700"
+					  placeholder="Add allergen and press Enter"
+					/>
 
-                {/* Dietary tags */}
-                <TagChips
-                  tags={dish.dietary_tags || []}
-                  onChange={(newTags) =>
-                    updateTags(sectionIdx, dishIdx, "dietary_tags", newTags)
-                  }
-                  color="bg-green-100 text-green-700"
-                  placeholder="Add dietary tag and press Enter"
-                />
+					{/* Dietary tags */}
+					<TagChips
+					  tags={dish.dietary_tags || []}
+					  onChange={(newTags) =>
+						updateTags(sectionIdx, dishIdx, "dietary_tags", newTags)
+					  }
+					  color="bg-green-100 text-green-700"
+					  placeholder="Add dietary tag and press Enter"
+					/>
               </div>
             ))}
           </div>
