@@ -37,7 +37,6 @@ const PublicMenuPage: React.FC = () => {
 	  .select(`
 		id,
 		name,
-		restaurant:restaurants(name),   -- ✅ get restaurant name
 		menu_sections (
 		  id,
 		  name,
