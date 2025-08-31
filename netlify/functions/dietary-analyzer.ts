@@ -16,8 +16,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const BATCH_SIZE = 5;
-
 // Schema for tag extraction
 const tagSchema = {
   type: Type.OBJECT,
@@ -34,13 +32,11 @@ async function analyzeBatch(ai: any, dishes: any[]) {
 You are an AI that extracts allergens and dietary tags from dish names and descriptions. 
 Return ONLY valid JSON for each dish in this format:
 
-[
-  {
-    "dish": "Dish name",
-    "allergens": ["list of allergens"],
-    "dietary_tags": ["list of dietary/diet tags"]
-  }
-]
+{
+  "dish": "Dish name",
+  "allergens": ["list of allergens"],
+  "dietary_tags": ["list of dietary/diet tags"]
+}
 
 Rules:
 - "dish" must match the provided dish name exactly.
@@ -65,27 +61,20 @@ Rules:
     },
   ];
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: tagSchema,
-        temperature: 0.1,
-        maxOutputTokens: 2048,
-      },
-    });
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: tagSchema,
+      temperature: 0.1,
+      maxOutputTokens: 2048,
+    },
+  });
 
-    const text = response.text.trim();
-    const parsed = JSON.parse(text);
-
-    // Always return array of dish objects
-    return Array.isArray(parsed) ? parsed : [parsed];
-  } catch (err) {
-    console.error("analyzeBatch error:", err);
-    throw err;
-  }
+  const text = response.text.trim();
+  const parsed = JSON.parse(text);
+  return Array.isArray(parsed) ? parsed : [parsed];
 }
 
 export const handler: Handler = async (event) => {
@@ -100,18 +89,9 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  let body: any;
-  try {
-    body = JSON.parse(event.body || "{}");
-  } catch {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: "Invalid JSON" }),
-    };
-  }
+  const body = JSON.parse(event.body || "{}");
+  const { menuId, startIndex = 0, batchSize = 5 } = body;
 
-  const { menuId } = body;
   if (!menuId) {
     return {
       statusCode: 400,
@@ -128,77 +108,50 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    // Fetch dishes for this menu
+    // Fetch all items once
     const { data: items, error } = await supabaseAdmin
       .from("menu_items")
       .select("id, name, description")
-      .eq("menu_id", menuId);
+      .eq("menu_id", menuId)
+      .order("created_at");
 
     if (error) throw error;
     if (!items || items.length === 0) {
       throw new Error("No dishes found for menu");
     }
 
+    // Pick slice
+    const batch = items.slice(startIndex, startIndex + batchSize);
+    if (batch.length === 0) {
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ success: true, updated: 0, items: [] }),
+      };
+    }
+
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+    const results = await analyzeBatch(ai, batch);
+
     const updatedItems: any[] = [];
+    for (const result of results) {
+      const item = batch.find((d) => d.name === result.dish);
+      if (!item) continue;
 
-    // Process dishes in batches
-    for (let i = 0; i < items.length; i += BATCH_SIZE) {
-      const batch = items.slice(i, i + BATCH_SIZE);
+      const { error: updateError } = await supabaseAdmin
+        .from("menu_items")
+        .update({
+          allergens: result.allergens || [],
+          dietary_tags: result.dietary_tags || [],
+        })
+        .eq("id", item.id);
 
-      try {
-        const results = await analyzeBatch(ai, batch);
-
-        for (const result of results) {
-          const item = items.find((d) => d.name === result.dish);
-          if (!item) continue;
-
-          const { error: updateError } = await supabaseAdmin
-            .from("menu_items")
-            .update({
-              allergens: result.allergens || [],
-              dietary_tags: result.dietary_tags || [],
-            })
-            .eq("id", item.id);
-
-          if (updateError) {
-            console.error("DB update error:", updateError);
-          } else {
-            updatedItems.push({
-              id: item.id,
-              allergens: result.allergens || [],
-              dietary_tags: result.dietary_tags || [],
-            });
-          }
-        }
-      } catch (batchErr) {
-        console.error("Batch failed, retrying once:", batchErr);
-
-        try {
-          const results = await analyzeBatch(ai, batch);
-          for (const result of results) {
-            const item = items.find((d) => d.name === result.dish);
-            if (!item) continue;
-
-            const { error: updateError } = await supabaseAdmin
-              .from("menu_items")
-              .update({
-                allergens: result.allergens || [],
-                dietary_tags: result.dietary_tags || [],
-              })
-              .eq("id", item.id);
-
-            if (!updateError) {
-              updatedItems.push({
-                id: item.id,
-                allergens: result.allergens || [],
-                dietary_tags: result.dietary_tags || [],
-              });
-            }
-          }
-        } catch (finalErr) {
-          console.error("Retry failed for batch:", finalErr);
-        }
+      if (!updateError) {
+        updatedItems.push({
+          id: item.id,
+          allergens: result.allergens || [],
+          dietary_tags: result.dietary_tags || [],
+        });
       }
     }
 
@@ -209,6 +162,8 @@ export const handler: Handler = async (event) => {
         success: true,
         updated: updatedItems.length,
         items: updatedItems,
+        nextIndex: startIndex + batchSize, // ✅ tells frontend where to continue
+        totalItems: items.length,
       }),
     };
   } catch (err: any) {

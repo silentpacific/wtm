@@ -80,7 +80,7 @@ async function saveMenuToDatabase(
     .insert({
       id: menuId,
       restaurant_id: restaurantId,
-      name: menuData.restaurant?.name || "Uploaded Menu",
+      name: `${menuData.restaurant?.name || "Menu"} - ${new Date().toISOString().slice(0,10)}`,
       url_slug: urlSlug,
       status: "active",
     })

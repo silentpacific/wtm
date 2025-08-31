@@ -109,76 +109,144 @@ export default function MenuEditorPage() {
   }, [selectedMenu]);
 
   // Upload new menu
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!selectedRestaurant) {
-      alert("Please select a restaurant first.");
-      return;
-    }
-    if (!user?.id) {
-      alert("No logged-in user found.");
-      return;
-    }
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (!selectedRestaurant) {
+    alert("Please select a restaurant first.");
+    return;
+  }
+  if (!user?.id) {
+    alert("No logged-in user found.");
+    return;
+  }
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    setLoading(true);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const res = await fetch("/.netlify/functions/menu-scanner", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileData: reader.result,
-            fileName: file.name,
-            mimeType: file.type,
-            restaurantId: user.id, // ✅ FIXED: use Supabase Auth user.id
-          }),
-        });
-        const json = await res.json();
-        if (json.success) {
-          const newMenus = await getMenusByRestaurant(user.id);
-          setMenus(newMenus);
-          setSelectedMenu(json.menuId);
-          const data = await getMenuWithSectionsAndItems(json.menuId);
-          setSections(data);
-          setOriginalSections(JSON.parse(JSON.stringify(data)));
-        } else alert("Menu scan failed: " + json.error);
-      } catch (err) {
-        console.error(err);
-        alert("Upload failed");
-      } finally {
-        setLoading(false);
+  setLoading(true);
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const res = await fetch("/.netlify/functions/menu-scanner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileData: reader.result,
+          fileName: file.name,
+          mimeType: file.type,
+          restaurantId: user.id, // ✅ Supabase Auth user.id
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Menu scanner failed:", text);
+        alert("Menu scan failed: " + text);
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+
+      let json: any;
+      try {
+        json = await res.json();
+      } catch (parseErr) {
+        console.error("Failed to parse JSON:", parseErr);
+        alert("Menu scan returned invalid response.");
+        return;
+      }
+
+      if (json.success) {
+        const newMenus = await getMenusByRestaurant(user.id);
+        setMenus(newMenus);
+        setSelectedMenu(json.menuId);
+        const data = await getMenuWithSectionsAndItems(json.menuId);
+        setSections(data);
+        setOriginalSections(JSON.parse(JSON.stringify(data)));
+      } else {
+        console.error("Menu scan error response:", json);
+        alert("Menu scan failed: " + (json.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error("Upload exception:", err);
+      alert("Upload failed due to network or server error.");
+    } finally {
+      setLoading(false);
+    }
   };
+  reader.readAsDataURL(file);
+};
+
 
   // --- Fetch Tags from Gemini ---
-  const handleFetchTags = async () => {
-    if (!selectedMenu) return;
-    setFetchingTags(true);
-    try {
+const [progressText, setProgressText] = useState<string>(""); // 👈 new state at top
+
+const handleFetchTags = async () => {
+  if (!selectedMenu) return;
+  setFetchingTags(true);
+  setProgressText("Starting tag analysis...");
+
+  try {
+    let startIndex = 0;
+    const batchSize = 5; // ✅ keep in sync with dietary-analyzer.ts
+    let totalItems = 0;
+
+    while (true) {
+      setProgressText(`Processing dishes ${startIndex + 1} → ${startIndex + batchSize}`);
+
       const res = await fetch("/.netlify/functions/dietary-analyzer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ menuId: selectedMenu }),
+        body: JSON.stringify({ menuId: selectedMenu, startIndex, batchSize }),
       });
-      const json = await res.json();
-      if (json.success) {
-        const updatedData = await getMenuWithSectionsAndItems(selectedMenu);
-        setSections(updatedData);
-        setOriginalSections(JSON.parse(JSON.stringify(updatedData)));
-      } else {
-        alert("Failed: " + json.error);
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Dietary analyzer failed:", text);
+        alert("Fetching tags failed: " + text);
+        break;
       }
-    } catch (err) {
-      console.error(err);
-      alert("Error fetching tags");
-    } finally {
-      setFetchingTags(false);
+
+      let json: any;
+      try {
+        json = await res.json();
+      } catch (parseErr) {
+        console.error("Failed to parse JSON:", parseErr);
+        alert("Tag analyzer returned invalid response.");
+        break;
+      }
+
+      if (!json.success) {
+        console.error("Dietary analyzer error response:", json);
+        alert("Failed: " + (json.error || "Unknown error"));
+        break;
+      }
+
+      totalItems = json.totalItems;
+      startIndex = json.nextIndex;
+
+      setProgressText(
+        `✅ Processed ${startIndex} of ${totalItems} dishes...`
+      );
+
+      if (startIndex >= totalItems) {
+        setProgressText("🎉 All dishes processed successfully!");
+        break;
+      }
+
+      // Small delay before next batch
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
-  };
+
+    // Refresh UI with updated items
+    const updatedData = await getMenuWithSectionsAndItems(selectedMenu);
+    setSections(updatedData);
+    setOriginalSections(JSON.parse(JSON.stringify(updatedData)));
+  } catch (err) {
+    console.error("Dietary analyzer exception:", err);
+    alert("Error fetching tags. Please try again.");
+  } finally {
+    setFetchingTags(false);
+  }
+};
+
+
 
   // Save changes
   const handleSave = async () => {
@@ -264,12 +332,16 @@ export default function MenuEditorPage() {
             Save Menu
           </button>
           <button
-            onClick={handleFetchTags}
-            disabled={fetchingTags}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {fetchingTags ? "Fetching Tags..." : "Fetch Tags"}
-          </button>
+			  onClick={handleFetchTags}
+			  disabled={fetchingTags}
+			  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+			>
+			  {fetchingTags ? "Fetching Tags..." : "Fetch Tags"}
+			</button>
+
+			{progressText && (
+			  <p className="text-sm text-gray-600 mt-2">{progressText}</p>
+			)}
           <a
             href={`/r/${menus.find((m) => m.id === selectedMenu)?.url_slug}`}
             target="_blank"

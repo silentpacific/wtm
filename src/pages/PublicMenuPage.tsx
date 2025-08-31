@@ -11,10 +11,10 @@ export default function PublicMenuPage() {
   useEffect(() => {
     const fetchMenu = async () => {
       setLoading(true);
-      // Get menu by slug
+      // Get menu by slug, including restaurant profile info
       const { data: menuData, error: menuError } = await supabase
-        .from("menus")
-        .select("id, name, url_slug")
+        .from("menus_with_profiles") // ✅ use the view we created
+        .select("id, name, url_slug, restaurant_name")
         .eq("url_slug", slug)
         .single();
 
@@ -41,7 +41,9 @@ export default function PublicMenuPage() {
       // Get items
       const { data: itemData, error: itemError } = await supabase
         .from("menu_items")
-        .select("id, section_id, name, description, price, allergens, dietary_tags")
+        .select(
+          "id, section_id, name, description, price, allergens, dietary_tags"
+        )
         .eq("menu_id", menuData.id);
 
       if (itemError) {
@@ -80,7 +82,10 @@ export default function PublicMenuPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
-      <h1 className="text-3xl font-bold mb-8">{menu.name}</h1>
+      {/* ✅ Restaurant name at the top */}
+      <h1 className="text-3xl font-bold text-center mb-8">
+        {menu.restaurant_name || menu.name}
+      </h1>
 
       {sections.map((section) => (
         <div key={section.id} className="mb-10">
@@ -132,6 +137,20 @@ export default function PublicMenuPage() {
           </div>
         </div>
       ))}
+
+      {/* ✅ Footer */}
+      <p className="text-sm text-gray-500 text-center mt-12">
+        Powered by{" "}
+        <a
+          href="https://whatthemenu.com"
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+        >
+          Whatthemenu.com
+        </a>
+        . Contact us to super-charge your menu.
+      </p>
     </div>
   );
 }
