@@ -109,7 +109,6 @@ export default function MenuEditorPage() {
   }, [selectedMenu]);
 
   // Upload new menu
-const [progressText, setProgressText] = useState<string>("");
 
 const handleFileUpload = async (file: File) => {
   setLoading(true);
