@@ -114,6 +114,8 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
       hideWith: 'Hide dishes with:',
       applyFilters: 'Apply Filters',
       clearFilters: 'Clear All'
+	  dietaryLabel: "Dietary",
+	  close: "Close",
     },
     zh: {
       welcome: '欢迎',
@@ -149,6 +151,8 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
       hideWith: '隐藏包含以下内容的菜品:',
       applyFilters: '应用筛选',
       clearFilters: '清除所有'
+	  dietaryLabel: "饮食",
+	  close: "关闭",
     },
     es: {
       welcome: 'Bienvenido',
@@ -184,6 +188,8 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
       hideWith: 'Ocultar platos con:',
       applyFilters: 'Aplicar Filtros',
       clearFilters: 'Limpiar Todo'
+	  dietaryLabel: "Dieta",
+	  close: "Cerrar",
     },
     fr: {
       welcome: 'Bienvenue',
@@ -219,6 +225,8 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
       hideWith: 'Masquer les plats avec:',
       applyFilters: 'Appliquer les Filtres',
       clearFilters: 'Tout Effacer'
+	  dietaryLabel: "Alimentation",
+	  close: "Fermer",
     }
   };
 
@@ -962,7 +970,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                   {/* Dietary Tags */}
                   {dish.dietaryTags.length > 0 && (
                     <div className="mb-4">
-                      <p className="text-sm font-semibold text-wtm-text mb-2">Dietary:</p>
+                      <p className="text-sm font-semibold text-wtm-text mb-2">{t.dietaryLabel}:</p>
                       <div className="flex flex-wrap gap-2">
                         {dish.dietaryTags.map(tag => (
                           <span key={tag} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
@@ -992,7 +1000,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                       onClick={() => setShowDishExplanation(null)}
                       className="flex-1 px-4 py-3 bg-gray-100 text-wtm-text rounded-xl hover:bg-gray-200 transition-colors font-medium"
                     >
-                      Close
+                      {t.close}
                     </button>
                     <button
                       onClick={() => {
