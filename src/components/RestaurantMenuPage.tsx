@@ -113,7 +113,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
       showOnly: 'Show only:',
       hideWith: 'Hide dishes with:',
       applyFilters: 'Apply Filters',
-      clearFilters: 'Clear All'
+      clearFilters: 'Clear All',
 	  dietaryLabel: "Dietary",
 	  close: "Close",
     },
@@ -150,7 +150,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
       showOnly: '仅显示:',
       hideWith: '隐藏包含以下内容的菜品:',
       applyFilters: '应用筛选',
-      clearFilters: '清除所有'
+      clearFilters: '清除所有',
 	  dietaryLabel: "饮食",
 	  close: "关闭",
     },
@@ -187,7 +187,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
       showOnly: 'Mostrar solo:',
       hideWith: 'Ocultar platos con:',
       applyFilters: 'Aplicar Filtros',
-      clearFilters: 'Limpiar Todo'
+      clearFilters: 'Limpiar Todo',
 	  dietaryLabel: "Dieta",
 	  close: "Cerrar",
     },
@@ -224,7 +224,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
       showOnly: 'Afficher seulement:',
       hideWith: 'Masquer les plats avec:',
       applyFilters: 'Appliquer les Filtres',
-      clearFilters: 'Tout Effacer'
+      clearFilters: 'Tout Effacer',
 	  dietaryLabel: "Alimentation",
 	  close: "Fermer",
     }
