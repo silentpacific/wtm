@@ -368,7 +368,15 @@ const handleFetchTags = async () => {
       {/* Upload */}
       <div className="mb-8">
         <label className="block mb-2 font-semibold">Upload New Menu</label>
-        <input type="file" onChange={handleFileUpload} />
+        <input
+		  type="file"
+		  accept="image/*,application/pdf"
+		  onChange={(e) => {
+			if (e.target.files && e.target.files[0]) {
+			  handleFileUpload(e.target.files[0]);
+			}
+		  }}
+		/>
         {loading && <p className="text-sm text-gray-500 mt-2">Processing...</p>}
       </div>
 
