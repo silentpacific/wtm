@@ -177,8 +177,6 @@ const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
   // --- Fetch Tags from Gemini ---
 const [progressText, setProgressText] = useState<string>(""); // 👈 new state at top
 
-const [progressText, setProgressText] = useState<string>("");
-
 const handleFetchTags = async () => {
   if (!selectedMenu) return;
   setFetchingTags(true);
