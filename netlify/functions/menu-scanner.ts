@@ -226,17 +226,17 @@ Rules:
     const menu = await saveMenuToDatabase(menuId, restaurantId, menuData);
 
     const processingTime = Date.now() - startTime;
-	return {
-	  statusCode: 200,
-	  headers: { ...corsHeaders, "Content-Type": "application/json" },
-	  body: JSON.stringify({
-		success: true,
-		menuId: menu.id,        // ✅ use DB-generated id
-		urlSlug: menu.url_slug,
-		data: { restaurant: menuData.restaurant, sections: menuData.sections },
-		stats: { sections: menuData.sections.length, totalDishes, processingTime },
-	  }),
-	};
+		return {
+		  statusCode: 200,
+		  headers: { ...corsHeaders, "Content-Type": "application/json" },
+		  body: JSON.stringify({
+			success: true,
+			menuId: menu.id,  // ✅ use the actual DB UUID
+			urlSlug: menu.url_slug,
+			data: { restaurant: menuData.restaurant, sections: menuData.sections },
+			stats: { sections: menuData.sections.length, totalDishes, processingTime },
+		  }),
+		};
   } catch (err: any) {
     console.error("menu-scanner error:", err);
     return {
