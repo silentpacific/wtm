@@ -91,16 +91,22 @@ export const handler: Handler = async (event) => {
 
     const menuJson = JSON.parse(response.text.trim());
 
-    // Insert into menus table as "draft"
-    const { data, error } = await supabaseAdmin
-      .from("menus")
-      .insert({
-        restaurant_id: restaurantId,
-        name: menuJson.restaurant?.name || "Uploaded Menu",
-        status: "processing",
-      })
-      .select("id")
-      .single();
+// fetch the selected restaurant profile
+const { data: restProfile } = await supabaseAdmin
+  .from("user_restaurant_profiles")
+  .select("restaurant_name")
+  .eq("auth_user_id", restaurantId)
+  .single();
+
+const { data, error } = await supabaseAdmin
+  .from("menus")
+  .insert({
+    restaurant_id: restaurantId,
+    name: restProfile?.restaurant_name || "Uploaded Menu", // ✅ now tied to dropdown selection
+    status: "processing",
+  })
+  .select("id")
+  .single();
 
     if (error) throw error;
 
