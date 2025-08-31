@@ -1,6 +1,12 @@
 // src/App.tsx
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Header from "./components/Header";
 
@@ -18,7 +24,6 @@ import SampleMenu4 from "./pages/SampleMenu4";
 import FAQPage from "./pages/FAQPage";
 import ContactPage from "./pages/ContactPage";
 
-
 function PrivateRoute({ children }) {
   const { user, authLoading } = useAuth();
 
@@ -31,51 +36,65 @@ function PrivateRoute({ children }) {
   return children;
 }
 
+// ✅ Wrapper so we can safely use useLocation()
+const AppContent: React.FC = () => {
+  const location = useLocation();
+  const hideHeader = location.pathname.startsWith("/r/");
+
+  return (
+    <>
+      {!hideHeader && <Header />}
+      <Routes>
+        {/* Homepage (always visible) */}
+        <Route path="/" element={<RestaurantLandingPage />} />
+
+        {/* Public demos page */}
+        <Route path="/demos" element={<DemosPage />} />
+
+        {/* Public menu pages */}
+        <Route path="/r/:slug" element={<PublicMenuPage />} />
+
+        {/* Login */}
+        <Route path="/login" element={<RestaurantLoginPage />} />
+
+        {/* Internal tools (protected) */}
+        <Route
+          path="/dashboard/menu-editor"
+          element={
+            <PrivateRoute>
+              <MenuEditorPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/qr-codes"
+          element={
+            <PrivateRoute>
+              <QRCodesPage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Catch-all → go home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+
+        {/* Extra pages */}
+        <Route path="/faq" element={<FAQPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/demos/sample-menu-1" element={<SampleMenu1 />} />
+        <Route path="/demos/sample-menu-2" element={<SampleMenu2 />} />
+        <Route path="/demos/sample-menu-3" element={<SampleMenu3 />} />
+        <Route path="/demos/sample-menu-4" element={<SampleMenu4 />} />
+      </Routes>
+    </>
+  );
+};
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-	   <Header />
-        <Routes>
-          {/* Homepage (always visible) */}
-          <Route path="/" element={<RestaurantLandingPage />} />
-
-		  {/* Public demos page */}
-		  <Route path="/demos" element={<DemosPage />} />
-  
-          {/* Public menu pages */}
-          <Route path="/r/:slug" element={<PublicMenuPage />} />
-
-          {/* Login */}
-          <Route path="/login" element={<RestaurantLoginPage />} />
-
-          {/* Internal tools (protected) */}
-          <Route
-            path="/dashboard/menu-editor"
-            element={
-              <PrivateRoute>
-                <MenuEditorPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/dashboard/qr-codes"
-            element={
-              <PrivateRoute>
-                <QRCodesPage />
-              </PrivateRoute>
-            }
-          />
-
-          {/* Catch-all → go home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-		  <Route path="/faq" element={<FAQPage />} />
-		  <Route path="/contact" element={<ContactPage />} />
-		  <Route path="/demos/sample-menu-1" element={<SampleMenu1 />} />
-			<Route path="/demos/sample-menu-2" element={<SampleMenu2 />} />
-			<Route path="/demos/sample-menu-3" element={<SampleMenu3 />} />
-			<Route path="/demos/sample-menu-4" element={<SampleMenu4 />} />
-        </Routes>
+        <AppContent />
       </Router>
     </AuthProvider>
   );

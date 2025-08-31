@@ -32,29 +32,28 @@ const PublicMenuPage: React.FC = () => {
     const fetchMenu = async () => {
       if (!slug) return;
 
-      const { data: menu, error } = await supabase
-        .from("menus")
-        .select(
-          `
-          id,
-          name,
-          menu_sections (
-            id,
-            name,
-            menu_items (
-              id,
-              name,
-              description,
-              price,
-              allergens,
-              dietary_tags,
-              explanation
-            )
-          )
-        `
-        )
-        .eq("url_slug", slug)
-        .single();
+	const { data: menu, error } = await supabase
+	  .from("menus")
+	  .select(`
+		id,
+		name,
+		restaurant:restaurants(name),   -- ✅ get restaurant name
+		menu_sections (
+		  id,
+		  name,
+		  menu_items (
+			id,
+			name,
+			description,
+			price,
+			allergens,
+			dietary_tags,
+			explanation
+		  )
+		)
+	  `)
+	  .eq("url_slug", slug)
+	  .single();
 
       if (error) {
         console.error("Error fetching menu:", error);
@@ -99,11 +98,11 @@ const PublicMenuPage: React.FC = () => {
         });
 
         setMenuData({
-          restaurantName: {
-            en: menu.name,
-            zh: menu.name,
-            es: menu.name,
-            fr: menu.name,
+			restaurantName: {
+			  en: menu.restaurant?.name || menu.name,
+			  zh: menu.restaurant?.name || menu.name,
+			  es: menu.restaurant?.name || menu.name,
+			  fr: menu.restaurant?.name || menu.name,
           },
           menuItems: items,
           sections,

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Plus, Minus, Trash2, MessageCircle, X, Globe, Filter, Info } from 'lucide-react';
+import ReactCountryFlag from "react-country-flag";
+
 
 // Types and Interfaces (keeping your existing structure)
 interface MenuItem {
@@ -69,12 +71,12 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
   const [customRequestInput, setCustomRequestInput] = useState<Record<string, string>>({});
 
   // Language configurations
-  const languages: LanguageOption[] = [
-    { code: 'en', label: 'English', flag: '🇬🇧' },
-    { code: 'zh', label: '中文', flag: '🇨🇳' },
-    { code: 'es', label: 'Español', flag: '🇪🇸' },
-    { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  ];
+	const languages: LanguageOption[] = [
+	  { code: 'en', label: 'English', flag: 'GB' },
+	  { code: 'zh', label: '中文', flag: 'CN' },
+	  { code: 'es', label: 'Español', flag: 'ES' },
+	  { code: 'fr', label: 'Français', flag: 'FR' },
+	];
 
   // Translations
   const translations = {
@@ -415,7 +417,11 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                 className="w-full bg-white border border-gray-100 rounded-2xl p-6 text-left hover:border-wtm-primary hover:bg-wtm-primary/5 transition-all duration-200 shadow-sm"
               >
                 <div className="flex items-center gap-4">
-                  <span className="text-3xl">{lang.flag}</span>
+                  <ReactCountryFlag 
+					  countryCode={lang.flag}
+					  svg
+					  style={{ width: "2em", height: "2em" }}
+					/>
                   <span className="text-xl font-medium text-wtm-text">{lang.label}</span>
                 </div>
               </button>
