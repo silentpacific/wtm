@@ -82,8 +82,8 @@ async function saveMenuToDatabase(
     .eq("id", restaurantId); // 👈 use the restaurant profile ID
 
 
-  const safeName = makeSlug(restProfile?.restaurant_name || "menu");
-  const urlSlug = `${safeName}-${Date.now().toString(36)}`;
+  const safeName = makeSlug(menuData.restaurant?.name || "menu");
+	const urlSlug = `${safeName}-${Math.random().toString(36).substring(2, 8)}`;
 
 	const { data: menu, error: menuError } = await supabaseAdmin
 	  .from("menus")

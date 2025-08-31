@@ -122,12 +122,12 @@ const handleFileUpload = async (file: File) => {
       const scanRes = await fetch("/.netlify/functions/menu-scanner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileData: reader.result,
-          fileName: file.name,
-          mimeType: file.type,
-          restaurantId: user.id,
-        }),
+		body: JSON.stringify({
+		  fileData: reader.result,
+		  fileName: file.name,
+		  mimeType: file.type,
+		  restaurantId: selectedRestaurant,  // ✅ use restaurant, not user
+		}),
       });
 
       if (!scanRes.ok) {

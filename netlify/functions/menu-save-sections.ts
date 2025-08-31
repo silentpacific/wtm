@@ -32,7 +32,6 @@ export const handler: Handler = async (event) => {
       .from("menu_drafts")
       .select("json_data")
       .eq("menu_id", menuId)
-      .single();
     if (draftErr) throw draftErr;
 
     const sections = draft.json_data.sections || [];
