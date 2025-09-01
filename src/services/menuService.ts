@@ -1,6 +1,33 @@
 // src/services/menuService.ts
-import { supabase } from "../services/supabaseClient";
 
+import { supabase } from "./supabaseClient";
+
+export interface MenuItemVariant {
+  id?: string; // optional for create
+  menu_item_id: string;
+  name: string;
+  price: number;
+}
+
+export interface MenuItem {
+  id: string;
+  section_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  allergens: string[];
+  dietary_tags: string[];
+  variants?: MenuItemVariant[];
+}
+
+export interface Section {
+  id: string;
+  name: string;
+  display_order: number;
+  dishes: MenuItem[];
+}
+
+// ✅ Keep Dish type for create/update operations
 export interface Dish {
   id?: string;
   section_id?: string;
@@ -9,22 +36,6 @@ export interface Dish {
   price?: number | null;
   allergens?: string[];
   dietary_tags?: string[];
-}
-
-export interface Section {
-  id?: string;
-  menu_id?: string;
-  name: string;
-  display_order?: number;
-  dishes: Dish[];
-}
-
-export interface MenuData {
-  id: string;
-  restaurant_id: string;
-  name: string;
-  url_slug: string; // ✅ ensure url_slug is always present
-  sections: Section[];
 }
 
 // --- Fetch all menus for a restaurant ---
@@ -53,16 +64,20 @@ export async function getMenuWithSectionsAndItems(menuId: string) {
 
   if (sectionError) throw sectionError;
 
-  // Fetch items with variants
-	const { data: items, error: itemError } = await supabase
-	  .from("menu_items")
-	  .select(`
-		id, section_id, name, description, price, allergens, dietary_tags,
-		variants:menu_item_variants ( id, name, price )
-	  `)
-	  .eq("menu_id", menuId);
+  // Fetch items
+  const { data: items, error: itemError } = await supabase
+    .from("menu_items")
+    .select("id, section_id, name, description, price, allergens, dietary_tags, name_i18n, description_i18n")
+    .eq("menu_id", menuId);
 
   if (itemError) throw itemError;
+
+  // Fetch variants
+  const { data: variants, error: variantError } = await supabase
+    .from("menu_item_variants")
+    .select("id, menu_item_id, name, price");
+
+  if (variantError) throw variantError;
 
   // Build structured sections
   const structuredSections: Section[] = (sections || []).map((s) => ({
@@ -77,13 +92,12 @@ export async function getMenuWithSectionsAndItems(menuId: string) {
         price: i.price,
         allergens: i.allergens || [],
         dietary_tags: i.dietary_tags || [],
-        variants: i.menu_item_variants || [] // ✅ attach variants
+        variants: (variants || []).filter((v) => v.menu_item_id === i.id), // ✅ attach variants
       })),
   }));
 
   return structuredSections;
 }
-
 
 // --- Diff-based save: insert/update/delete ---
 export async function saveMenuDiff(
@@ -210,4 +224,31 @@ export async function saveMenuDiff(
   }
 
   return true;
+}
+
+/**
+ * Variant CRUD (for items with variants)
+ */
+export async function createVariant(variant: MenuItemVariant) {
+  const { error } = await supabase.from("menu_item_variants").insert([variant]);
+  if (error) throw error;
+}
+
+export async function updateVariant(variant: MenuItemVariant) {
+  if (!variant.id) throw new Error("Variant id is required for update");
+
+  const { error } = await supabase
+    .from("menu_item_variants")
+    .update({
+      name: variant.name,
+      price: variant.price,
+    })
+    .eq("id", variant.id);
+
+  if (error) throw error;
+}
+
+export async function deleteVariant(id: string) {
+  const { error } = await supabase.from("menu_item_variants").delete().eq("id", id);
+  if (error) throw error;
 }
