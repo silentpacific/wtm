@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../supabaseClient"; // adjust path if needed
+import { supabase } from "../services/supabaseClient";
 
 type Menu = {
   id: string;
