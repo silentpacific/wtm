@@ -718,18 +718,18 @@ const [variantQuantity, setVariantQuantity] = useState(1);
                         {t.moreInfo}
                       </button>
                       {item.variants && item.variants.length > 0 ? (
-						  <button
+						<button
 							onClick={() => setSelectedDish(item)}
-							className="bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl ..."
-						  >
+							className="bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl"
+						>
 							<Plus size={18} />
 							{t.addToOrder}
 						  </button>
 						) : (
 						  <button
 							onClick={() => addToOrder(item.id)}
-							className="bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl ..."
-						  >
+							className="bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl"
+						>
 							<Plus size={18} />
 							{t.addToOrder}
 						  </button>
@@ -1095,10 +1095,10 @@ const [variantQuantity, setVariantQuantity] = useState(1);
       </div>
 
       {selectedDish.variants?.map(variant => (
-        <label
-          key={variant.id}
-          className="flex items-center justify-between border rounded-lg p-3 mb-2 cursor-pointer"
-        >
+		  <label
+			key={variant.id}
+			className="flex items-center justify-between border rounded-lg p-3 mb-2 cursor-pointer"
+		  >
           <input
             type="radio"
             name="variant"
