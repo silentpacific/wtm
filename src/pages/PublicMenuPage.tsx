@@ -22,6 +22,22 @@ interface MenuData {
   sections: Record<string, string[]>;
 }
 
+interface MenuItem {
+  id: string;
+  section: string;
+  name: Record<string, string>;
+  description: Record<string, string>;
+  price: number;
+  allergens: string[];
+  dietaryTags: string[];
+  explanation: Record<string, string>;
+  variants?: Array<{
+    id: string;
+    name: string;
+    price: number;
+  }>;
+}
+
 const PublicMenuPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const [menuData, setMenuData] = useState<MenuData | null>(null);
@@ -47,7 +63,12 @@ const PublicMenuPage: React.FC = () => {
 			price,
 			allergens,
 			dietary_tags,
-			explanation
+			explanation,
+			menu_item_variants (
+			  id,
+			  name,
+			  price
+			)
 		  )
 		)
 	  `)
@@ -69,40 +90,45 @@ const PublicMenuPage: React.FC = () => {
           sections[section.name] = section.menu_items.map((i: any) => i.id);
           section.menu_items.forEach((i: any) => {
             items.push({
-              id: i.id,
-              section: section.name,
-              name: {
-                en: i.name || "",
-                zh: i.name || "",
-                es: i.name || "",
-                fr: i.name || "",
-              },
-              description: {
-                en: i.description || "",
-                zh: i.description || "",
-                es: i.description || "",
-                fr: i.description || "",
-              },
-              price: i.price || 0,
-              allergens: i.allergens || [],
-              dietaryTags: i.dietary_tags || [],
-              explanation: {
-                en: i.explanation || "",
-                zh: i.explanation || "",
-                es: i.explanation || "",
-                fr: i.explanation || "",
-              },
-            });
+			  id: i.id,
+			  section: section.name,
+			  name: {
+				en: i.name || "",
+				zh: i.name || "",
+				es: i.name || "",
+				fr: i.name || "",
+			  },
+			  description: {
+				en: i.description || "",
+				zh: i.description || "",
+				es: i.description || "",
+				fr: i.description || "",
+			  },
+			  price: i.price || 0,
+			  allergens: i.allergens || [],
+			  dietaryTags: i.dietary_tags || [],
+			  explanation: {
+				en: i.explanation || "",
+				zh: i.explanation || "",
+				es: i.explanation || "",
+				fr: i.explanation || "",
+			  },
+			  variants: (i.menu_item_variants || []).map((variant: any) => ({
+				id: variant.id,
+				name: variant.name,
+				price: variant.price
+			  }))
+			});
           });
         });
 
         setMenuData({
 			restaurantName: {
-			  en: menu.restaurant?.name || menu.name,
-			  zh: menu.restaurant?.name || menu.name,
-			  es: menu.restaurant?.name || menu.name,
-			  fr: menu.restaurant?.name || menu.name,
-          },
+			  en: menu.name,
+			  zh: menu.name,
+			  es: menu.name,
+			  fr: menu.name,
+			},
           menuItems: items,
           sections,
         });

@@ -72,28 +72,37 @@ export async function getMenuWithSectionsAndItems(menuId: string) {
 
   if (itemError) throw itemError;
 
-  // Fetch variants
+  // ✅ FIX: Filter variants by menu items that belong to this menu
+  const itemIds = (items || []).map(item => item.id);
   const { data: variants, error: variantError } = await supabase
     .from("menu_item_variants")
-    .select("id, menu_item_id, name, price");
+    .select("id, menu_item_id, name, price")
+    .in("menu_item_id", itemIds.length > 0 ? itemIds : ['-']); // Prevent empty array error
 
   if (variantError) throw variantError;
+
+  console.log('Fetched variants:', variants); // Debug log
 
   // Build structured sections
   const structuredSections: Section[] = (sections || []).map((s) => ({
     ...s,
     dishes: (items || [])
       .filter((i) => i.section_id === s.id)
-      .map((i) => ({
-        id: i.id,
-        section_id: i.section_id,
-        name: i.name_i18n || i.name,         // ✅ handle i18n if present
-        description: i.description_i18n || i.description,
-        price: i.price,
-        allergens: i.allergens || [],
-        dietary_tags: i.dietary_tags || [],
-        variants: (variants || []).filter((v) => v.menu_item_id === i.id), // ✅ attach variants
-      })),
+      .map((i) => {
+        const itemVariants = (variants || []).filter((v) => v.menu_item_id === i.id);
+        console.log(`Item ${i.name} has ${itemVariants.length} variants:`, itemVariants); // Debug log
+        
+        return {
+          id: i.id,
+          section_id: i.section_id,
+          name: i.name_i18n || i.name,         // ✅ handle i18n if present
+          description: i.description_i18n || i.description,
+          price: i.price,
+          allergens: i.allergens || [],
+          dietary_tags: i.dietary_tags || [],
+          variants: itemVariants, // ✅ attach filtered variants
+        };
+      }),
   }));
 
   return structuredSections;
@@ -251,4 +260,78 @@ export async function updateVariant(variant: MenuItemVariant) {
 export async function deleteVariant(id: string) {
   const { error } = await supabase.from("menu_item_variants").delete().eq("id", id);
   if (error) throw error;
+}
+
+// ✅ Helper function to convert Section[] to MenuData format expected by RestaurantMenuPage
+export function convertSectionsToMenuData(
+  sections: Section[], 
+  restaurantName: string,
+  language: 'en' | 'es' | 'fr' | 'zh' = 'en'
+): {
+  restaurantName: Record<string, string>;
+  menuItems: Array<{
+    id: string;
+    section: string;
+    name: Record<string, string>;
+    description: Record<string, string>;
+    price: number;
+    allergens: string[];
+    dietaryTags: string[];
+    explanation: Record<string, string>;
+    variants?: Array<{
+      id: string;
+      name: string;
+      price: number;
+    }>;
+  }>;
+  sections: Record<string, string[]>;
+} {
+  const menuItems = sections.flatMap(section =>
+    section.dishes.map(dish => ({
+      id: dish.id,
+      section: section.name,
+      name: {
+        en: dish.name,
+        es: dish.name, // You might want to add i18n support here
+        fr: dish.name,
+        zh: dish.name
+      },
+      description: {
+        en: dish.description || '',
+        es: dish.description || '',
+        fr: dish.description || '',
+        zh: dish.description || ''
+      },
+      price: dish.price,
+      allergens: dish.allergens,
+      dietaryTags: dish.dietary_tags,
+      explanation: {
+        en: dish.description || '',
+        es: dish.description || '',
+        fr: dish.description || '',
+        zh: dish.description || ''
+      },
+      variants: dish.variants?.map(variant => ({
+        id: variant.id!,
+        name: variant.name,
+        price: variant.price
+      }))
+    }))
+  );
+
+  const sectionMap = sections.reduce((acc, section) => {
+    acc[section.name] = section.dishes.map(dish => dish.id);
+    return acc;
+  }, {} as Record<string, string[]>);
+
+  return {
+    restaurantName: {
+      en: restaurantName,
+      es: restaurantName,
+      fr: restaurantName,
+      zh: restaurantName
+    },
+    menuItems,
+    sections: sectionMap
+  };
 }

@@ -711,9 +711,12 @@ if (isOrderConfirmed) {
                           {item.description[language]}
                         </p>
                       </div>
-                      <div className="text-2xl font-bold text-wtm-primary shrink-0">
-						  {(!item.variants || item.variants.length === 0) && `$${item.price.toFixed(2)}`}
-						</div>
+					<div className="text-2xl font-bold text-wtm-primary shrink-0">
+					  {(!item.variants || item.variants.length === 0) ? 
+						`$${item.price.toFixed(2)}` : 
+						<span className="text-sm text-gray-500">Multiple options</span>
+					  }
+					</div>
                     </div>
 
                     {/* Tags */}
