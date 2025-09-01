@@ -102,7 +102,7 @@ const DemosPage: React.FC = () => {
                 </div>
                 <div className="mt-6 text-right">
                   <Link
-                    to={`/demos/${menu.id}`}
+                    to={`/r/${menu.url_slug}`}
                     className="text-wtm-primary hover:underline"
                   >
                     View Full Menu →

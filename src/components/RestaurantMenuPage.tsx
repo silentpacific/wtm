@@ -735,16 +735,10 @@ if (isOrderConfirmed) {
 						</div>
 					  )}
 
-					  {/* Actions */}
-					  <div className="flex gap-3">
-						<button
-						  onClick={() => setShowDishExplanation(item.id)}
-						  className="px-4 py-2 bg-gray-100 text-wtm-text rounded-xl hover:bg-gray-200 transition-colors font-medium"
-						>
-						  {t.moreInfo}
-						</button>
-						{item.variants && item.variants.length > 0 ? (
-						  <div className="flex flex-col gap-3">
+						{/* Actions */}
+						<div className="flex flex-col gap-3">
+						  {/* First row - Variant selector (if variants exist) */}
+						  {item.variants && item.variants.length > 0 && (
 							<select
 							  value={selectedVariants[item.id] || ""}
 							  onChange={(e) =>
@@ -762,27 +756,35 @@ if (isOrderConfirmed) {
 								</option>
 							  ))}
 							</select>
+						  )}
+						  
+						  {/* Second row - Info and Add buttons */}
+						  <div className="flex gap-3">
+							<button
+							  onClick={() => setShowDishExplanation(item.id)}
+							  className="flex-1 px-4 py-3 bg-gray-100 text-wtm-text rounded-xl hover:bg-gray-200 transition-colors font-medium"
+							>
+							  {t.moreInfo}
+							</button>
+							
 							<button
 							  onClick={() =>
-								addToOrder(item.id, selectedVariants[item.id] || undefined, 1)
+								addToOrder(
+								  item.id, 
+								  item.variants && item.variants.length > 0 
+									? selectedVariants[item.id] || undefined 
+									: undefined, 
+								  1
+								)
 							  }
-							  disabled={!selectedVariants[item.id]}
-							  className="inline-flex items-center justify-center whitespace-nowrap gap-2 bg-wtm-primary text-white font-semibold px-6 py-3 rounded-xl hover:bg-wtm-primary-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-wtm-primary shadow-sm hover:shadow-md"
+							  disabled={item.variants && item.variants.length > 0 && !selectedVariants[item.id]}
+							  className="flex-1 inline-flex items-center justify-center whitespace-nowrap gap-2 bg-wtm-primary text-white font-semibold px-6 py-3 rounded-xl hover:bg-wtm-primary-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-wtm-primary shadow-sm hover:shadow-md"
 							>
 							  <Plus size={18} />
 							  {t.addToOrder}
 							</button>
 						  </div>
-						) : (
-						  <button
-							onClick={() => addToOrder(item.id)}
-							className="inline-flex items-center justify-center whitespace-nowrap gap-2 bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl hover:bg-wtm-primary-600 transition-colors"
-						  >
-							<Plus size={18} />
-							{t.addToOrder}
-						  </button>
-						)}
-					  </div>
+						</div>
 					</div>
 				  ))}
 				</div>
