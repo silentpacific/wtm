@@ -129,6 +129,7 @@ const [variantQuantity, setVariantQuantity] = useState(1);
       clearFilters: 'Clear All',
 	  dietaryLabel: "Dietary",
 	  close: "Close",
+	  chooseVariant: "Choose a variant",
     },
     zh: {
       welcome: '欢迎',
@@ -166,6 +167,7 @@ const [variantQuantity, setVariantQuantity] = useState(1);
       clearFilters: '清除所有',
 	  dietaryLabel: "饮食",
 	  close: "关闭",
+	  chooseVariant: "选择一个选项",
     },
     es: {
       welcome: 'Bienvenido',
@@ -203,6 +205,7 @@ const [variantQuantity, setVariantQuantity] = useState(1);
       clearFilters: 'Limpiar Todo',
 	  dietaryLabel: "Dieta",
 	  close: "Cerrar",
+	  chooseVariant: "Elige una variante",
     },
     fr: {
       welcome: 'Bienvenue',
@@ -240,6 +243,7 @@ const [variantQuantity, setVariantQuantity] = useState(1);
       clearFilters: 'Tout Effacer',
 	  dietaryLabel: "Alimentation",
 	  close: "Fermer",
+	  chooseVariant: "Choisir une variante",
     }
   };
 
@@ -708,8 +712,8 @@ if (isOrderConfirmed) {
                         </p>
                       </div>
                       <div className="text-2xl font-bold text-wtm-primary shrink-0">
-                        ${item.price.toFixed(2)}
-                      </div>
+						  {(!item.variants || item.variants.length === 0) && `$${item.price.toFixed(2)}`}
+						</div>
                     </div>
 
                     {/* Tags */}

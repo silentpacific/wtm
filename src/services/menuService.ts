@@ -54,23 +54,13 @@ export async function getMenuWithSectionsAndItems(menuId: string) {
   if (sectionError) throw sectionError;
 
   // Fetch items with variants
-  const { data: items, error: itemError } = await supabase
-    .from("menu_items")
-    .select(`
-      id,
-      section_id,
-      name_i18n,
-      description_i18n,
-      price,
-      allergens,
-      dietary_tags,
-      menu_item_variants (
-        id,
-        name,
-        price
-      )
-    `)
-    .eq("menu_id", menuId);
+	const { data: items, error: itemError } = await supabase
+	  .from("menu_items")
+	  .select(`
+		id, section_id, name, description, price, allergens, dietary_tags,
+		variants:menu_item_variants ( id, name, price )
+	  `)
+	  .eq("menu_id", menuId);
 
   if (itemError) throw itemError;
 
