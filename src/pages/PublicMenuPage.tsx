@@ -113,7 +113,7 @@ const PublicMenuPage: React.FC = () => {
 				  es: i.long_description || i.explanation || "",
 				  fr: i.long_description || i.explanation || "",
 				  zh: i.long_description || i.explanation || "",
-				}
+				},
 			  variants: (i.menu_item_variants || []).map((variant: any) => ({
 				id: variant.id,
 				name: variant.name,
