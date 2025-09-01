@@ -683,115 +683,122 @@ if (isOrderConfirmed) {
         </div>
       </div>
 
-      {/* Menu Content with Generous Margins */}
-      <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
-        {Object.entries(itemsBySection).map(([section, items]) => (
-          <div key={section} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <button
-              onClick={() => toggleSection(section)}
-              className="w-full flex justify-between items-center p-6 hover:bg-gray-50 transition-colors focus:outline-none"
-            >
-              <h2 className="text-2xl font-bold text-wtm-text tracking-tight">{section}</h2>
-              {collapsedSections.has(section) ? 
-                <ChevronDown size={24} className="text-wtm-muted" /> : 
-                <ChevronUp size={24} className="text-wtm-muted" />
-              }
-            </button>
+		{/* Menu Content with Generous Margins */}
+		<div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
+		  {Object.entries(itemsBySection).map(([section, items]) => (
+			<div key={section} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+			  <button
+				onClick={() => toggleSection(section)}
+				className="w-full flex justify-between items-center p-6 hover:bg-gray-50 transition-colors focus:outline-none"
+			  >
+				<h2 className="text-2xl font-bold text-wtm-text tracking-tight">{section}</h2>
+				{collapsedSections.has(section) ? 
+				  <ChevronDown size={24} className="text-wtm-muted" /> : 
+				  <ChevronUp size={24} className="text-wtm-muted" />
+				}
+			  </button>
 
-            {!collapsedSections.has(section) && (
-              <div className="divide-y divide-gray-100">
-                {items.map(item => (
-                  <div key={item.id} className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1 pr-4">
-                        <h3 className="font-bold text-xl text-wtm-text mb-2 tracking-tight leading-tight">
-                          {item.name[language]}
-                        </h3>
-                        <p className="text-wtm-muted leading-relaxed">
-                          {item.description[language]}
-                        </p>
-                      </div>
-					<div className="text-2xl font-bold text-wtm-primary shrink-0">
-					  {(!item.variants || item.variants.length === 0) ? 
-						`$${item.price.toFixed(2)}` : 
-						<span className="text-sm text-gray-500">Multiple options</span>
-					  }
-					</div>
-                    </div>
+			  {!collapsedSections.has(section) && (
+				<div className="divide-y divide-gray-100">
+				  {items.map(item => (
+					<div key={item.id} className="p-6">
+					  <div className="flex justify-between items-start mb-4">
+						<div className="flex-1 pr-4">
+						  <h3 className="font-bold text-xl text-wtm-text mb-2 tracking-tight leading-tight">
+							{item.name[language]}
+						  </h3>
+						  <p className="text-wtm-muted leading-relaxed">
+							{item.description[language]}
+						  </p>
+						</div>
+						<div className="text-2xl font-bold text-wtm-primary shrink-0">
+						  {(!item.variants || item.variants.length === 0) ? 
+							`$${item.price.toFixed(2)}` : 
+							<span className="text-sm text-gray-500">Multiple options</span>
+						  }
+						</div>
+					  </div>
 
-                    {/* Tags */}
-                    {(item.dietaryTags.length > 0 || item.allergens.length > 0) && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {item.dietaryTags.map(tag => (
-                          <span key={tag} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                            {translateDietaryTag(tag)}
-                          </span>
-                        ))}
-                        {item.allergens.map(allergen => (
-                          <span key={allergen} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                            {translateAllergen(allergen)}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+					  {/* Tags */}
+					  {(item.dietaryTags.length > 0 || item.allergens.length > 0) && (
+						<div className="flex flex-wrap gap-2 mb-4">
+						  {item.dietaryTags.map(tag => (
+							<span key={tag} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+							  {translateDietaryTag(tag)}
+							</span>
+						  ))}
+						  {item.allergens.map(allergen => (
+							<span key={allergen} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+							  {translateAllergen(allergen)}
+							</span>
+						  ))}
+						</div>
+					  )}
 
-					{/* Actions */}
-					<div className="flex gap-3">
-					  <button
-						onClick={() => setShowDishExplanation(item.id)}
-						className="px-4 py-2 bg-gray-100 text-wtm-text rounded-xl hover:bg-gray-200 transition-colors font-medium"
-					  >
-						{t.moreInfo}
-					  </button>
-					  {item.variants && item.variants.length > 0 ? (
-						<div className="flex flex-col gap-3">
-						  <select
-							value={selectedVariants[item.id] || ""}
-							onChange={(e) =>
-							  setSelectedVariants({
-								...selectedVariants,
-								[item.id]: e.target.value,
-							  })
-							}
-							className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-wtm-text font-medium focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 cursor-pointer hover:bg-gray-100"
-						  >
-							<option value="" className="text-gray-500">{t.chooseVariant}</option>
-							{item.variants.map((v) => (
-							  <option key={v.id} value={v.id} className="text-wtm-text">
-								{v.name} - ${v.price.toFixed(2)}
-							  </option>
-							))}
-						  </select>
+					  {/* Actions */}
+					  <div className="flex gap-3">
+						<button
+						  onClick={() => setShowDishExplanation(item.id)}
+						  className="px-4 py-2 bg-gray-100 text-wtm-text rounded-xl hover:bg-gray-200 transition-colors font-medium"
+						>
+						  {t.moreInfo}
+						</button>
+						{item.variants && item.variants.length > 0 ? (
+						  <div className="flex flex-col gap-3">
+							<select
+							  value={selectedVariants[item.id] || ""}
+							  onChange={(e) =>
+								setSelectedVariants({
+								  ...selectedVariants,
+								  [item.id]: e.target.value,
+								})
+							  }
+							  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-wtm-text font-medium focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200 cursor-pointer hover:bg-gray-100"
+							>
+							  <option value="" className="text-gray-500">{t.chooseVariant}</option>
+							  {item.variants.map((v) => (
+								<option key={v.id} value={v.id} className="text-wtm-text">
+								  {v.name} - ${v.price.toFixed(2)}
+								</option>
+							  ))}
+							</select>
+							<button
+							  onClick={() =>
+								addToOrder(item.id, selectedVariants[item.id] || undefined, 1)
+							  }
+							  disabled={!selectedVariants[item.id]}
+							  className="inline-flex items-center justify-center whitespace-nowrap gap-2 bg-wtm-primary text-white font-semibold px-6 py-3 rounded-xl hover:bg-wtm-primary-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-wtm-primary shadow-sm hover:shadow-md"
+							>
+							  <Plus size={18} />
+							  {t.addToOrder}
+							</button>
+						  </div>
+						) : (
 						  <button
-							onClick={() =>
-							  addToOrder(item.id, selectedVariants[item.id] || undefined, 1)
-							}
-							disabled={!selectedVariants[item.id]}
-							className="inline-flex items-center justify-center whitespace-nowrap gap-2 bg-wtm-primary text-white font-semibold px-6 py-3 rounded-xl hover:bg-wtm-primary-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-wtm-primary shadow-sm hover:shadow-md"
+							onClick={() => addToOrder(item.id)}
+							className="inline-flex items-center justify-center whitespace-nowrap gap-2 bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl hover:bg-wtm-primary-600 transition-colors"
 						  >
 							<Plus size={18} />
 							{t.addToOrder}
 						  </button>
-						</div>
-					  ) : (
-						<button
-						  onClick={() => addToOrder(item.id)}
-						  className="inline-flex items-center justify-center whitespace-nowrap gap-2 bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl hover:bg-wtm-primary-600 transition-colors"
-						>
-						  <Plus size={18} />
-						  {t.addToOrder}
-						</button>
-					  )}
+						)}
+					  </div>
 					</div>
+				  ))}
+				</div>
+			  )}
+			</div>
+		  ))}
+		</div>
 
-      {/* Footer - Only for non-demo menus */}
-      {!isDemo && (
-        <div className="max-w-2xl mx-auto px-6 py-8 text-center">
-          <p className="text-sm text-wtm-muted">
-            Powered by <a href="https://whatthemenu.com" className="text-wtm-primary hover:text-wtm-primary-600 font-medium transition-colors" target="_blank" rel="noopener noreferrer">WhatTheMenu.com</a>
-          </p>
-        </div>
-      )}
+		{/* Footer - Only for non-demo menus - MOVED OUTSIDE */}
+		{!isDemo && (
+		  <div className="max-w-2xl mx-auto px-6 py-8 text-center">
+			<p className="text-sm text-wtm-muted">
+			  Powered by <a href="https://whatthemenu.com" className="text-wtm-primary hover:text-wtm-primary-600 font-medium transition-colors" target="_blank" rel="noopener noreferrer">WhatTheMenu.com</a>
+			</p>
+		  </div>
+		)}
 
       {/* Filter Panel - Pull-down style */}
       {isFiltersExpanded && (
