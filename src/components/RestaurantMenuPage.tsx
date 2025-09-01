@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Plus, Minus, Trash2, MessageCircle, X, Globe, Filter, Info } from 'lucide-react';
 import ReactCountryFlag from "react-country-flag";
-
+// Track selected variant per dish (for dropdowns)
+const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
 // Types and Interfaces (keeping your existing structure)
 interface MenuItemVariant {
@@ -759,11 +760,13 @@ if (isOrderConfirmed) {
 								</option>
 							  ))}
 							</select>
+
 							<button
 							  onClick={() =>
 								addToOrder(item.id, selectedVariants[item.id] || undefined, 1)
 							  }
-							  className="inline-flex items-center justify-center whitespace-nowrap gap-2 bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl hover:bg-wtm-primary-600 transition-colors"
+							  disabled={!selectedVariants[item.id]}
+							  className="inline-flex items-center justify-center whitespace-nowrap gap-2 bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl hover:bg-wtm-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 							  <Plus size={18} />
 							  {t.addToOrder}
@@ -778,8 +781,6 @@ if (isOrderConfirmed) {
 							{t.addToOrder}
 						  </button>
 						)}
-
-
                     </div>
                   </div>
                 ))}
@@ -940,22 +941,25 @@ if (isOrderConfirmed) {
 		{menuItem.variants && menuItem.variants.length > 0 && (
 		  <select
 			className="mt-2 w-full border rounded-lg px-3 py-2 text-sm"
-			value={selectedVariants[menuItem.id] || ""}
-			onChange={(e) =>
+			value={selectedVariants[menuItem.id] || orderItem.variantId || ""}
+			onChange={(e) => {
+			  const variantId = e.target.value;
 			  setSelectedVariants({
 				...selectedVariants,
-				[menuItem.id]: e.target.value
-			  })
-			}
+				[menuItem.id]: variantId,
+			  });
+			  updateVariant(menuItem.id, variantId); // ✅ keeps orderItems in sync
+			}}
 		  >
 			<option value="">{t.chooseVariant}</option>
-			{menuItem.variants.map(v => (
+			{menuItem.variants.map((v) => (
 			  <option key={v.id} value={v.id}>
 				{v.name} - ${v.price.toFixed(2)}
 			  </option>
 			))}
 		  </select>
 		)}
+
 
 
       <div className="flex items-center justify-between mb-4">
