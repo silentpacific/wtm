@@ -736,23 +736,45 @@ if (isOrderConfirmed) {
                       >
                         {t.moreInfo}
                       </button>
-                      {item.variants && item.variants.length > 0 ? (
-						<button
-							onClick={() => setSelectedDish(item)}
-							className="bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl"
-						>
-							<Plus size={18} />
-							{t.addToOrder}
-						  </button>
+						{item.variants && item.variants.length > 0 ? (
+						  <div className="flex flex-col gap-2">
+							<select
+							  value={selectedVariants[item.id] || ""}
+							  onChange={(e) =>
+								setSelectedVariants({
+								  ...selectedVariants,
+								  [item.id]: e.target.value,
+								})
+							  }
+							  className="border rounded-lg px-3 py-2 text-sm"
+							>
+							  <option value="">{t.chooseVariant}</option>
+							  {item.variants.map((v) => (
+								<option key={v.id} value={v.id}>
+								  {v.name} - ${v.price.toFixed(2)}
+								</option>
+							  ))}
+							</select>
+							<button
+							  onClick={() =>
+								addToOrder(item.id, selectedVariants[item.id] || undefined, 1)
+							  }
+							  className="inline-flex items-center justify-center whitespace-nowrap gap-2 bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl hover:bg-wtm-primary-600 transition-colors"
+							>
+							  <Plus size={18} />
+							  {t.addToOrder}
+							</button>
+						  </div>
 						) : (
 						  <button
 							onClick={() => addToOrder(item.id)}
-							className="bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl"
-						>
+							className="inline-flex items-center justify-center whitespace-nowrap gap-2 bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl hover:bg-wtm-primary-600 transition-colors"
+						  >
 							<Plus size={18} />
 							{t.addToOrder}
 						  </button>
 						)}
+
 
                     </div>
                   </div>
@@ -911,20 +933,26 @@ if (isOrderConfirmed) {
       </div>
 
       {/* ✅ Variant Selector */}
-      {menuItem.variants && menuItem.variants.length > 0 && (
-        <select
-          value={orderItem.variantId || ""}
-          onChange={(e) => updateVariant(orderItem.dishId, e.target.value)}
-          className="mb-4 border rounded-lg px-3 py-2 w-full"
-        >
-          <option value="">{t.chooseVariant}</option>
-          {menuItem.variants.map(v => (
-            <option key={v.id} value={v.id}>
-              {v.name} - ${v.price.toFixed(2)}
-            </option>
-          ))}
-        </select>
-      )}
+		{menuItem.variants && menuItem.variants.length > 0 && (
+		  <select
+			className="mt-2 w-full border rounded-lg px-3 py-2 text-sm"
+			value={selectedVariants[menuItem.id] || ""}
+			onChange={(e) =>
+			  setSelectedVariants({
+				...selectedVariants,
+				[menuItem.id]: e.target.value
+			  })
+			}
+		  >
+			<option value="">{t.chooseVariant}</option>
+			{menuItem.variants.map(v => (
+			  <option key={v.id} value={v.id}>
+				{v.name} - ${v.price.toFixed(2)}
+			  </option>
+			))}
+		  </select>
+		)}
+
 
       <div className="flex items-center justify-between mb-4">
         {/* ✅ Quantity Controls */}
