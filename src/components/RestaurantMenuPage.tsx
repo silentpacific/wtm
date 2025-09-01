@@ -324,26 +324,45 @@ const [variantQuantity, setVariantQuantity] = useState(1);
 			: item
 		));
 	  } else {
-		setOrderItems([...orderItems, { dishId, variantId, quantity: qty }]);
+		setOrderItems([
+		  ...orderItems,
+		  { dishId, variantId, quantity: qty }
+		]);
 	  }
 	};
 
 
-  const updateQuantity = (dishId: string, change: number) => {
-    setOrderItems(orderItems.map(item => {
-      if (item.dishId === dishId) {
-        const newQuantity = Math.max(0, item.quantity + change);
-        return newQuantity === 0 ? null : { ...item, quantity: newQuantity };
-      }
-      return item;
-    }).filter(Boolean) as OrderItem[]);
-  };
+	const updateVariant = (dishId: string, variantId: string) => {
+	  setOrderItems(prev =>
+		prev.map(item =>
+		  item.dishId === dishId
+			? { ...item, variantId }
+			: item
+		)
+	  );
+	};
 
-  const removeFromOrder = (dishId: string) => {
-    setOrderItems(orderItems.filter(item => item.dishId !== dishId));
-    delete customRequestInput[dishId];
-    setCustomRequestInput({ ...customRequestInput });
-  };
+
+	const updateQuantity = (dishId: string, delta: number, variantId?: string) => {
+	  setOrderItems(prev =>
+		prev
+		  .map(item =>
+			item.dishId === dishId && item.variantId === variantId
+			  ? { ...item, quantity: Math.max(1, item.quantity + delta) }
+			  : item
+		  )
+		  .filter(item => item.quantity > 0)
+	  );
+	};
+
+
+
+	const removeFromOrder = (dishId: string, variantId?: string) => {
+	  setOrderItems(prev =>
+		prev.filter(item => !(item.dishId === dishId && item.variantId === variantId))
+	  );
+	};
+
 
   const addCustomRequest = (dishId: string, request: string) => {
     setOrderItems(orderItems.map(item => 
@@ -458,156 +477,156 @@ const [variantQuantity, setVariantQuantity] = useState(1);
   }
 
   // Confirmed Order Screen
-  if (isOrderConfirmed) {
-    return (
-      <div className="min-h-screen bg-wtm-bg px-6 py-8">
-        <div className="max-w-lg mx-auto">
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-lg overflow-hidden">
-            <div className="bg-wtm-secondary text-white p-8 text-center">
-              <h1 className="text-3xl font-bold tracking-tight">{t.confirmedOrder}</h1>
+if (isOrderConfirmed) {
+  return (
+    <div className="min-h-screen bg-wtm-bg px-6 py-8">
+      <div className="max-w-lg mx-auto">
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-lg overflow-hidden">
+          <div className="bg-wtm-secondary text-white p-8 text-center">
+            <h1 className="text-3xl font-bold tracking-tight">{t.confirmedOrder}</h1>
+          </div>
+          
+          <div className="bg-red-100 border-2 border-red-600 p-4 m-6 rounded-2xl text-center">
+            <div className="text-red-800 font-bold text-lg">
+              {t.showToWaiter}
             </div>
-            
-            <div className="bg-red-100 border-2 border-red-600 p-4 m-6 rounded-2xl text-center">
-              <div className="text-red-800 font-bold text-lg">
-                {t.showToWaiter}
-              </div>
-            </div>
+          </div>
 
-            <div className="px-6 space-y-6">
-              {orderItems.map(orderItem => {
-                const menuItem = menuData.menuItems.find(item => item.id === orderItem.dishId);
-                if (!menuItem) return null;
+          <div className="px-6 space-y-6">
+            {orderItems.map(orderItem => {
+              const menuItem = menuData.menuItems.find(item => item.id === orderItem.dishId);
+              if (!menuItem) return null;
 
-                // ✅ Variant-aware pricing
-                const variant = menuItem.variants?.find(v => v.id === orderItem.variantId);
-                const unitPrice = variant ? variant.price : menuItem.price;
-                const lineTotal = unitPrice * orderItem.quantity;
+              const variant = menuItem.variants?.find(v => v.id === orderItem.variantId);
+              const unitPrice = variant ? variant.price : menuItem.price;
+              const lineTotal = unitPrice * orderItem.quantity;
 
-                return (
-                  <div
-                    key={`${orderItem.dishId}-${orderItem.variantId || "std"}`}
-                    className="border-b border-gray-100 pb-6 last:border-b-0"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-xl text-wtm-text">
-                          {menuItem.name[language]}
-                          {variant && (
-                            <span className="text-base text-gray-600">
-                              {" "}({variant.name})
-                            </span>
-                          )}{" "}
-                          ({orderItem.quantity}x)
-                        </h3>
-                      </div>
-                      <div className="text-xl font-bold text-wtm-primary">
-                        ${lineTotal.toFixed(2)}
-                      </div>
-                    </div>
-
-                    {/* Dietary Tags */}
-                    {menuItem.dietaryTags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {menuItem.dietaryTags.map(tag => (
-                          <span
-                            key={tag}
-                            className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium"
-                          >
-                            {translateDietaryTag(tag)}
+              return (
+                <div
+                  key={`${orderItem.dishId}-${orderItem.variantId || "std"}`}
+                  className="border-b border-gray-100 pb-6 last:border-b-0"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-xl text-wtm-text">
+                        {menuItem.name[language]}
+                        {variant && (
+                          <span className="text-base text-gray-600">
+                            {" "}({variant.name})
                           </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Allergen Warnings */}
-                    {menuItem.allergens.length > 0 && (
-                      <div className="mb-3">
-                        <span className="text-red-600 font-medium text-sm">
-                          ⚠️ {t.contains}{" "}
-                          {menuItem.allergens
-                            .map(allergen => translateAllergen(allergen))
-                            .join(", ")}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Custom Request */}
-                    {orderItem.customRequest ? (
-                      <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl">
-                        <div className="text-blue-800 font-medium mb-2">
-                          "{orderItem.customRequest}"
-                        </div>
-                        {orderItem.serverResponse && (
-                          <div
-                            className={`font-bold ${
-                              orderItem.serverResponse === "yes"
-                                ? "text-green-600"
-                                : orderItem.serverResponse === "no"
-                                ? "text-red-600"
-                                : "text-yellow-600"
-                            }`}
-                          >
-                            {orderItem.serverResponse === "yes"
-                              ? "✅"
-                              : orderItem.serverResponse === "no"
-                              ? "❌"
-                              : "⏳"}{" "}
-                            {t.serverResponse}:{" "}
-                            {orderItem.serverResponse === "yes"
-                              ? t.yes
-                              : orderItem.serverResponse === "no"
-                              ? t.no
-                              : t.letMeCheck}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-wtm-muted">{t.noSpecialRequests}</div>
-                    )}
+                        )}{" "}
+                        ({orderItem.quantity}x)
+                      </h3>
+                    </div>
+                    <div className="text-xl font-bold text-wtm-primary">
+                      ${lineTotal.toFixed(2)}
+                    </div>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* ✅ Variant-aware total */}
-            <div className="bg-wtm-bg p-6 m-6 rounded-2xl">
-              <div className="flex justify-between items-center text-2xl font-bold">
-                <span>{t.total}:</span>
-                <span className="text-wtm-primary">
-                  $
-                  {orderItems
-                    .reduce((sum, orderItem) => {
-                      const menuItem = menuData.menuItems.find(
-                        item => item.id === orderItem.dishId
-                      );
-                      if (!menuItem) return sum;
-                      const variant = menuItem.variants?.find(
-                        v => v.id === orderItem.variantId
-                      );
-                      const unitPrice = variant ? variant.price : menuItem.price;
-                      return sum + unitPrice * orderItem.quantity;
-                    }, 0)
-                    .toFixed(2)}
-                </span>
-              </div>
-            </div>
+                  {/* Dietary Tags */}
+                  {menuItem.dietaryTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {menuItem.dietaryTags.map(tag => (
+                        <span
+                          key={tag}
+                          className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium"
+                        >
+                          {translateDietaryTag(tag)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-            <div className="p-6">
-              <button
-                onClick={() => {
-                  setIsOrderConfirmed(false);
-                  setOrderItems([]);
-                }}
-                className="bg-wtm-primary text-white font-semibold px-8 py-4 rounded-2xl hover:bg-wtm-primary-600 transition-colors duration-200 w-full text-lg"
-              >
-                {t.browseMenuAgain}
-              </button>
+                  {/* Allergen Warnings */}
+                  {menuItem.allergens.length > 0 && (
+                    <div className="mb-3">
+                      <span className="text-red-600 font-medium text-sm">
+                        ⚠️ {t.contains}{" "}
+                        {menuItem.allergens
+                          .map(allergen => translateAllergen(allergen))
+                          .join(", ")}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Custom Request */}
+                  {orderItem.customRequest ? (
+                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl">
+                      <div className="text-blue-800 font-medium mb-2">
+                        "{orderItem.customRequest}"
+                      </div>
+                      {orderItem.serverResponse && (
+                        <div
+                          className={`font-bold ${
+                            orderItem.serverResponse === "yes"
+                              ? "text-green-600"
+                              : orderItem.serverResponse === "no"
+                              ? "text-red-600"
+                              : "text-yellow-600"
+                          }`}
+                        >
+                          {orderItem.serverResponse === "yes"
+                            ? "✅"
+                            : orderItem.serverResponse === "no"
+                            ? "❌"
+                            : "⏳"}{" "}
+                          {t.serverResponse}:{" "}
+                          {orderItem.serverResponse === "yes"
+                            ? t.yes
+                            : orderItem.serverResponse === "no"
+                            ? t.no
+                            : t.letMeCheck}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-wtm-muted">{t.noSpecialRequests}</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ✅ Variant-aware total */}
+          <div className="bg-wtm-bg p-6 m-6 rounded-2xl">
+            <div className="flex justify-between items-center text-2xl font-bold">
+              <span>{t.total}:</span>
+              <span className="text-wtm-primary">
+                $
+                {orderItems
+                  .reduce((sum, orderItem) => {
+                    const menuItem = menuData.menuItems.find(
+                      item => item.id === orderItem.dishId
+                    );
+                    if (!menuItem) return sum;
+                    const variant = menuItem.variants?.find(
+                      v => v.id === orderItem.variantId
+                    );
+                    const unitPrice = variant ? variant.price : menuItem.price;
+                    return sum + unitPrice * orderItem.quantity;
+                  }, 0)
+                  .toFixed(2)}
+              </span>
             </div>
+          </div>
+
+          <div className="p-6">
+            <button
+              onClick={() => {
+                setIsOrderConfirmed(false);
+                setOrderItems([]);
+              }}
+              className="bg-wtm-primary text-white font-semibold px-8 py-4 rounded-2xl hover:bg-wtm-primary-600 transition-colors duration-200 w-full text-lg"
+            >
+              {t.browseMenuAgain}
+            </button>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
 
 
   return (
@@ -861,134 +880,167 @@ const [variantQuantity, setVariantQuantity] = useState(1);
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-				{orderItems.map(orderItem => {
-				  const menuItem = menuData.menuItems.find(item => item.id === orderItem.dishId);
-				  if (!menuItem) return null;
+{orderItems.map(orderItem => {
+  const menuItem = menuData.menuItems.find(item => item.id === orderItem.dishId);
+  if (!menuItem) return null;
 
-				  const variant = menuItem.variants?.find(v => v.id === orderItem.variantId);
-				  const unitPrice = variant ? variant.price : menuItem.price;
-				  const lineTotal = unitPrice * orderItem.quantity;
+  const variant = menuItem.variants?.find(v => v.id === orderItem.variantId);
+  const unitPrice = variant ? variant.price : menuItem.price;
+  const lineTotal = unitPrice * orderItem.quantity;
 
-				  return (
-					<div
-					  key={`${orderItem.dishId}-${orderItem.variantId || "std"}`}
-					  className="bg-gray-50 rounded-2xl p-4"
-					>
-					  <div className="flex justify-between items-start mb-3">
-						<div className="flex-1">
-						  <h3 className="font-bold text-lg text-wtm-text">
-							{menuItem.name[language]}
-							{variant && (
-							  <span className="text-sm text-gray-600">
-								{" "}({variant.name})
-							  </span>
-							)}
-						  </h3>
-						  <p className="text-wtm-muted text-sm">
-							${unitPrice.toFixed(2)} each
-						  </p>
-						</div>
-						<div className="text-lg font-bold text-wtm-primary">
-						  ${lineTotal.toFixed(2)}
-						</div>
-					  </div>
+  return (
+    <div
+      key={`${orderItem.dishId}-${orderItem.variantId || "std"}`}
+      className="bg-gray-50 rounded-2xl p-4"
+    >
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex-1">
+          <h3 className="font-bold text-lg text-wtm-text">
+            {menuItem.name[language]}
+            {variant && (
+              <span className="text-sm text-gray-600"> ({variant.name})</span>
+            )}
+          </h3>
+          <p className="text-wtm-muted text-sm">
+            ${unitPrice.toFixed(2)} each
+          </p>
+        </div>
+        <div className="text-lg font-bold text-wtm-primary">
+          ${lineTotal.toFixed(2)}
+        </div>
+      </div>
 
-					  <div className="flex items-center justify-between mb-4">
-						{/* Custom Request - Improved Server Response System */}
-						{orderItem.customRequest ? (
-						  <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl">
-							<p className="text-blue-800 font-medium mb-3">
-							  "{orderItem.customRequest}"
-							</p>
+      {/* ✅ Variant Selector */}
+      {menuItem.variants && menuItem.variants.length > 0 && (
+        <select
+          value={orderItem.variantId || ""}
+          onChange={(e) => updateVariant(orderItem.dishId, e.target.value)}
+          className="mb-4 border rounded-lg px-3 py-2 w-full"
+        >
+          <option value="">{t.chooseVariant}</option>
+          {menuItem.variants.map(v => (
+            <option key={v.id} value={v.id}>
+              {v.name} - ${v.price.toFixed(2)}
+            </option>
+          ))}
+        </select>
+      )}
 
-							<div className="text-xs text-blue-600 mb-3 font-medium">
-							  {t.showThisToServer}
-							</div>
+      <div className="flex items-center justify-between mb-4">
+        {/* ✅ Quantity Controls */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => updateQuantity(orderItem.dishId, -1, orderItem.variantId)}
+            className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400"
+          >
+            <Minus size={16} />
+          </button>
+          <span className="font-bold text-lg w-6 text-center">
+            {orderItem.quantity}
+          </span>
+          <button
+            onClick={() => updateQuantity(orderItem.dishId, 1, orderItem.variantId)}
+            className="w-8 h-8 bg-wtm-primary text-white rounded-full flex items-center justify-center hover:bg-wtm-primary-600"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
 
-							<div className="flex gap-2 flex-wrap">
-							  <button
-								onClick={() => handleServerResponse(orderItem.dishId, "yes")}
-								className={`px-3 py-2 rounded-xl font-medium text-sm transition-colors ${
-								  orderItem.serverResponse === "yes"
-									? "bg-green-600 text-white"
-									: orderItem.serverResponse &&
-									  orderItem.serverResponse !== "checking"
-									? "bg-gray-200 text-gray-500"
-									: "bg-green-100 text-green-700 hover:bg-green-200"
-								}`}
-								disabled={
-								  orderItem.serverResponse &&
-								  orderItem.serverResponse !== "checking" &&
-								  orderItem.serverResponse !== "yes"
-								}
-							  >
-								{t.yes}
-							  </button>
-							  <button
-								onClick={() => handleServerResponse(orderItem.dishId, "no")}
-								className={`px-3 py-2 rounded-xl font-medium text-sm transition-colors ${
-								  orderItem.serverResponse === "no"
-									? "bg-red-600 text-white"
-									: orderItem.serverResponse &&
-									  orderItem.serverResponse !== "checking"
-									? "bg-gray-200 text-gray-500"
-									: "bg-red-100 text-red-700 hover:bg-red-200"
-								}`}
-								disabled={
-								  orderItem.serverResponse &&
-								  orderItem.serverResponse !== "checking" &&
-								  orderItem.serverResponse !== "no"
-								}
-							  >
-								{t.no}
-							  </button>
-							  <button
-								onClick={() =>
-								  handleServerResponse(orderItem.dishId, "checking")
-								}
-								className={`px-3 py-2 rounded-xl font-medium text-sm transition-colors ${
-								  orderItem.serverResponse === "checking"
-									? "bg-yellow-600 text-white"
-									: "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-								}`}
-							  >
-								{t.letMeCheck}
-							  </button>
-							</div>
-						  </div>
-						) : (
-						  <div className="flex gap-2">
-							<input
-							  type="text"
-							  placeholder={t.addQuestion}
-							  value={customRequestInput[orderItem.dishId] || ""}
-							  onChange={e =>
-								setCustomRequestInput({
-								  ...customRequestInput,
-								  [orderItem.dishId]: e.target.value,
-								})
-							  }
-							  maxLength={200}
-							  className="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200"
-							/>
-							<button
-							  onClick={() =>
-								addCustomRequest(
-								  orderItem.dishId,
-								  customRequestInput[orderItem.dishId] || ""
-								)
-							  }
-							  disabled={!customRequestInput[orderItem.dishId]?.trim()}
-							  className="px-4 py-3 bg-wtm-primary text-white rounded-xl hover:bg-wtm-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-							  <MessageCircle size={16} />
-							</button>
-						  </div>
-						)}
-					  </div>
-					</div>
-				  );
-				})}
+        {/* ✅ Remove Button */}
+        <button
+          onClick={() => removeFromOrder(orderItem.dishId, orderItem.variantId)}
+          className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+
+      {/* ✅ Custom Request & Server Response */}
+      {orderItem.customRequest ? (
+        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl">
+          <p className="text-blue-800 font-medium mb-3">
+            "{orderItem.customRequest}"
+          </p>
+          <div className="text-xs text-blue-600 mb-3 font-medium">
+            {t.showThisToServer}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => handleServerResponse(orderItem.dishId, "yes")}
+              className={`px-3 py-2 rounded-xl font-medium text-sm ${
+                orderItem.serverResponse === "yes"
+                  ? "bg-green-600 text-white"
+                  : orderItem.serverResponse && orderItem.serverResponse !== "checking"
+                  ? "bg-gray-200 text-gray-500"
+                  : "bg-green-100 text-green-700 hover:bg-green-200"
+              }`}
+              disabled={
+                orderItem.serverResponse &&
+                orderItem.serverResponse !== "checking" &&
+                orderItem.serverResponse !== "yes"
+              }
+            >
+              {t.yes}
+            </button>
+            <button
+              onClick={() => handleServerResponse(orderItem.dishId, "no")}
+              className={`px-3 py-2 rounded-xl font-medium text-sm ${
+                orderItem.serverResponse === "no"
+                  ? "bg-red-600 text-white"
+                  : orderItem.serverResponse && orderItem.serverResponse !== "checking"
+                  ? "bg-gray-200 text-gray-500"
+                  : "bg-red-100 text-red-700 hover:bg-red-200"
+              }`}
+              disabled={
+                orderItem.serverResponse &&
+                orderItem.serverResponse !== "checking" &&
+                orderItem.serverResponse !== "no"
+              }
+            >
+              {t.no}
+            </button>
+            <button
+              onClick={() => handleServerResponse(orderItem.dishId, "checking")}
+              className={`px-3 py-2 rounded-xl font-medium text-sm ${
+                orderItem.serverResponse === "checking"
+                  ? "bg-yellow-600 text-white"
+                  : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+              }`}
+            >
+              {t.letMeCheck}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder={t.addQuestion}
+            value={customRequestInput[orderItem.dishId] || ""}
+            onChange={(e) =>
+              setCustomRequestInput({
+                ...customRequestInput,
+                [orderItem.dishId]: e.target.value,
+              })
+            }
+            maxLength={200}
+            className="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-white focus:border-wtm-primary focus:ring-2 focus:ring-wtm-primary/20 focus:outline-none transition-all duration-200"
+          />
+          <button
+            onClick={() =>
+              addCustomRequest(orderItem.dishId, customRequestInput[orderItem.dishId] || "")
+            }
+            disabled={!customRequestInput[orderItem.dishId]?.trim()}
+            className="px-4 py-3 bg-wtm-primary text-white rounded-xl hover:bg-wtm-primary-600 transition-colors disabled:opacity-50"
+          >
+            <MessageCircle size={16} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+})}
+
 
               </div>
 
