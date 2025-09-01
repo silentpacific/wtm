@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Plus, Minus, Trash2, MessageCircle, X, Globe, Filter, Info } from 'lucide-react';
 import ReactCountryFlag from "react-country-flag";
-// Track selected variant per dish (for dropdowns)
-const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
 // Types and Interfaces (keeping your existing structure)
 interface MenuItemVariant {
@@ -82,6 +80,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
 const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
 const [selectedVariant, setSelectedVariant] = useState<MenuItemVariant | null>(null);
 const [variantQuantity, setVariantQuantity] = useState(1);
+const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
 
   // Language configurations
