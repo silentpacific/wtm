@@ -1,5 +1,5 @@
 // src/services/menuService.ts
-import { supabase } from "./supabaseClient";
+import { supabase } from "../services/supabaseClient";
 
 export interface Dish {
   id?: string;
@@ -42,8 +42,9 @@ export async function getMenusByRestaurant(restaurantId: string) {
   return data;
 }
 
-// --- Fetch menu with sections & dishes ---
+// --- Fetch menu with sections & dishes (and variants) ---
 export async function getMenuWithSectionsAndItems(menuId: string) {
+  // Fetch sections
   const { data: sections, error: sectionError } = await supabase
     .from("menu_sections")
     .select("id, name, display_order")
@@ -52,22 +53,47 @@ export async function getMenuWithSectionsAndItems(menuId: string) {
 
   if (sectionError) throw sectionError;
 
+  // Fetch items with variants
   const { data: items, error: itemError } = await supabase
     .from("menu_items")
-    .select(
-      "id, section_id, name, description, price, allergens, dietary_tags" // ✅ includes tags
-    )
+    .select(`
+      id,
+      section_id,
+      name_i18n,
+      description_i18n,
+      price,
+      allergens,
+      dietary_tags,
+      menu_item_variants (
+        id,
+        name,
+        price
+      )
+    `)
     .eq("menu_id", menuId);
 
   if (itemError) throw itemError;
 
+  // Build structured sections
   const structuredSections: Section[] = (sections || []).map((s) => ({
     ...s,
-    dishes: (items || []).filter((i) => i.section_id === s.id),
+    dishes: (items || [])
+      .filter((i) => i.section_id === s.id)
+      .map((i) => ({
+        id: i.id,
+        section_id: i.section_id,
+        name: i.name_i18n || i.name,         // ✅ handle i18n if present
+        description: i.description_i18n || i.description,
+        price: i.price,
+        allergens: i.allergens || [],
+        dietary_tags: i.dietary_tags || [],
+        variants: i.menu_item_variants || [] // ✅ attach variants
+      })),
   }));
 
   return structuredSections;
 }
+
 
 // --- Diff-based save: insert/update/delete ---
 export async function saveMenuDiff(
