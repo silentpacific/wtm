@@ -60,6 +60,7 @@ const PublicMenuPage: React.FC = () => {
 			id,
 			name,
 			description,
+			long_description,
 			price,
 			allergens,
 			dietary_tags,
@@ -107,12 +108,12 @@ const PublicMenuPage: React.FC = () => {
 			  price: i.price || 0,
 			  allergens: i.allergens || [],
 			  dietaryTags: i.dietary_tags || [],
-			  explanation: {
-				en: i.explanation || "",
-				zh: i.explanation || "",
-				es: i.explanation || "",
-				fr: i.explanation || "",
-			  },
+				explanation: {
+				  en: i.long_description || i.explanation || "",
+				  es: i.long_description || i.explanation || "",
+				  fr: i.long_description || i.explanation || "",
+				  zh: i.long_description || i.explanation || "",
+				}
 			  variants: (i.menu_item_variants || []).map((variant: any) => ({
 				id: variant.id,
 				name: variant.name,
