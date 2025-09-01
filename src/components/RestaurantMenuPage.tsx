@@ -639,14 +639,17 @@ if (isOrderConfirmed) {
       <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
         <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Language Switcher */}
-            <button
-              onClick={() => setCurrentStep('language')}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              <Globe size={20} className="text-wtm-muted" />
-              <span className="text-2xl">{languages.find(l => l.code === language)?.flag}</span>
-            </button>
+			{/* Language Switcher */}
+			<button
+			  onClick={() => setCurrentStep('language')}
+			  className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors"
+			>
+			  <ReactCountryFlag 
+				countryCode={languages.find(l => l.code === language)?.flag || 'GB'}
+				svg
+				style={{ width: "1.5em", height: "1.5em" }}
+			  />
+			</button>
             
             <h1 className="text-xl font-bold text-wtm-text tracking-tight">
               {menuData.restaurantName[language]}
