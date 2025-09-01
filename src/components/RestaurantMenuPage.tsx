@@ -4,19 +4,27 @@ import ReactCountryFlag from "react-country-flag";
 
 
 // Types and Interfaces (keeping your existing structure)
+interface MenuItemVariant {
+  id: string;
+  name: string;
+  price: number;
+}
+
 interface MenuItem {
   id: string;
   section: string;
   name: Record<string, string>;
   description: Record<string, string>;
-  price: number;
+  price: number; // fallback for single-price dishes
   allergens: string[];
   dietaryTags: string[];
   explanation: Record<string, string>;
+  variants?: MenuItemVariant[];
 }
 
 interface OrderItem {
   dishId: string;
+  variantId?: string; // ✅ new
   quantity: number;
   customRequest?: string;
   serverResponse?: 'yes' | 'no' | 'checking';
@@ -69,6 +77,11 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [showDishExplanation, setShowDishExplanation] = useState<string | null>(null);
   const [customRequestInput, setCustomRequestInput] = useState<Record<string, string>>({});
+  // ✅ Variant selection modal state
+const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
+const [selectedVariant, setSelectedVariant] = useState<MenuItemVariant | null>(null);
+const [variantQuantity, setVariantQuantity] = useState(1);
+
 
   // Language configurations
 	const languages: LanguageOption[] = [
@@ -299,18 +312,22 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
   const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
 
   // Functions
-  const addToOrder = (dishId: string) => {
-    const existingItem = orderItems.find(item => item.dishId === dishId);
-    if (existingItem) {
-      setOrderItems(orderItems.map(item => 
-        item.dishId === dishId 
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
-    } else {
-      setOrderItems([...orderItems, { dishId, quantity: 1 }]);
-    }
-  };
+	const addToOrder = (dishId: string, variantId?: string, qty: number = 1) => {
+	  const existingItem = orderItems.find(
+		item => item.dishId === dishId && item.variantId === variantId
+	  );
+
+	  if (existingItem) {
+		setOrderItems(orderItems.map(item =>
+		  item.dishId === dishId && item.variantId === variantId
+			? { ...item, quantity: item.quantity + qty }
+			: item
+		));
+	  } else {
+		setOrderItems([...orderItems, { dishId, variantId, quantity: qty }]);
+	  }
+	};
+
 
   const updateQuantity = (dishId: string, change: number) => {
     setOrderItems(orderItems.map(item => {
@@ -461,16 +478,30 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                 const menuItem = menuData.menuItems.find(item => item.id === orderItem.dishId);
                 if (!menuItem) return null;
 
+                // ✅ Variant-aware pricing
+                const variant = menuItem.variants?.find(v => v.id === orderItem.variantId);
+                const unitPrice = variant ? variant.price : menuItem.price;
+                const lineTotal = unitPrice * orderItem.quantity;
+
                 return (
-                  <div key={orderItem.dishId} className="border-b border-gray-100 pb-6 last:border-b-0">
+                  <div
+                    key={`${orderItem.dishId}-${orderItem.variantId || "std"}`}
+                    className="border-b border-gray-100 pb-6 last:border-b-0"
+                  >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
                         <h3 className="font-bold text-xl text-wtm-text">
-                          {menuItem.name[language]} ({orderItem.quantity}x)
+                          {menuItem.name[language]}
+                          {variant && (
+                            <span className="text-base text-gray-600">
+                              {" "}({variant.name})
+                            </span>
+                          )}{" "}
+                          ({orderItem.quantity}x)
                         </h3>
                       </div>
                       <div className="text-xl font-bold text-wtm-primary">
-                        ${(menuItem.price * orderItem.quantity).toFixed(2)}
+                        ${lineTotal.toFixed(2)}
                       </div>
                     </div>
 
@@ -478,7 +509,10 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                     {menuItem.dietaryTags.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {menuItem.dietaryTags.map(tag => (
-                          <span key={tag} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                          <span
+                            key={tag}
+                            className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium"
+                          >
                             {translateDietaryTag(tag)}
                           </span>
                         ))}
@@ -489,7 +523,10 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                     {menuItem.allergens.length > 0 && (
                       <div className="mb-3">
                         <span className="text-red-600 font-medium text-sm">
-                          ⚠️ {t.contains} {menuItem.allergens.map(allergen => translateAllergen(allergen)).join(', ')}
+                          ⚠️ {t.contains}{" "}
+                          {menuItem.allergens
+                            .map(allergen => translateAllergen(allergen))
+                            .join(", ")}
                         </span>
                       </div>
                     )}
@@ -501,18 +538,26 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                           "{orderItem.customRequest}"
                         </div>
                         {orderItem.serverResponse && (
-                          <div className={`font-bold ${
-                            orderItem.serverResponse === 'yes' ? 'text-green-600' :
-                            orderItem.serverResponse === 'no' ? 'text-red-600' :
-                            'text-yellow-600'
-                          }`}>
-                            {orderItem.serverResponse === 'yes' ? '✅' :
-                             orderItem.serverResponse === 'no' ? '❌' : '⏳'} 
-                            {t.serverResponse}: {
-                              orderItem.serverResponse === 'yes' ? t.yes :
-                              orderItem.serverResponse === 'no' ? t.no :
-                              t.letMeCheck
-                            }
+                          <div
+                            className={`font-bold ${
+                              orderItem.serverResponse === "yes"
+                                ? "text-green-600"
+                                : orderItem.serverResponse === "no"
+                                ? "text-red-600"
+                                : "text-yellow-600"
+                            }`}
+                          >
+                            {orderItem.serverResponse === "yes"
+                              ? "✅"
+                              : orderItem.serverResponse === "no"
+                              ? "❌"
+                              : "⏳"}{" "}
+                            {t.serverResponse}:{" "}
+                            {orderItem.serverResponse === "yes"
+                              ? t.yes
+                              : orderItem.serverResponse === "no"
+                              ? t.no
+                              : t.letMeCheck}
                           </div>
                         )}
                       </div>
@@ -524,10 +569,26 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
               })}
             </div>
 
+            {/* ✅ Variant-aware total */}
             <div className="bg-wtm-bg p-6 m-6 rounded-2xl">
               <div className="flex justify-between items-center text-2xl font-bold">
                 <span>{t.total}:</span>
-                <span className="text-wtm-primary">${orderTotal.toFixed(2)}</span>
+                <span className="text-wtm-primary">
+                  $
+                  {orderItems
+                    .reduce((sum, orderItem) => {
+                      const menuItem = menuData.menuItems.find(
+                        item => item.id === orderItem.dishId
+                      );
+                      if (!menuItem) return sum;
+                      const variant = menuItem.variants?.find(
+                        v => v.id === orderItem.variantId
+                      );
+                      const unitPrice = variant ? variant.price : menuItem.price;
+                      return sum + unitPrice * orderItem.quantity;
+                    }, 0)
+                    .toFixed(2)}
+                </span>
               </div>
             </div>
 
@@ -547,6 +608,7 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-wtm-bg">
@@ -655,13 +717,24 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                       >
                         {t.moreInfo}
                       </button>
-                      <button
-                        onClick={() => addToOrder(item.id)}
-                        className="bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl hover:bg-wtm-primary-600 hover:scale-[1.02] transition-all duration-200 flex items-center gap-2"
-                      >
-                        <Plus size={18} />
-                        {t.addToOrder}
-                      </button>
+                      {item.variants && item.variants.length > 0 ? (
+						  <button
+							onClick={() => setSelectedDish(item)}
+							className="bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl ..."
+						  >
+							<Plus size={18} />
+							{t.addToOrder}
+						  </button>
+						) : (
+						  <button
+							onClick={() => addToOrder(item.id)}
+							className="bg-wtm-primary text-white font-semibold px-6 py-2 rounded-xl ..."
+						  >
+							<Plus size={18} />
+							{t.addToOrder}
+						  </button>
+						)}
+
                     </div>
                   </div>
                 ))}
@@ -792,50 +865,38 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
                   const menuItem = menuData.menuItems.find(item => item.id === orderItem.dishId);
                   if (!menuItem) return null;
 
-                  return (
-                    <div key={orderItem.dishId} className="bg-gray-50 rounded-2xl p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
-                          <h3 className="font-bold text-lg text-wtm-text">
-                            {menuItem.name[language]}
-                          </h3>
-                          <p className="text-wtm-muted text-sm">
-                            ${menuItem.price.toFixed(2)} each
-                          </p>
-                        </div>
-                        <div className="text-lg font-bold text-wtm-primary">
-                          ${(menuItem.price * orderItem.quantity).toFixed(2)}
-                        </div>
-                      </div>
+				return (
+				  <div
+					key={`${orderItem.dishId}-${orderItem.variantId || "std"}`}
+					className="bg-gray-50 rounded-2xl p-4"
+				  >
+					<div className="flex justify-between items-start mb-3">
+					  <div className="flex-1">
+						<h3 className="font-bold text-lg text-wtm-text">
+						  {menuItem.name[language]}
+						  {orderItem.variantId && (
+							<span className="text-sm text-gray-600">
+							  {" "}({menuItem.variants?.find(v => v.id === orderItem.variantId)?.name})
+							</span>
+						  )}
+						</h3>
+						<p className="text-wtm-muted text-sm">
+						  ${(
+							menuItem.variants?.find(v => v.id === orderItem.variantId)?.price ??
+							menuItem.price
+						  ).toFixed(2)} each
+						</p>
+					  </div>
+					  <div className="text-lg font-bold text-wtm-primary">
+						${(
+						  (menuItem.variants?.find(v => v.id === orderItem.variantId)?.price ??
+							menuItem.price) * orderItem.quantity
+						).toFixed(2)}
+					  </div>
+					</div>
 
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => updateQuantity(orderItem.dishId, -1)}
-                            className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition-colors"
-                            aria-label="Decrease quantity"
-                          >
-                            <Minus size={16} />
-                          </button>
-                          <span className="font-bold text-lg w-6 text-center">
-                            {orderItem.quantity}
-                          </span>
-                          <button
-                            onClick={() => updateQuantity(orderItem.dishId, 1)}
-                            className="w-8 h-8 bg-wtm-primary text-white rounded-full flex items-center justify-center hover:bg-wtm-primary-600 transition-colors"
-                            aria-label="Increase quantity"
-                          >
-                            <Plus size={16} />
-                          </button>
-                        </div>
-                        <button
-                          onClick={() => removeFromOrder(orderItem.dishId)}
-                          className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 transition-colors"
-                          aria-label="Remove item"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+
+<div className="flex items-center justify-between mb-4">
 
                       {/* Custom Request - Improved Server Response System */}
                       {orderItem.customRequest ? (
@@ -1019,6 +1080,71 @@ const RestaurantMenuPage: React.FC<RestaurantMenuPageProps> = ({
           </div>
         </div>
       )}
+	  {/* ✅ Variant Selector Modal */}
+{selectedDish && (
+  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-xl max-w-md w-full p-6">
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-2xl font-bold text-wtm-text">{selectedDish.name[language]}</h3>
+        <button
+          onClick={() => setSelectedDish(null)}
+          className="p-2 hover:bg-gray-100 rounded-full"
+        >
+          <X size={24} className="text-wtm-muted" />
+        </button>
+      </div>
+
+      {selectedDish.variants?.map(variant => (
+        <label
+          key={variant.id}
+          className="flex items-center justify-between border rounded-lg p-3 mb-2 cursor-pointer"
+        >
+          <input
+            type="radio"
+            name="variant"
+            checked={selectedVariant?.id === variant.id}
+            onChange={() => setSelectedVariant(variant)}
+          />
+          <span>{variant.name}</span>
+          <span>${variant.price.toFixed(2)}</span>
+        </label>
+      ))}
+
+      <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setVariantQuantity(q => Math.max(1, q - 1))}
+            className="px-3 py-1 border rounded-lg"
+          >
+            -
+          </button>
+          <span>{variantQuantity}</span>
+          <button
+            onClick={() => setVariantQuantity(q => q + 1)}
+            className="px-3 py-1 border rounded-lg"
+          >
+            +
+          </button>
+        </div>
+        <button
+          disabled={!selectedVariant}
+          onClick={() => {
+            if (selectedVariant) {
+              addToOrder(selectedDish.id, selectedVariant.id, variantQuantity);
+              setSelectedDish(null);
+              setSelectedVariant(null);
+              setVariantQuantity(1);
+            }
+          }}
+          className="bg-wtm-primary text-white px-4 py-2 rounded-lg disabled:opacity-50"
+        >
+          {t.addToOrder}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
