@@ -67,7 +67,7 @@ export async function getMenuWithSectionsAndItems(menuId: string) {
   // Fetch items
   const { data: items, error: itemError } = await supabase
     .from("menu_items")
-    .select("id, section_id, name, description, price, allergens, dietary_tags, name_i18n, description_i18n")
+    .select("id, section_id, name, description, price, name_i18n, description_i18n, allergens_i18n, dietary_tags_i18n")
     .eq("menu_id", menuId);
 
   if (itemError) throw itemError;
@@ -303,8 +303,8 @@ export function convertSectionsToMenuData(
         zh: dish.description || ''
       },
       price: dish.price,
-      allergens: dish.allergens,
-      dietaryTags: dish.dietary_tags,
+      allergens: dish.allergens_i18n?.[language] || [],
+      dietaryTags: dish.dietary_tags_i18n?.[language] || [],
       explanation: {
         en: dish.description || '',
         es: dish.description || '',
