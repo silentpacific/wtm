@@ -14,11 +14,11 @@ const RestaurantLandingPage: React.FC = () => {
       <section className="pt-20 pb-28 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-6xl sm:text-7xl font-bold mb-8 leading-[0.95] text-wtm-text tracking-tight">
-            Make Your Menu Instantly Accessible<br />to Every Guest.
+            Your Menu<br />Brought To Life.
           </h1>
           
           <p className="text-2xl text-wtm-muted mb-16 max-w-2xl mx-auto leading-relaxed font-light">
-            From tourists to locals with dietary needs — remove barriers, grow your reach, and give every diner confidence.
+            Inclusive. Accessible. Clear. Effortless.
           </p>
           
           {/* Feature icons row */}
@@ -43,13 +43,10 @@ const RestaurantLandingPage: React.FC = () => {
               to="/demos" 
               className="bg-transparent text-wtm-primary border-2 border-wtm-primary font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-wtm-primary hover:text-white transition-all duration-200"
             >
-              See a Live Demo (No App Required)
+              See a Live Demo
             </Link>
           </div>
           
-          <p className="text-sm text-wtm-muted mt-8 font-light">
-            Unlock your free 14-day trial.
-          </p>
         </div>
       </section>
 
@@ -69,21 +66,21 @@ const RestaurantLandingPage: React.FC = () => {
             <div className="text-center">
               <Globe size={48} className="text-wtm-primary mb-6 mx-auto" />
               <h3 className="text-2xl font-semibold text-wtm-text mb-4">
-                Automatic translations — welcome international guests without hiring extra staff.
+                Automatic Translations. Attract tourists and expats.
               </h3>
             </div>
             
             <div className="text-center">
               <CheckCircle size={48} className="text-wtm-primary mb-6 mx-auto" />
               <h3 className="text-2xl font-semibold text-wtm-text mb-4">
-                Allergen & diet filters — diners choose safely, staff save time.
+                Allergen & diet filters. Allow diners to choose safely.
               </h3>
             </div>
             
             <div className="text-center md:col-span-2 max-w-lg mx-auto">
               <MessageCircle size={48} className="text-wtm-primary mb-6 mx-auto" />
               <h3 className="text-2xl font-semibold text-wtm-text mb-4">
-                Icons & visual menus — reduce misunderstandings, speed up service.
+                 Accessible for Deaf diners. Effortless communication with staff.
               </h3>
             </div>
           </div>
@@ -95,7 +92,7 @@ const RestaurantLandingPage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-6 text-center">
           <div className="mb-20">
             <h2 className="text-5xl font-bold text-wtm-text mb-8 tracking-tight">
-              Clarity. Connection. Your Table.
+              Smarter Menus. Smoother Service.
             </h2>
           </div>
           
@@ -103,30 +100,30 @@ const RestaurantLandingPage: React.FC = () => {
             <div className="text-center">
               <Upload size={56} className="text-wtm-primary mb-8 mx-auto" />
               <h3 className="text-2xl font-bold text-wtm-text mb-6">
-                Transform your menu once.
+                Your Menu. One QR Code.
               </h3>
               <p className="text-lg text-wtm-muted leading-relaxed font-light">
-                Automatic feature updates as we release them.
+                No reprints. No outdated menus.
               </p>
             </div>
             
             <div className="text-center">
               <Shield size={56} className="text-wtm-primary mb-8 mx-auto" />
               <h3 className="text-2xl font-bold text-wtm-text mb-6">
-                Protect your guests, protect your business.
+                Show allergens clearly.
               </h3>
               <p className="text-lg text-wtm-muted leading-relaxed font-light">
-                Allergens and restrictions clearly shown.
+                Show you care. Protect your guests.
               </p>
             </div>
             
             <div className="text-center">
               <MessageCircle size={56} className="text-wtm-primary mb-8 mx-auto" />
               <h3 className="text-2xl font-bold text-wtm-text mb-6">
-                Faster ordering, fewer mistakes.
+                Accessible by design.
               </h3>
               <p className="text-lg text-wtm-muted leading-relaxed font-light">
-                Clear menus your staff and guests trust.
+                Easy for all diners and staff.
               </p>
             </div>
           </div>
