@@ -17,6 +17,9 @@ interface MenuItem {
   price: number; // fallback for single-price dishes
   allergens: string[];
   dietaryTags: string[];
+  // Add these new fields for language-specific allergens and dietary tags
+  allergensI18n?: Record<string, string[]>;
+  dietaryTagsI18n?: Record<string, string[]>;
   explanation: Record<string, string>;
   variants?: MenuItemVariant[];
 }
@@ -249,11 +252,20 @@ const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>
 
   const t = translations[language];
 
-  // Get unique dietary tags and allergens for filters
-  const allDietaryTags = [...new Set(menuData.menuItems.flatMap(item => item.dietaryTags))];
-  const allAllergens = [...new Set(menuData.menuItems.flatMap(item => item.allergens))];
+  // Get unique dietary tags and allergens for filters - NOW USES LANGUAGE-SPECIFIC DATA
+  const allDietaryTags = [...new Set(
+    menuData.menuItems.flatMap(item => 
+      item.dietaryTagsI18n?.[language] || item.dietaryTags || []
+    )
+  )];
 
-  // Translation mappings
+  const allAllergens = [...new Set(
+    menuData.menuItems.flatMap(item => 
+      item.allergensI18n?.[language] || item.allergens || []
+    )
+  )];
+
+  // Translation mappings - THESE ARE NOW ONLY USED FOR FALLBACK
   const dietaryTagTranslations = {
     'Vegetarian': { en: 'Vegetarian', zh: '素食', es: 'Vegetariano', fr: 'Végétarien' },
     'Vegan': { en: 'Vegan', zh: '纯素', es: 'Vegano', fr: 'Végétalien' },
@@ -277,12 +289,16 @@ const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>
     return allergenTranslations[allergen as keyof typeof allergenTranslations]?.[language] || allergen;
   };
 
-  // Filter menu items based on dietary filters and allergen exclusions
+  // Filter menu items based on dietary filters and allergen exclusions - NOW USES LANGUAGE-SPECIFIC DATA
   const filteredItems = menuData.menuItems.filter(item => {
+    // Get language-specific tags for filtering
+    const currentAllergens = item.allergensI18n?.[language] || item.allergens || [];
+    const currentDietaryTags = item.dietaryTagsI18n?.[language] || item.dietaryTags || [];
+
     // Dietary filters (inclusion)
     if (dietaryFilters.length > 0) {
       const hasMatchingTag = dietaryFilters.some(filter => 
-        item.dietaryTags.includes(filter)
+        currentDietaryTags.includes(filter)
       );
       if (!hasMatchingTag) return false;
     }
@@ -290,7 +306,7 @@ const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>
     // Allergen exclusions
     if (allergenExclusions.length > 0) {
       const hasExcludedAllergen = allergenExclusions.some(allergen => 
-        item.allergens.includes(allergen)
+        currentAllergens.includes(allergen)
       );
       if (hasExcludedAllergen) return false;
     }
@@ -527,31 +543,35 @@ if (isOrderConfirmed) {
                     </div>
                   </div>
 
-                  {/* Dietary Tags */}
-                  {menuItem.dietaryTags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {menuItem.dietaryTags.map(tag => (
-                        <span
-                          key={tag}
-                          className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium"
-                        >
-                          {translateDietaryTag(tag)}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  {/* UPDATED: Language-aware Dietary Tags */}
+                  {(() => {
+                    const currentDietaryTags = menuItem.dietaryTagsI18n?.[language] || menuItem.dietaryTags || [];
+                    return currentDietaryTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {currentDietaryTags.map(tag => (
+                          <span
+                            key={tag}
+                            className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
-                  {/* Allergen Warnings */}
-                  {menuItem.allergens.length > 0 && (
-                    <div className="mb-3">
-                      <span className="text-red-600 font-medium text-sm">
-                        ⚠️ {t.contains}{" "}
-                        {menuItem.allergens
-                          .map(allergen => translateAllergen(allergen))
-                          .join(", ")}
-                      </span>
-                    </div>
-                  )}
+                  {/* UPDATED: Language-aware Allergen Warnings */}
+                  {(() => {
+                    const currentAllergens = menuItem.allergensI18n?.[language] || menuItem.allergens || [];
+                    return currentAllergens.length > 0 && (
+                      <div className="mb-3">
+                        <span className="text-red-600 font-medium text-sm">
+                          ⚠️ {t.contains}{" "}
+                          {currentAllergens.join(", ")}
+                        </span>
+                      </div>
+                    );
+                  })()}
 
                   {/* Custom Request */}
                   {orderItem.customRequest ? (
@@ -716,27 +736,32 @@ if (isOrderConfirmed) {
 						</div>
 						<div className="text-2xl font-bold text-wtm-primary shrink-0">
 						  {(!item.variants || item.variants.length === 0) ? 
-							`$${item.price.toFixed(2)}` : 
+							`${item.price.toFixed(2)}` : 
 							<span className="text-sm text-gray-500">Multiple options</span>
 						  }
 						</div>
 					  </div>
 
-					  {/* Tags */}
-					  {(item.dietaryTags.length > 0 || item.allergens.length > 0) && (
-						<div className="flex flex-wrap gap-2 mb-4">
-						  {item.dietaryTags.map(tag => (
-							<span key={tag} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-							  {translateDietaryTag(tag)}
-							</span>
-						  ))}
-						  {item.allergens.map(allergen => (
-							<span key={allergen} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-							  {translateAllergen(allergen)}
-							</span>
-						  ))}
-						</div>
-					  )}
+					  {/* UPDATED: Language-aware Tags */}
+					  {(() => {
+						const currentDietaryTags = item.dietaryTagsI18n?.[language] || item.dietaryTags || [];
+						const currentAllergens = item.allergensI18n?.[language] || item.allergens || [];
+						
+						return (currentDietaryTags.length > 0 || currentAllergens.length > 0) && (
+						  <div className="flex flex-wrap gap-2 mb-4">
+							{currentDietaryTags.map(tag => (
+							  <span key={tag} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+								{tag}
+							  </span>
+							))}
+							{currentAllergens.map(allergen => (
+							  <span key={allergen} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+								{allergen}
+							  </span>
+							))}
+						  </div>
+						);
+					  })()}
 
 						{/* Actions */}
 						<div className="flex flex-col gap-3">
@@ -842,7 +867,7 @@ if (isOrderConfirmed) {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
-                        {translateDietaryTag(tag)}
+                        {tag}
                       </button>
                     ))}
                   </div>
@@ -870,7 +895,7 @@ if (isOrderConfirmed) {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
-                        {translateAllergen(allergen)}
+                        {allergen}
                       </button>
                     ))}
                   </div>
@@ -1139,33 +1164,39 @@ if (isOrderConfirmed) {
                     {dish.explanation[language]}
                   </p>
                   
-                  {/* Dietary Tags */}
-                  {dish.dietaryTags.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-sm font-semibold text-wtm-text mb-2">{t.dietaryLabel}:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {dish.dietaryTags.map(tag => (
-                          <span key={tag} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                            {translateDietaryTag(tag)}
-                          </span>
-                        ))}
+                  {/* UPDATED: Language-aware Dietary Tags in modal */}
+                  {(() => {
+                    const currentDietaryTags = dish.dietaryTagsI18n?.[language] || dish.dietaryTags || [];
+                    return currentDietaryTags.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm font-semibold text-wtm-text mb-2">{t.dietaryLabel}:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {currentDietaryTags.map(tag => (
+                            <span key={tag} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
-                  {/* Allergens */}
-                  {dish.allergens.length > 0 && (
-                    <div className="mb-6">
-                      <p className="text-sm font-semibold text-wtm-text mb-2">{t.contains}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {dish.allergens.map(allergen => (
-                          <span key={allergen} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                            {translateAllergen(allergen)}
-                          </span>
-                        ))}
+                  {/* UPDATED: Language-aware Allergens in modal */}
+                  {(() => {
+                    const currentAllergens = dish.allergensI18n?.[language] || dish.allergens || [];
+                    return currentAllergens.length > 0 && (
+                      <div className="mb-6">
+                        <p className="text-sm font-semibold text-wtm-text mb-2">{t.contains}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {currentAllergens.map(allergen => (
+                            <span key={allergen} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                              {allergen}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   <div className="flex gap-3">
                     <button
