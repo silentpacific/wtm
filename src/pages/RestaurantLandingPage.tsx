@@ -13,7 +13,7 @@ const RestaurantLandingPage: React.FC = () => {
       {/* Hero Section */}
       <section className="pt-20 pb-28 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-6xl sm:text-7xl font-bold mb-8 leading-[0.95] text-wtm-text tracking-tight">
+          <h1 className="text-6xl sm:text-7xl font-bold mb-8 leading-tight text-wtm-text tracking-tight">
             Your Menu<br />Brought To Life.
           </h1>
           
