@@ -50,10 +50,10 @@ const DemosPage: React.FC = () => {
       <div className="max-w-4xl mx-auto text-center">
         {/* Header */}
         <h1 className="text-4xl font-bold mb-6 text-wtm-text">
-          Explore Our Demo Menus
+          Simple Menus - Interactive. Translated. Accessible.
         </h1>
         <p className="text-lg text-wtm-muted mb-8 max-w-2xl mx-auto">
-          No app download required. Works on any phone.
+          Test the experience your customers will love — fast, clear, and simple.
         </p>
 
         {/* CTA Buttons */}

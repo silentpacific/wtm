@@ -14,26 +14,26 @@ const RestaurantLandingPage: React.FC = () => {
       <section className="pt-20 pb-28 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-6xl sm:text-7xl font-bold mb-8 leading-[0.95] text-wtm-text tracking-tight">
-            Everyone's Welcome.<br />Every Time.
+            Make Your Menu Instantly Accessible<br />to Every Guest.
           </h1>
           
           <p className="text-2xl text-wtm-muted mb-16 max-w-2xl mx-auto leading-relaxed font-light">
-            Transform your menu. Global appeal, effortless ordering.
+            From tourists to locals with dietary needs — remove barriers, grow your reach, and give every diner confidence.
           </p>
           
           {/* Feature icons row */}
           <div className="flex flex-wrap justify-center gap-12 mb-16 text-wtm-muted">
             <div className="flex flex-col items-center gap-3 text-center">
               <Globe size={32} className="text-wtm-primary mx-auto" />
-              <span className="text-sm font-medium">Expands Reach</span>
+              <span className="text-sm font-medium">Bring in more customers</span>
             </div>
             <div className="flex flex-col items-center gap-3 text-center">
               <Shield size={32} className="text-wtm-primary mx-auto" />
-              <span className="text-sm font-medium">Prevents Mistakes</span>
+              <span className="text-sm font-medium">Reduce costly order errors</span>
             </div>
             <div className="flex flex-col items-center gap-3 text-center">
               <QrCode size={32} className="text-wtm-primary mx-auto" />
-              <span className="text-sm font-medium">Simplifies Access</span>
+              <span className="text-sm font-medium">No apps. Just scan and order</span>
             </div>
           </div>
           
@@ -43,7 +43,7 @@ const RestaurantLandingPage: React.FC = () => {
               to="/demos" 
               className="bg-transparent text-wtm-primary border-2 border-wtm-primary font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-wtm-primary hover:text-white transition-all duration-200"
             >
-              See a Live Demo
+              See a Live Demo (No App Required)
             </Link>
           </div>
           
@@ -69,21 +69,21 @@ const RestaurantLandingPage: React.FC = () => {
             <div className="text-center">
               <Globe size={48} className="text-wtm-primary mb-6 mx-auto" />
               <h3 className="text-2xl font-semibold text-wtm-text mb-4">
-                Translate instantly. Connect globally.
+                Automatic translations — welcome international guests without hiring extra staff.
               </h3>
             </div>
             
             <div className="text-center">
               <CheckCircle size={48} className="text-wtm-primary mb-6 mx-auto" />
               <h3 className="text-2xl font-semibold text-wtm-text mb-4">
-                Order with confidence. Always.
+                Allergen & diet filters — diners choose safely, staff save time.
               </h3>
             </div>
             
             <div className="text-center md:col-span-2 max-w-lg mx-auto">
               <MessageCircle size={48} className="text-wtm-primary mb-6 mx-auto" />
               <h3 className="text-2xl font-semibold text-wtm-text mb-4">
-                Visual cues. Clear communication.
+                Icons & visual menus — reduce misunderstandings, speed up service.
               </h3>
             </div>
           </div>
@@ -103,30 +103,30 @@ const RestaurantLandingPage: React.FC = () => {
             <div className="text-center">
               <Upload size={56} className="text-wtm-primary mb-8 mx-auto" />
               <h3 className="text-2xl font-bold text-wtm-text mb-6">
-                Setup in Minutes.
+                Transform your menu once.
               </h3>
               <p className="text-lg text-wtm-muted leading-relaxed font-light">
-                Upload your menu. Live instantly. Accessible everywhere.
+                Automatic feature updates as we release them.
               </p>
             </div>
             
             <div className="text-center">
               <Shield size={56} className="text-wtm-primary mb-8 mx-auto" />
               <h3 className="text-2xl font-bold text-wtm-text mb-6">
-                Order with Confidence.
+                Protect your guests, protect your business.
               </h3>
               <p className="text-lg text-wtm-muted leading-relaxed font-light">
-                Every allergen, clearly marked. Every choice, understood.
+                Allergens and restrictions clearly shown.
               </p>
             </div>
             
             <div className="text-center">
               <MessageCircle size={56} className="text-wtm-primary mb-8 mx-auto" />
               <h3 className="text-2xl font-bold text-wtm-text mb-6">
-                Communicate Effortlessly.
+                Faster ordering, fewer mistakes.
               </h3>
               <p className="text-lg text-wtm-muted leading-relaxed font-light">
-                Visual menus. Clear confirmations. Zero misunderstandings.
+                Clear menus your staff and guests trust.
               </p>
             </div>
           </div>
@@ -137,10 +137,10 @@ const RestaurantLandingPage: React.FC = () => {
       <section className="py-28 bg-wtm-secondary text-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-5xl sm:text-6xl font-bold mb-8 leading-tight tracking-tight">
-            Ready to open your doors to everyone?
+            Ready to Attract More Guests and Avoid Order Errors?
           </h2>
           <p className="text-xl mb-16 font-light opacity-90 max-w-2xl mx-auto">
-            Start your journey to a truly inclusive dining experience.
+            Contact us to get on the waitlist. An accessible menu can boost your bottom line.
           </p>
           
           <div className="flex justify-center">
