@@ -23,86 +23,114 @@ const FAQPage: React.FC = () => {
     { id: 'billing', name: 'Billing & Pricing' }
   ];
 
-  const faqs: FAQItem[] = [
-    {
-      id: 'getting-started-1',
-      category: 'getting-started',
-      question: 'How quickly can I get my menu online?',
-      answer: "Upload your menu and it's live in minutes. Our system automatically processes PDF menus and images, creating an accessible digital version with QR codes ready for your tables."
-    },
-    {
-      id: 'getting-started-2',
-      category: 'getting-started',
-      question: 'Do I need technical skills?',
-      answer: 'Not at all. If you can send an email, you can use our platform. Our AI handles the technical complexity, and our interface is intuitive for restaurant owners.'
-    },
-    {
-      id: 'getting-started-3',
-      category: 'getting-started',
-      question: 'What types of restaurants can use WhatTheMenu?',
-      answer: 'Any restaurant - from casual dining to fine dining, cafes to food trucks. Whether you serve Italian, Asian, American, or fusion cuisine, our platform adapts to your menu and style.'
-    },
-    {
-      id: 'menu-1',
-      category: 'menu-management',
-      question: 'What menu formats can I upload?',
-      answer: 'You can upload PDF files, JPG images, or PNG images of your menu. Our AI can read text from photos, scanned documents, or digital menus. The clearer the image, the better the results.'
-    },
-    {
-      id: 'menu-2',
-      category: 'menu-management',
-      question: 'Can I customize translations?',
-      answer: 'Yes - review and edit any item name or description. Our AI provides the initial translation, then you can refine it to match your restaurant\'s voice and style.'
-    },
-    {
-      id: 'menu-3',
-      category: 'menu-management',
-      question: 'How do I update my menu when prices change?',
-      answer: 'Update individual menu items through your dashboard at any time. Changes appear immediately on your customer-facing menu.'
-    },
-    {
-      id: 'customer-1',
-      category: 'customers',
-      question: 'Which languages are supported?',
-      answer: 'English, Spanish, Chinese, French, German, Italian, and more. Languages are automatically detected and translated to provide seamless experiences for international guests.'
-    },
-    {
-      id: 'customer-2',
-      category: 'customers',
-      question: 'How does this help Deaf customers?',
-      answer: 'Menus are visual-first. Guests can point, use preset phrases, and confirm their order on screen without needing to speak with staff.'
-    },
-    {
-      id: 'customer-3',
-      category: 'customers',
-      question: 'Do customers need to download an app?',
-      answer: 'No app download required. Guests simply scan the QR code with their phone\'s built-in camera. The menu opens in their web browser instantly.'
-    },
-    {
-      id: 'customer-4',
-      category: 'customers',
-      question: 'How do allergen filters work?',
-      answer: 'Each menu item can be tagged with allergen information. Guests can filter the entire menu to show only items that are safe for their dietary restrictions, eliminating guesswork and reducing risk.'
-    },
-    {
-      id: 'billing-1',
-      category: 'billing',
-      question: 'How much does it cost?',
-      answer: 'Simple monthly plan with a free 14-day trial. No setup fees, no long-term contracts. Cancel anytime.'
-    },
-    {
-      id: 'billing-2',
-      category: 'billing',
-      question: 'Can I cancel anytime?',
-      answer: 'Absolutely. There are no long-term contracts or cancellation fees. You can cancel your subscription at any time through your dashboard.'
-    },
-    {
-      id: 'billing-3',
-      category: 'billing',
-      question: 'Is there a setup fee?',
-      answer: 'No setup fees. You only pay the monthly subscription after your free trial ends.'
-    }
-  ];
+const faqs: FAQItem[] = [
+  // ------------------------
+  // Getting Started
+  // ------------------------
+  {
+    id: 'getting-started-1',
+    category: 'getting-started',
+    question: 'How quickly can I get my menu online?',
+    answer: 'We’ll have your menu ready within 1 working day, complete with a QR code for your guests to scan.'
+  },
+  {
+    id: 'getting-started-2',
+    category: 'getting-started',
+    question: 'Do I need technical skills?',
+    answer: 'Not at all. Send us your menu details and we’ll handle the rest. Your diners simply scan a QR code to view it on their phones.'
+  },
+  {
+    id: 'getting-started-3',
+    category: 'getting-started',
+    question: 'Does this connect to my ordering system?',
+    answer: 'No. There are no integrations or complex setups. Your ordering system stays the same — we keep it simple, and we do most of the work for you.'
+  },
+  {
+    id: 'getting-started-4',
+    category: 'getting-started',
+    question: 'Do you provide printed QR codes for tables?',
+    answer: 'We provide the digital QR code file. You can print as many copies as you need — for each table, at your entrance, or even on your printed menus.'
+  },
+  {
+    id: 'getting-started-5',
+    category: 'getting-started',
+    question: 'What types of restaurants can use WhatTheMenu?',
+    answer: 'Any restaurant — from cafes to fine dining, food trucks to franchises. If you serve guests, we make your menu accessible.'
+  },
+
+  // ------------------------
+  // Menu Management
+  // ------------------------
+  {
+    id: 'menu-1',
+    category: 'menu-management',
+    question: 'How do I update my menu when prices or items change?',
+    answer: 'Just let us know and we’ll update your menu for you. The QR code stays the same — your guests always see the latest version.'
+  },
+  {
+    id: 'menu-2',
+    category: 'menu-management',
+    question: 'How do allergen and dietary filters work?',
+    answer: 'Menus are tagged with allergen and dietary information so guests can filter for safe options, reducing risk and saving staff time.'
+  },
+  {
+    id: 'menu-3',
+    category: 'menu-management',
+    question: 'Which languages are supported?',
+    answer: 'Guests can view menus in multiple languages including English, Spanish, Chinese, French, German, Italian, and more.'
+  },
+
+  // ------------------------
+  // Customers & Staff
+  // ------------------------
+  {
+    id: 'customers-1',
+    category: 'customers',
+    question: 'Do customers need to download an app?',
+    answer: 'No. Guests simply scan your QR code with their phone’s camera and the menu opens instantly in their browser.'
+  },
+  {
+    id: 'customers-2',
+    category: 'customers',
+    question: 'How does this help Deaf customers?',
+    answer: 'Menus include clear icons and preset communication phrases, making it easy for Deaf diners to order confidently without barriers.'
+  },
+  {
+    id: 'customers-3',
+    category: 'customers',
+    question: 'Do my staff need training to use this with Deaf customers?',
+    answer: 'No training required. When a Deaf customer shows a question on their phone, staff can respond with simple preset replies like “Yes,” “No,” or “Let me check.” It’s very intuitive and easy to use.'
+  },
+  {
+    id: 'customers-4',
+    category: 'customers',
+    question: 'Can I promote this as a feature of my restaurant?',
+    answer: 'Yes. Restaurants often market this as an accessibility feature — showing that you welcome Deaf diners and international guests. It’s also a unique way to stand out as innovative and inclusive.'
+  },
+
+  // ------------------------
+  // Billing
+  // ------------------------
+  {
+    id: 'billing-1',
+    category: 'billing',
+    question: 'How much does it cost?',
+    answer: 'Our simple pricing is $30 per month per menu. No setup fees, no hidden costs.'
+  },
+  {
+    id: 'billing-2',
+    category: 'billing',
+    question: 'Can I cancel anytime?',
+    answer: 'Yes. There are no long-term contracts or cancellation fees. You’re free to cancel at any time.'
+  },
+  {
+    id: 'billing-3',
+    category: 'billing',
+    question: 'Is there a setup fee?',
+    answer: 'No. Setup is included in your monthly fee.'
+  }
+];
+
 
   const toggleItem = (itemId: string) => {
     setOpenItems(prev =>
