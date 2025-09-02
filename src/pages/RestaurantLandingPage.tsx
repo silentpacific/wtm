@@ -134,18 +134,18 @@ const RestaurantLandingPage: React.FC = () => {
       <section className="py-28 bg-wtm-secondary text-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-5xl sm:text-6xl font-bold mb-8 leading-tight tracking-tight">
-            Ready to Attract More Guests and Avoid Order Errors?
+            Bring Your Menu to Life.
           </h2>
           <p className="text-xl mb-16 font-light opacity-90 max-w-2xl mx-auto">
-            Contact us to get on the waitlist. An accessible menu can boost your bottom line.
+            Contact us to get onboarded for free. An accessible menu can boost your bottom line.
           </p>
           
           <div className="flex justify-center">
             <Link 
-              to="/faq" 
+              to="/contact" 
               className="bg-transparent text-white border-2 border-white font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-white/10 transition-all duration-200"
             >
-              Have Questions?
+              Get Started
             </Link>
           </div>
         </div>
