@@ -6,11 +6,15 @@ const ContactPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    // Netlify requires the form-name field to identify which form this is
+    formData.append("form-name", "contact");
 
     try {
       await fetch("/", {
         method: "POST",
-        body: new FormData(form),
+        body: formData,
       });
       setStatus("success");
       form.reset();
