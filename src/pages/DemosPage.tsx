@@ -1,3 +1,4 @@
+// src/pages/DemosPage.tsx
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../services/supabaseClient";
@@ -46,17 +47,17 @@ const DemosPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white py-16 px-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-4xl mx-auto text-center">
         {/* Header */}
-        <h1 className="text-4xl font-bold text-center mb-6">
+        <h1 className="text-4xl font-bold mb-6 text-wtm-text">
           Explore Our Demo Menus
         </h1>
-        <p className="text-lg text-gray-600 text-center mb-8">
+        <p className="text-lg text-wtm-muted mb-8 max-w-2xl mx-auto">
           No app download required. Works on any phone.
         </p>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-6 justify-center mb-8">
+        <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
           <Link
             to="/faq"
             className="bg-transparent text-wtm-primary border-2 border-wtm-primary font-semibold px-8 py-4 rounded-2xl text-lg hover:bg-wtm-primary hover:text-white transition-all duration-200"
@@ -73,14 +74,16 @@ const DemosPage: React.FC = () => {
         </div>
 
         {/* Demo Menus */}
-        <h2 className="text-2xl font-semibold text-center mb-10">Restaurants</h2>
+        <h2 className="text-2xl font-semibold mb-10 text-wtm-text">
+          Restaurants
+        </h2>
 
         {loading ? (
-          <p className="text-center text-gray-500">Loading menus...</p>
+          <p className="text-gray-500">Loading menus...</p>
         ) : menus.length === 0 ? (
-          <p className="text-center text-gray-500">No menus available.</p>
+          <p className="text-gray-500">No menus available.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
             {menus.map((menu) => (
               <div
                 key={menu.id}
@@ -88,7 +91,7 @@ const DemosPage: React.FC = () => {
               >
                 <div>
                   {/* Restaurant Name */}
-                  <h3 className="text-xl font-semibold mb-1">
+                  <h3 className="text-xl font-semibold mb-1 text-wtm-text">
                     {menu.restaurants?.name || "Unnamed Restaurant"}
                   </h3>
                   {/* Menu Name */}

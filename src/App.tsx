@@ -86,6 +86,13 @@ const AppContent: React.FC = () => {
         <Route path="/demos/sample-menu-3" element={<SampleMenu3 />} />
         <Route path="/demos/sample-menu-4" element={<SampleMenu4 />} />
       </Routes>
+
+      {/* Footer (always visible except in /r/ pages) */}
+      {!hideHeader && (
+        <footer className="mt-16 py-6 border-t text-center text-sm text-gray-500">
+          © 2025 WhatTheMenu.com — Made with ❤️ in Adelaide
+        </footer>
+      )}
     </>
   );
 };

@@ -1,5 +1,5 @@
 // src/pages/RestaurantLandingPage.tsx - Redirects logged-in users to dashboard
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Globe, Shield, QrCode, Upload, CheckCircle, MessageCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,28 +23,22 @@ const RestaurantLandingPage: React.FC = () => {
           
           {/* Feature icons row */}
           <div className="flex flex-wrap justify-center gap-12 mb-16 text-wtm-muted">
-            <div className="flex flex-col items-center gap-3">
-              <Globe size={32} className="text-wtm-primary" />
+            <div className="flex flex-col items-center gap-3 text-center">
+              <Globe size={32} className="text-wtm-primary mx-auto" />
               <span className="text-sm font-medium">Expands Reach</span>
             </div>
-            <div className="flex flex-col items-center gap-3">
-              <Shield size={32} className="text-wtm-primary" />
+            <div className="flex flex-col items-center gap-3 text-center">
+              <Shield size={32} className="text-wtm-primary mx-auto" />
               <span className="text-sm font-medium">Prevents Mistakes</span>
             </div>
-            <div className="flex flex-col items-center gap-3">
-              <QrCode size={32} className="text-wtm-primary" />
+            <div className="flex flex-col items-center gap-3 text-center">
+              <QrCode size={32} className="text-wtm-primary mx-auto" />
               <span className="text-sm font-medium">Simplifies Access</span>
             </div>
           </div>
           
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            {/*<Link 
-             to="/signup" 
-              className="bg-wtm-primary text-white font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-wtm-primary-600 hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              Start Free Trial
-            </Link> */}
+          <div className="flex justify-center">
             <Link 
               to="/demos" 
               className="bg-transparent text-wtm-primary border-2 border-wtm-primary font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-wtm-primary hover:text-white transition-all duration-200"
@@ -61,8 +55,8 @@ const RestaurantLandingPage: React.FC = () => {
 
       {/* The New Dining Experience Section */}
       <section className="py-28 bg-wtm-bg">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-20">
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          <div className="mb-20">
             <h2 className="text-5xl font-bold text-wtm-text mb-8 tracking-tight">
               The New Dining Experience.
             </h2>
@@ -72,22 +66,22 @@ const RestaurantLandingPage: React.FC = () => {
           </div>
           
           <div className="grid md:grid-cols-2 gap-16 max-w-4xl mx-auto">
-            <div className="text-center md:text-left">
-              <Globe size={48} className="text-wtm-primary mb-6 mx-auto md:mx-0" />
+            <div className="text-center">
+              <Globe size={48} className="text-wtm-primary mb-6 mx-auto" />
               <h3 className="text-2xl font-semibold text-wtm-text mb-4">
                 Translate instantly. Connect globally.
               </h3>
             </div>
             
-            <div className="text-center md:text-left">
-              <CheckCircle size={48} className="text-wtm-primary mb-6 mx-auto md:mx-0" />
+            <div className="text-center">
+              <CheckCircle size={48} className="text-wtm-primary mb-6 mx-auto" />
               <h3 className="text-2xl font-semibold text-wtm-text mb-4">
                 Order with confidence. Always.
               </h3>
             </div>
             
-            <div className="text-center md:text-left md:col-span-2 max-w-lg mx-auto">
-              <MessageCircle size={48} className="text-wtm-primary mb-6 mx-auto md:mx-0" />
+            <div className="text-center md:col-span-2 max-w-lg mx-auto">
+              <MessageCircle size={48} className="text-wtm-primary mb-6 mx-auto" />
               <h3 className="text-2xl font-semibold text-wtm-text mb-4">
                 Visual cues. Clear communication.
               </h3>
@@ -98,8 +92,8 @@ const RestaurantLandingPage: React.FC = () => {
 
       {/* Clarity & Connection Section */}
       <section className="py-28 bg-white">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-20">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <div className="mb-20">
             <h2 className="text-5xl font-bold text-wtm-text mb-8 tracking-tight">
               Clarity. Connection. Your Table.
             </h2>
@@ -149,13 +143,7 @@ const RestaurantLandingPage: React.FC = () => {
             Start your journey to a truly inclusive dining experience.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            {/*<Link 
-              to="/signup" 
-              className="bg-white text-wtm-secondary font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-gray-50 hover:scale-[1.02] transition-all duration-200 shadow-lg"
-            >
-              Start Your Free Trial
-            </Link> */}
+          <div className="flex justify-center">
             <Link 
               to="/faq" 
               className="bg-transparent text-white border-2 border-white font-semibold px-12 py-5 rounded-2xl text-lg hover:bg-white/10 transition-all duration-200"

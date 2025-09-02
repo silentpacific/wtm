@@ -41,13 +41,18 @@ const ContactPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white py-16 px-6">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-6">Contact Us</h1>
-        <p className="text-lg text-gray-600 text-center mb-8">
+      <div className="max-w-2xl mx-auto text-center">
+        {/* Header */}
+        <h1 className="text-4xl font-bold mb-6 text-wtm-text">Contact Us</h1>
+        <p className="text-lg text-wtm-muted mb-12">
           Have questions? Send us a message and we’ll get back to you.
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-gray-50 p-8 rounded-2xl shadow">
+        {/* Contact Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 bg-gray-50 p-8 rounded-2xl shadow text-left"
+        >
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700">
               Your Name
@@ -102,10 +107,14 @@ const ContactPage: React.FC = () => {
           </button>
 
           {status === "success" && (
-            <p className="text-green-600 text-center mt-4">Message sent successfully!</p>
+            <p className="text-green-600 text-center mt-4">
+              Message sent successfully!
+            </p>
           )}
           {status === "error" && (
-            <p className="text-red-600 text-center mt-4">Something went wrong. Please try again.</p>
+            <p className="text-red-600 text-center mt-4">
+              Something went wrong. Please try again.
+            </p>
           )}
         </form>
       </div>
