@@ -1,8 +1,24 @@
-// src/pages/ContactPage.tsx
 import React, { useState } from "react";
 
 const ContactPage: React.FC = () => {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+
+    try {
+      await fetch("/", {
+        method: "POST",
+        body: new FormData(form),
+      });
+      setStatus("success");
+      form.reset();
+    } catch (error) {
+      console.error("Form submission error:", error);
+      setStatus("error");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white py-16 px-6">
@@ -18,14 +34,19 @@ const ContactPage: React.FC = () => {
           name="contact"
           method="POST"
           data-netlify="true"
-          onSubmit={() => setStatus("success")}
+          data-netlify-honeypot="bot-field"
+          onSubmit={handleSubmit}
           className="space-y-6 bg-gray-50 p-8 rounded-2xl shadow text-left"
         >
-          {/* Hidden input required for Netlify */}
+          {/* Hidden inputs required for Netlify */}
           <input type="hidden" name="form-name" value="contact" />
+          <input type="hidden" name="bot-field" />
 
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700"
+            >
               Your Name
             </label>
             <input
@@ -38,7 +59,10 @@ const ContactPage: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
               Your Email
             </label>
             <input
@@ -51,7 +75,10 @@ const ContactPage: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="message"
+              className="block text-sm font-medium text-gray-700"
+            >
               Message
             </label>
             <textarea
@@ -72,7 +99,12 @@ const ContactPage: React.FC = () => {
 
           {status === "success" && (
             <p className="text-green-600 text-center mt-4">
-              Thanks! We’ll be in touch soon.
+              ✅ Thanks! We’ll be in touch soon.
+            </p>
+          )}
+          {status === "error" && (
+            <p className="text-red-600 text-center mt-4">
+              ❌ Something went wrong. Please try again.
             </p>
           )}
         </form>
