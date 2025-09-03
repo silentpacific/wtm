@@ -695,16 +695,6 @@ if (isOrderConfirmed) {
                 )}
               </button>
             )}
-
-            {/* Order Button */}
-            {totalItems > 0 && (
-              <button
-                onClick={() => setIsOrderListExpanded(true)}
-                className="bg-wtm-primary text-white font-semibold px-4 py-2 rounded-xl hover:bg-wtm-primary-600 transition-colors relative"
-              >
-                {t.yourOrder} ({totalItems})
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -739,7 +729,7 @@ if (isOrderConfirmed) {
 						</div>
 						<div className="text-2xl font-bold text-wtm-primary shrink-0">
 						  {(!item.variants || item.variants.length === 0) ? 
-							`${item.price.toFixed(2)}` : 
+							`$${item.price.toFixed(2)}` : 
 							<span className="text-sm text-gray-500">Multiple options</span>
 						  }
 						</div>
@@ -1231,70 +1221,84 @@ if (isOrderConfirmed) {
         </div>
       )}
 	  {/* ✅ Variant Selector Modal */}
-{selectedDish && (
-  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-xl max-w-md w-full p-6">
-      <div className="flex justify-between items-start mb-4">
-        <h3 className="text-2xl font-bold text-wtm-text">{selectedDish.name[language]}</h3>
-        <button
-          onClick={() => setSelectedDish(null)}
-          className="p-2 hover:bg-gray-100 rounded-full"
-        >
-          <X size={24} className="text-wtm-muted" />
-        </button>
-      </div>
+		{selectedDish && (
+		  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+			<div className="bg-white rounded-3xl border border-gray-100 shadow-xl max-w-md w-full p-6">
+			  <div className="flex justify-between items-start mb-4">
+				<h3 className="text-2xl font-bold text-wtm-text">{selectedDish.name[language]}</h3>
+				<button
+				  onClick={() => setSelectedDish(null)}
+				  className="p-2 hover:bg-gray-100 rounded-full"
+				>
+				  <X size={24} className="text-wtm-muted" />
+				</button>
+			  </div>
 
-      {selectedDish.variants?.map(variant => (
-		  <label
-			key={variant.id}
-			className="flex items-center justify-between border rounded-lg p-3 mb-2 cursor-pointer"
-		  >
-          <input
-            type="radio"
-            name="variant"
-            checked={selectedVariant?.id === variant.id}
-            onChange={() => setSelectedVariant(variant)}
-          />
-          <span>{variant.name}</span>
-          <span>${variant.price.toFixed(2)}</span>
-        </label>
-      ))}
+			  {selectedDish.variants?.map(variant => (
+				  <label
+					key={variant.id}
+					className="flex items-center justify-between border rounded-lg p-3 mb-2 cursor-pointer"
+				  >
+				  <input
+					type="radio"
+					name="variant"
+					checked={selectedVariant?.id === variant.id}
+					onChange={() => setSelectedVariant(variant)}
+				  />
+				  <span>{variant.name}</span>
+				  <span>${variant.price.toFixed(2)}</span>
+				</label>
+			  ))}
 
-      <div className="flex items-center justify-between mt-4">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setVariantQuantity(q => Math.max(1, q - 1))}
-            className="px-3 py-1 border rounded-lg"
-          >
-            -
-          </button>
-          <span>{variantQuantity}</span>
-          <button
-            onClick={() => setVariantQuantity(q => q + 1)}
-            className="px-3 py-1 border rounded-lg"
-          >
-            +
-          </button>
-        </div>
-        <button
-          disabled={!selectedVariant}
-          onClick={() => {
-            if (selectedVariant) {
-              addToOrder(selectedDish.id, selectedVariant.id, variantQuantity);
-              setSelectedDish(null);
-              setSelectedVariant(null);
-              setVariantQuantity(1);
-            }
-          }}
-          className="bg-wtm-primary text-white px-4 py-2 rounded-lg disabled:opacity-50"
-        >
-          {t.addToOrder}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+			  <div className="flex items-center justify-between mt-4">
+				<div className="flex items-center gap-2">
+				  <button
+					onClick={() => setVariantQuantity(q => Math.max(1, q - 1))}
+					className="px-3 py-1 border rounded-lg"
+				  >
+					-
+				  </button>
+				  <span>{variantQuantity}</span>
+				  <button
+					onClick={() => setVariantQuantity(q => q + 1)}
+					className="px-3 py-1 border rounded-lg"
+				  >
+					+
+				  </button>
+				</div>
+				<button
+				  disabled={!selectedVariant}
+				  onClick={() => {
+					if (selectedVariant) {
+					  addToOrder(selectedDish.id, selectedVariant.id, variantQuantity);
+					  setSelectedDish(null);
+					  setSelectedVariant(null);
+					  setVariantQuantity(1);
+					}
+				  }}
+				  className="bg-wtm-primary text-white px-4 py-2 rounded-lg disabled:opacity-50"
+				>
+				  {t.addToOrder}
+				</button>
+			  </div>
+			</div>
+		  </div>
+		)}
 
+		  {/* Sticky bottom Your Order button */}
+		  {totalItems > 0 && (
+			<div className="sticky bottom-0 w-full bg-white border-t border-gray-200 p-4 shadow-lg">
+			  <div className="max-w-2xl mx-auto">
+				<button
+				  onClick={() => setIsOrderListExpanded(true)}
+				  className="w-full bg-wtm-primary text-white font-semibold px-6 py-4 rounded-xl flex items-center justify-center gap-2 text-lg"
+				>
+				  {t.yourOrder} ({totalItems}) - ${orderTotal.toFixed(2)}
+				</button>
+			  </div>
+			</div>
+		  )}
+		  
     </div>
   );
 };
