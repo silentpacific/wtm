@@ -417,6 +417,7 @@ const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>
   const confirmOrder = () => {
     setIsOrderConfirmed(true);
     setIsOrderListExpanded(false);
+	window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const clearAllFilters = () => {
