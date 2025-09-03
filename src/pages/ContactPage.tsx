@@ -34,12 +34,12 @@ const ContactPage: React.FC = () => {
         </p>
 
         {/* Netlify Contact Form */}
-        <form
-          name="contact"
-          method="POST"
-          data-netlify="true"
-          data-netlify-honeypot="bot-field"
-          onSubmit={handleSubmit}
+		<form
+		  name="contact"
+		  method="POST"
+		  data-netlify="true"
+		  data-netlify-honeypot="bot-field"
+		  onSubmit={handleSubmit}
           className="space-y-6 bg-gray-50 p-8 rounded-2xl shadow text-left"
         >
           {/* Hidden inputs required for Netlify */}
