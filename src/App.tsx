@@ -17,10 +17,6 @@ import RestaurantLoginPage from "./pages/RestaurantLoginPage";
 import MenuEditorPage from "./pages/MenuEditorPage";
 import QRCodesPage from "./pages/QRCodesPage";
 import DemosPage from "./pages/DemosPage";
-import SampleMenu1 from "./pages/SampleMenu1";
-import SampleMenu2 from "./pages/SampleMenu2";
-import SampleMenu3 from "./pages/SampleMenu3";
-import SampleMenu4 from "./pages/SampleMenu4";
 import FAQPage from "./pages/FAQPage";
 import ContactPage from "./pages/ContactPage";
 
@@ -81,10 +77,6 @@ const AppContent: React.FC = () => {
         {/* Extra pages */}
         <Route path="/faq" element={<FAQPage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/demos/sample-menu-1" element={<SampleMenu1 />} />
-        <Route path="/demos/sample-menu-2" element={<SampleMenu2 />} />
-        <Route path="/demos/sample-menu-3" element={<SampleMenu3 />} />
-        <Route path="/demos/sample-menu-4" element={<SampleMenu4 />} />
       </Routes>
 
       {/* Footer (always visible except in /r/ pages) */}
